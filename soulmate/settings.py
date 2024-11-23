@@ -105,17 +105,24 @@ RAZORPAY_KEY_SECRET = 'your_key_secret'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'soulmate$db',  # Your database name (replace with your actual DB name)
-        'USER': 'soulmate',  # Your MySQL username
-        'PASSWORD': 'admin@123',  # Replace with your actual MySQL password
-        'HOST': 'soulmate.mysql.pythonanywhere-services.com',  # Your MySQL host address
-        'PORT': '3306',  # MySQL default port
-        'OPTIONS': {
-    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-}
+        'NAME': 'bestiedb',
+        'USER': 'admin',
+        'PASSWORD': 'admin123',
+        'HOST': 'bestiedb.cluster-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',
+        'PORT': '3306',
     }
 }
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'bestiedb',
+        'USER': 'admin',
+        'PASSWORD': 'admin123',
+        'HOST': 'bestiedb.cluster-ro-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',
+        'PORT': '3306',
+    }
+}
 
 
 

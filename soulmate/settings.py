@@ -108,21 +108,19 @@ DATABASES = {
         'NAME': 'bestiedb',
         'USER': 'admin',
         'PASSWORD': 'admin123',
-        'HOST': 'bestiedb.cluster-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',
+        'HOST': 'bestiedb.cluster-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',  # Writer endpoint
         'PORT': '3306',
-    }
-}
-
-DATABASES = {
-    'default': {
+    },
+    'replica': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'bestiedb',
         'USER': 'admin',
         'PASSWORD': 'admin123',
-        'HOST': 'bestiedb.cluster-ro-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',
+        'HOST': 'bestiedb.cluster-ro-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',  # Reader endpoint
         'PORT': '3306',
     }
 }
+
 
 
 

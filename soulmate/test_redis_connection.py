@@ -7,7 +7,3 @@ try:
     print("Connected to Redis successfully!")
 except redis.ConnectionError as e:
     print(f"Connection failed: {e}")
-<<<<<<< HEAD
-    
-=======
->>>>>>> ed615b208044ad28b7e2a4c3430badadb70be97a

@@ -1,5 +1,5 @@
 from celery import shared_task
-from .models import CallHistory
+from user.models import CallHistory
 
 @shared_task
 def deduct_coins(call_id):

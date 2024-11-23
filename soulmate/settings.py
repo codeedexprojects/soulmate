@@ -104,22 +104,15 @@ RAZORPAY_KEY_SECRET = 'your_key_secret'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bestiedb',
-        'USER': 'admin',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'mypostgresdb',  # e.g., postgres or custom DB name
+        'USER': 'bestieadmin',            # Master username
         'PASSWORD': 'admin123',
-        'HOST': 'bestiedb.cluster-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',  # Writer endpoint
-        'PORT': '3306',
-    },
-    'replica': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bestiedb',
-        'USER': 'admin',
-        'PASSWORD': 'admin123',
-        'HOST': 'bestiedb.cluster-ro-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',  # Reader endpoint
-        'PORT': '3306',
+        'HOST': 'mypostgresdb.cluster-ro-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',   # e.g., mypostgresdb.cluster-xxxxxx.ap-south-1.rds.amazonaws.com
+        'PORT': '5432',             # Default PostgreSQL port
     }
 }
+
 
 
 

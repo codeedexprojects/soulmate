@@ -105,11 +105,11 @@ RAZORPAY_KEY_SECRET = 'your_key_secret'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mypostgresdb',  # e.g., postgres or custom DB name
-        'USER': 'bestieadmin',            # Master username
+        'NAME': 'mypostgresdb', 
+        'USER': 'bestieadmin',        
         'PASSWORD': 'admin123',
-        'HOST': 'mypostgresdb.cluster-ro-cnss2q2sesuu.ap-south-1.rds.amazonaws.com',   # e.g., mypostgresdb.cluster-xxxxxx.ap-south-1.rds.amazonaws.com
-        'PORT': '5432',             # Default PostgreSQL port
+        'HOST': '172.31.14.253',  # e.g., mypostgresdb.cluster-xxxxxx.ap-south-1.rds.amazonaws.com
+        'PORT': '5432',            
     }
 }
 

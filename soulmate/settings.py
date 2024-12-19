@@ -113,15 +113,16 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'soulmate$def',  # Your database name (replace with your actual DB name)
-        'USER': 'soulmate',  # Your MySQL username
-        'PASSWORD': 'admin@123',  # Replace with your actual MySQL password
-        'HOST': 'soulmate.mysql.pythonanywhere-services.com',  # Your MySQL host address
+        'USER': 'database-1',
+        'PASSWORD': 'admin123',  # Replace with your actual MySQL password
+        'HOST': 'database-1.cp86aus24g28.ap-south-1.rds.amazonaws.com',  # Your RDS endpoint
         'PORT': '3306',  # MySQL default port
         'OPTIONS': {
-    'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-}
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        }
     }
 }
+
 
 
 

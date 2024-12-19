@@ -114,7 +114,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'soulmate$def',  # Your database name (replace with your actual DB name)
         'USER': 'database-1',
-        'PASSWORD': 'admin123',  # Replace with your actual MySQL password
+        'PASSWORD': 'admin',  # Replace with your actual MySQL password
         'HOST': 'database-1.cp86aus24g28.ap-south-1.rds.amazonaws.com',  # Your RDS endpoint
         'PORT': '3306',  # MySQL default port
         'OPTIONS': {

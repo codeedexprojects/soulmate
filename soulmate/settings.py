@@ -112,16 +112,17 @@ RAZORPAY_KEY_SECRET = 'your_key_secret'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'soulmate_db',  # Your database name (replace with your actual DB name)
-        'USER': 'soulamte',
-        'PASSWORD': 'admin123',  # Replace with your actual MySQL password
-        'HOST': 'soulmate.cp86aus24g28.ap-south-1.rds.amazonaws.com',  # Your RDS endpoint
-        'PORT': '3306',  # MySQL default port
+        'NAME': 'soulmate_db',
+        'USER': 'soulmate',  # Make sure this matches the actual username
+        'PASSWORD': 'admin123',  # Replace with your actual password
+        'HOST': 'soulmate.cp86aus24g28.ap-south-1.rds.amazonaws.com',
+        'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-        }
+        },
     }
 }
+
 
 
 

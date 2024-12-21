@@ -113,8 +113,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'soulmate_db',
-        'USER': 'soulmate',  # Make sure this matches the actual username
-        'PASSWORD': 'admin123',  # Replace with your actual password
+        'USER': 'soulmate',
+        'PASSWORD': 'admin123',  
         'HOST': 'soulmate.cp86aus24g28.ap-south-1.rds.amazonaws.com',
         'PORT': '3306',
         'OPTIONS': {
@@ -126,27 +126,7 @@ DATABASES = {
 
 
 
-
-
-ZIGOCLOUD_API = {
-    'APP_ID': 574557540,
-    'API_KEY': 'd1d01da09192718835de44163b28bfc8efb10205ba87262091a58b8bfada747d',
-    # Add other settings if needed
-}
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'soulmate$database',  # Your database name (replace with your actual DB name)
-#         'USER': 'soulmate',  # Your MySQL username
-#         'PASSWORD': 'admin@123',  # Replace with your actual MySQL password
-#         'HOST': 'soulmate.mysql.pythonanywhere-services.com',  # Your MySQL host address
-#         'PORT': '3306',  # MySQL default port
-#     }
-# }
-
-
-CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins (for development purposes)
-# You can restrict this by specifying allowed origins like below:
+CORS_ALLOW_ALL_ORIGINS = True  
 # CORS_ALLOWED_ORIGINS = [
 #     'http://localhost:3000',
 #     'http://127.0.0.1:3000',
@@ -161,7 +141,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'praveen.codeedex@gmail.com'  # Replace with your email
 EMAIL_HOST_PASSWORD = 'fbmq ueku gkav mygc'
-
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),

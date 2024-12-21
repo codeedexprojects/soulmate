@@ -8,6 +8,7 @@ urlpatterns = [
     path('verify-otp/', VerifyOTPView.as_view(), name='verify_otp'),
     path('delete-user/<int:user_id>/', DeleteUserAccountView.as_view(), name='delete-user-account'),
 
+    
     path('users/', UserListView.as_view(), name='user_list'),
     path('users/<int:id>/', UserDetailView.as_view(), name='user_detail'),
     path('user/<int:user_id>/coin-balance/', GetUserCoinBalanceView.as_view(), name='get_user_coin_balance'),
@@ -80,6 +81,7 @@ urlpatterns = [
     path('leave_channel_for_executive/', LeaveChannelForExecutiveView.as_view(), name='leave_channel_for_executive'),
     path('leave_channel_for_user/', LeaveChannelForUserView.as_view(), name='leave_channel_for_user'),
     path('leave-all-calls/', LeaveAllCallsForExecutiveView.as_view(), name='leave_all_calls_for_executive'),
+
 
 ]
 

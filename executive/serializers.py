@@ -382,6 +382,7 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
     coins_deducted = serializers.SerializerMethodField()
     coins_added = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    new_duration = serializers.SerializerMethodField()  # New field added
 
     class Meta:
         model = AgoraCallHistory
@@ -393,6 +394,7 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
             'formatted_duration',
             'duration_minutes_seconds',
             'duration_hours_minutes_seconds',
+            'new_duration',  # Include new field in the output
         ]
 
     def get_call_history(self, obj):
@@ -459,6 +461,24 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return obj.status
+
+    def get_new_duration(self, obj):
+        if obj.duration:
+            total_seconds = obj.duration.total_seconds()
+            hours, remainder = divmod(int(total_seconds), 3600)
+            minutes, seconds = divmod(remainder, 60)
+
+            parts = []
+            if hours > 0:
+                parts.append(f"{hours} hrs")
+            if minutes > 0:
+                parts.append(f"{minutes} mins")
+            if seconds > 0:
+                parts.append(f"{seconds} sec" if seconds == 1 else f"{seconds} secs")
+
+            return " ".join(parts)
+        return None
+
 
 
 

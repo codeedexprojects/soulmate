@@ -392,9 +392,7 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
             'coins_added',
             'status',
             'formatted_duration',
-            'duration_minutes_seconds',
-            'duration_hours_minutes_seconds',
-            'new_duration',  # Include new field in the output
+            
         ]
 
     def get_call_history(self, obj):
@@ -431,28 +429,6 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
             "duration": obj.duration.total_seconds() if obj.duration else None,
         }
 
-    def get_formatted_duration(self, obj):
-        if obj.duration:
-            total_seconds = obj.duration.total_seconds()
-            minutes, seconds = divmod(int(total_seconds), 60)
-            return f"{minutes} minutes, {seconds} seconds"
-        return None
-
-    def get_duration_minutes_seconds(self, obj):
-        if obj.duration:
-            total_seconds = obj.duration.total_seconds()
-            minutes, seconds = divmod(int(total_seconds), 60)
-            return {"minutes": minutes, "seconds": seconds}
-        return None
-
-    def get_duration_hours_minutes_seconds(self, obj):
-        if obj.duration:
-            total_seconds = obj.duration.total_seconds()
-            hours, remainder = divmod(int(total_seconds), 3600)
-            minutes, seconds = divmod(remainder, 60)
-            return {"hours": hours, "minutes": minutes, "seconds": seconds}
-        return None
-
     def get_coins_deducted(self, obj):
         return obj.coins_deducted
 
@@ -462,7 +438,7 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
     def get_status(self, obj):
         return obj.status
 
-    def get_new_duration(self, obj):
+    def get_formatted_duration(self, obj):
         if obj.duration:
             total_seconds = obj.duration.total_seconds()
             hours, remainder = divmod(int(total_seconds), 3600)

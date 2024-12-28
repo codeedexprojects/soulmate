@@ -394,20 +394,12 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
             'status',
             'formatted_duration',
             'is_blocked',
-            
         ]
 
     def get_call_history(self, obj):
-        # Safely handle missing User or Executive
-        try:
-            user = obj.user
-        except User.DoesNotExist:
-            user = None
-
-        try:
-            executive = obj.executive
-        except Executives.DoesNotExist:
-            executive = None
+        # Handle missing User or Executive safely
+        user = getattr(obj, 'user', None)
+        executive = getattr(obj, 'executive', None)
 
         return {
             "id": obj.id,
@@ -458,9 +450,10 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
         return None
 
     def get_is_blocked(self, obj):
-        from user.models import UserBlock  # Replace with actual import path
-        blocked = UserBlock.objects.filter(executive=obj, is_blocked=True).exists()
+        from user.models import UserBlock
+        blocked = UserBlock.objects.filter(executive=obj.executive, is_blocked=True).exists()
         return blocked
+
 
 
 

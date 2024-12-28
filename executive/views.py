@@ -195,11 +195,12 @@ class TalkTimeHistoryByExecutiveAndUserView(ListAPIView):
         except Executives.DoesNotExist:
             raise NotFound(f"Executive with ID {executive_id} does not exist.")
 
-        # Query the call history for the given executive and user
+        # Query the call history for the given executive and user, ordered by start_time (most recent first)
         queryset = AgoraCallHistory.objects.filter(executive_id=executive_id, user_id=user_id).order_by('-start_time')
 
-        # If no records exist, return an empty list instead of raising an error
-        return queryset
+        # Return only the last 5 records
+        return queryset[:5]
+
 
 
 

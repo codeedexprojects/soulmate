@@ -316,10 +316,12 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
         return round(total_duration.total_seconds() / 60, 2)
 
     def get_total_accepted_calls(self, obj):
-        return AgoraCallHistory.objects.filter(executive=obj, status='left').count()
+        start_of_day = now().replace(hour=0, minute=0, second=0, microsecond=0)
+        return AgoraCallHistory.objects.filter(executive=obj, status='left', start_time__gte=start_of_day).count()
 
     def get_total_missed_calls(self, obj):
-        return AgoraCallHistory.objects.filter(executive=obj, status='missed').count()
+        start_of_day = now().replace(hour=0, minute=0, second=0, microsecond=0)
+        return AgoraCallHistory.objects.filter(executive=obj, status='missed', start_time__gte=start_of_day).count()
 
     def get_coins_earned_today(self, obj):
         start_of_day = now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -372,6 +374,7 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
 
 
 
+
 from django.utils.timezone import localtime
 
 class TalkTimeHistorySerializer(serializers.ModelSerializer):
@@ -379,7 +382,8 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
     formatted_duration = serializers.SerializerMethodField()
     coins_deducted = serializers.SerializerMethodField()
     coins_added = serializers.SerializerMethodField()
-    status = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField() 
+    is_blocked = serializers.SerializerMethodField() 
 
     class Meta:
         model = AgoraCallHistory
@@ -389,6 +393,7 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
             'coins_added',
             'status',
             'formatted_duration',
+            'is_blocked',
             
         ]
 
@@ -451,6 +456,11 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
 
             return " ".join(parts)
         return None
+
+    def get_is_blocked(self, obj):
+        from user.models import UserBlock  # Replace with the actual import path
+        # Check if the user is blocked
+        return UserBlock.objects.filter(blocked_user=obj.user).exists()
 
 
 

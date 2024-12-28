@@ -185,6 +185,7 @@ class TalkTimeHistoryByExecutiveAndUserView(ListAPIView):
         executive_id = self.kwargs.get('executive_id')
         user_id = self.kwargs.get('user_id')
 
+        # Ensure both executive_id and user_id are provided
         if not executive_id or not user_id:
             raise NotFound("Both Executive ID and User ID are required.")
 
@@ -194,12 +195,12 @@ class TalkTimeHistoryByExecutiveAndUserView(ListAPIView):
         except Executives.DoesNotExist:
             raise NotFound(f"Executive with ID {executive_id} does not exist.")
 
+        # Query the call history for the given executive and user
         queryset = AgoraCallHistory.objects.filter(executive_id=executive_id, user_id=user_id).order_by('-start_time')
 
-        if not queryset.exists():
-            raise NotFound(f"No call history found for executive ID: {executive_id} and user ID: {user_id}")
-
+        # If no records exist, return an empty list instead of raising an error
         return queryset
+
 
 
 

@@ -377,12 +377,9 @@ from django.utils.timezone import localtime
 class TalkTimeHistorySerializer(serializers.ModelSerializer):
     call_history = serializers.SerializerMethodField()
     formatted_duration = serializers.SerializerMethodField()
-    duration_minutes_seconds = serializers.SerializerMethodField()
-    duration_hours_minutes_seconds = serializers.SerializerMethodField()
     coins_deducted = serializers.SerializerMethodField()
     coins_added = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
-    new_duration = serializers.SerializerMethodField()  # New field added
 
     class Meta:
         model = AgoraCallHistory

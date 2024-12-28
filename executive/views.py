@@ -115,10 +115,15 @@ class ListExecutivesByUserView(generics.ListAPIView):
         if not user_id:
             raise NotFound("User ID is required.")
 
+        # Exclude executives who have blocked the user
+        blocked_executives = UserBlock.objects.filter(user_id=user_id, is_blocked=True).values_list('executive_id', flat=True)
+
         # Annotate each executive with their average rating
         queryset = Executives.objects.filter(
             is_suspended=False,
             is_banned=False
+        ).exclude(
+            id__in=blocked_executives  # Exclude executives that have blocked the user
         ).annotate(
             average_rating=Avg('call_ratings__stars')  # Using related_name from CallRating model
         ).order_by(

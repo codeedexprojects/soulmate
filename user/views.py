@@ -1455,25 +1455,49 @@ class BlockUserAPIView(APIView):
     def post(self, request):
         user_id = request.data.get('user_id')
         executive_id = request.data.get('executive_id')
-        is_blocked = request.data.get('is_blocked')
-        reason = request.data.get('reason', '')
+        reason = request.data.get('reason')
 
-        if user_id and executive_id is not None:
-            block_entry, created = UserBlock.objects.update_or_create(
-                user_id=user_id,
-                executive_id=executive_id,
-                defaults={
-                    'is_blocked': is_blocked,
-                    'reason': reason
-                }
-            )
-            if is_blocked:
-                message = 'User has been blocked successfully.'
-            else:
-                message = 'User has been unblocked successfully.'
+        # Ensure both user_id and executive_id are provided, and reason is present
+        if not user_id or not executive_id:
+            return Response({'error': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not reason:
+            return Response({'error': 'Reason is required to block the user.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            return Response({'message': message}, status=status.HTTP_200_OK)
-        return Response({'error': 'Invalid data provided'}, status=status.HTTP_400_BAD_REQUEST)
+        # Create or update block entry with is_blocked set to True and the provided reason
+        block_entry, created = UserBlock.objects.update_or_create(
+            user_id=user_id,
+            executive_id=executive_id,
+            defaults={
+                'is_blocked': True,
+                'reason': reason
+            }
+        )
+
+        message = 'User has been blocked successfully.'
+        return Response({'message': message}, status=status.HTTP_200_OK)
+
+class UnblockUserAPIView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        executive_id = request.data.get('executive_id')
+
+        # Ensure both user_id and executive_id are provided
+        if not user_id or not executive_id:
+            return Response({'error': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Create or update block entry with is_blocked set to False
+        block_entry, created = UserBlock.objects.update_or_create(
+            user_id=user_id,
+            executive_id=executive_id,
+            defaults={
+                'is_blocked': False,
+                'reason': ''  # No reason provided when unblocking
+            }
+        )
+
+        message = 'User has been unblocked successfully.'
+        return Response({'message': message}, status=status.HTTP_200_OK)
+
 
 
 class BlockedUsersListAPIView(APIView):

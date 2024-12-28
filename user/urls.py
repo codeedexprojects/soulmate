@@ -58,7 +58,11 @@ urlpatterns = [
 
     path('user-suspend/<int:user_id>/', SuspendUserView.as_view(), name='suspend_user'),
     path('user-unsuspend/<int:user_id>/', UnsuspendUserView.as_view(), name='unsuspend_user'),
-    path('block-user/', BlockUserAPIView.as_view(), name='block-user'),
+    # Endpoint for blocking a user
+    path('block-user/', BlockUserAPIView.as_view(), name='block_user'),
+    
+    # Endpoint for unblocking a user
+    path('unblock-user/', UnblockUserAPIView.as_view(), name='unblock_user'),
     path('blocked-users/<int:executive_id>/', BlockedUsersListAPIView.as_view(), name='blocked-users-list'),
     path('referral-code/<int:user_id>/', ReferralCodeByUserView.as_view(), name='referral-code-by-user'),
     

@@ -458,9 +458,9 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
         return None
 
     def get_is_blocked(self, obj):
-        from user.models import UserBlock  # Replace with the actual import path
-        # Check if the user is blocked
-        return UserBlock.objects.filter(blocked_user=obj.user).exists()
+        from user.models import UserBlock  # Replace with actual import path
+        blocked = UserBlock.objects.filter(executive=obj, is_blocked=True).exists()
+        return blocked
 
 
 

@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid
+from executive.models import Executives
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.utils.timezone import now
 
@@ -350,7 +351,7 @@ class Channel(models.Model):
 
 class UserBlock(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_users')
-    executive = models.ForeignKey('executive.Executive', on_delete=models.CASCADE, related_name='blocked_executives')
+    executive = models.ForeignKey('executive.Executives', on_delete=models.CASCADE, related_name='blocked_executives')
     is_blocked = models.BooleanField(default=False)
     reason = models.TextField()
     blocked_at = models.DateTimeField(auto_now_add=True)

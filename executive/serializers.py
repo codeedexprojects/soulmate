@@ -451,8 +451,16 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
 
     def get_is_blocked(self, obj):
         from user.models import UserBlock
-        blocked = UserBlock.objects.filter(executive=obj.executive, is_blocked=True).exists()
-        return blocked
+        # Check if the User (in this case, the `user` from the `call_history`) is blocked by the `executive`
+        user = getattr(obj, 'user', None)
+        executive = getattr(obj, 'executive', None)
+
+        if user and executive:
+            # Fetch UserBlock record to check if the user is blocked by the executive
+            blocked = UserBlock.objects.filter(user=user, executive=executive, is_blocked=True).exists()
+            return blocked
+        return False  # Return False if no user or executive is found
+
 
 
 

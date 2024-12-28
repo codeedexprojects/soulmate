@@ -173,6 +173,28 @@ class TalkTimeHistoryByExecutiveView(ListAPIView):
 
         return queryset
 
+class TalkTimeHistoryByExecutiveAndUserView(ListAPIView):
+    serializer_class = TalkTimeHistorySerializer
+
+    def get_queryset(self):
+        executive_id = self.kwargs.get('executive_id')
+        user_id = self.kwargs.get('user_id')
+
+        if not executive_id or not user_id:
+            raise NotFound("Both Executive ID and User ID are required.")
+
+        try:
+            # Ensure the executive exists before querying
+            executive = Executives.objects.get(id=executive_id)
+        except Executives.DoesNotExist:
+            raise NotFound(f"Executive with ID {executive_id} does not exist.")
+
+        queryset = AgoraCallHistory.objects.filter(executive_id=executive_id, user_id=user_id).order_by('-start_time')
+
+        if not queryset.exists():
+            raise NotFound(f"No call history found for executive ID: {executive_id} and user ID: {user_id}")
+
+        return queryset
 
 
 

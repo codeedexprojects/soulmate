@@ -18,6 +18,7 @@ urlpatterns = [
     path('executive/<int:executive_id>/status/', ExecutiveStatusView.as_view(), name='executive_status'),
 
     path('exe-call-history/<int:executive_id>/', TalkTimeHistoryByExecutiveView.as_view(), name='call-history'),
+    path('exe-call-history/<int:executive_id>/user/<int:user_id>/', TalkTimeHistoryByExecutiveAndUserView.as_view(), name='call-history-by-executive-and-user'),
 
     path('create-admin/', CreateAdminView.as_view(), name='create-admin'),
     path('admin-login/', SuperuserLoginView.as_view(), name='admin-login'),

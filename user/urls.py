@@ -58,12 +58,10 @@ urlpatterns = [
 
     path('user-suspend/<int:user_id>/', SuspendUserView.as_view(), name='suspend_user'),
     path('user-unsuspend/<int:user_id>/', UnsuspendUserView.as_view(), name='unsuspend_user'),
-
+    path('block-user/', BlockUserAPIView.as_view(), name='block-user'),
+    path('blocked-users/<int:executive_id>/', BlockedUsersListAPIView.as_view(), name='blocked-users-list'),
     path('referral-code/<int:user_id>/', ReferralCodeByUserView.as_view(), name='referral-code-by-user'),
-    path('join-channel/', JoinChannelView.as_view(), name='join-channel'),
-    path('leave-channel/', LeaveChannelView.as_view(), name='leave-channel'),
-
-
+    
     path('create_channel/', CreateChannelView.as_view(), name='create_channel'),
 
     # Executive views the created channel

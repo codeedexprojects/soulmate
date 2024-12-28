@@ -84,8 +84,6 @@ class FavouriteSerializer(serializers.ModelSerializer):
 
 
 
-
-
 class RatingSerializer(serializers.ModelSerializer):
     executive = serializers.PrimaryKeyRelatedField(queryset=Executives.objects.all())
 
@@ -118,14 +116,14 @@ class   CallHistorySerializer(serializers.ModelSerializer):
     formatted_start_time = serializers.SerializerMethodField()
     formatted_end_time = serializers.SerializerMethodField()
     executive_gender = serializers.SerializerMethodField()
-    duration_seconds = serializers.SerializerMethodField()  # Duration in seconds
-    duration_minutes_seconds = serializers.SerializerMethodField()  # Duration in minutes and seconds
-    duration_hours_minutes_seconds = serializers.SerializerMethodField()  # Duration in hours, minutes, seconds
+    duration_seconds = serializers.SerializerMethodField() 
+    duration_minutes_seconds = serializers.SerializerMethodField()  
+    duration_hours_minutes_seconds = serializers.SerializerMethodField() 
 
     class Meta:
         model = AgoraCallHistory
         fields = [
-            'id',  # Executive Call ID
+            'id', 
             'user',
             'executive',
             'executive_gender',
@@ -159,12 +157,10 @@ class   CallHistorySerializer(serializers.ModelSerializer):
             return f"{hours}h {minutes}m" if minutes > 0 else f"{hours}h"
 
     def get_duration_seconds(self, obj):
-        """Returns duration in seconds."""
         duration = obj.duration
         return int(duration.total_seconds()) if duration else None
 
     def get_duration_minutes_seconds(self, obj):
-        """Returns duration in Xm Ys format."""
         duration = obj.duration
         if not duration:
             return None
@@ -174,7 +170,6 @@ class   CallHistorySerializer(serializers.ModelSerializer):
         return f"{minutes}m {seconds}s" if seconds > 0 else f"{minutes}m"
 
     def get_duration_hours_minutes_seconds(self, obj):
-        """Returns duration in Xh Ym Zs format."""
         duration = obj.duration
         if not duration:
             return None
@@ -213,11 +208,11 @@ class RechargePlanSerializer(serializers.ModelSerializer):
     discount_amount = serializers.SerializerMethodField()
     final_amount = serializers.SerializerMethodField()
     category_id = serializers.PrimaryKeyRelatedField(
-        queryset=RechargePlanCato.objects.all(),  # Reference the related model
+        queryset=RechargePlanCato.objects.all(),  
         write_only=True
     )
     category_name = serializers.CharField(
-        source='category_id.name',  # Access the related model's name field
+        source='category_id.name',  
         read_only=True
     )
 
@@ -338,31 +333,6 @@ class RechargePlanCategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-# from rest_framework import serializers
-
-# class ReferralCodeSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = ReferralCode
-#         fields = ['user', 'code']
-
-# class ReferralHistorySerializer(serializers.ModelSerializer):
-#     referrer_code = serializers.CharField(write_only=True)
-
-#     class Meta:
-#         model = ReferralHistory
-#         fields = ['referrer', 'referred_user', 'recharged', 'referrer_code']
-
-#     def create(self, validated_data):
-#         referrer_code = validated_data.pop('referrer_code')
-#         try:
-#             referrer = ReferralCode.objects.get(code=referrer_code).user
-#         except ReferralCode.DoesNotExist:
-#             raise serializers.ValidationError("Invalid referral code")
-
-#         validated_data['referrer'] = referrer
-#         return super().create(validated_data)
-
-
 
 class UserMaxCallTimeSerializer(serializers.ModelSerializer):
     max_call_time_minutes = serializers.SerializerMethodField()
@@ -370,7 +340,7 @@ class UserMaxCallTimeSerializer(serializers.ModelSerializer):
     limit_call_time_minutes = serializers.SerializerMethodField()
     limit_call_time_seconds = serializers.SerializerMethodField()
     call_end_warning = serializers.SerializerMethodField()
-    time = serializers.SerializerMethodField()  # New field for formatted time
+    time = serializers.SerializerMethodField() 
 
     class Meta:
         model = User
@@ -385,41 +355,34 @@ class UserMaxCallTimeSerializer(serializers.ModelSerializer):
             'limit_call_time_minutes',
             'limit_call_time_seconds',
             'call_end_warning',
-            'time',  # Include the new field in the serialized output
+            'time', 
         ]
 
     def get_max_call_time_minutes(self, obj):
-        # Calculate the maximum call time in minutes
         max_seconds = self._get_max_call_time_seconds(obj)
         return max_seconds // 60
 
     def get_limit_call_time_minutes(self, obj):
-        # Fixed warning limit in minutes (you can customize this logic)
         limit_seconds = self.get_limit_call_time_seconds(obj)
         return limit_seconds // 60
 
     def get_max_call_time_seconds(self, obj):
-        # Calculate the maximum call time in seconds
         return self._get_max_call_time_seconds(obj)
 
     def get_limit_call_time_seconds(self, obj):
-        # Call warning limit, set to 1 minute (60 seconds) by default
         return 60
 
     def get_call_end_warning(self, obj):
-        # Show a warning if max call time is less than 1 minute (or 60 seconds)
         return self._get_max_call_time_seconds(obj) < self.get_limit_call_time_seconds(obj)
 
     def get_time(self, obj):
-        # Calculate and format time as "minutes:seconds"
         max_seconds = self._get_max_call_time_seconds(obj)
         minutes = max_seconds // 60
         seconds = max_seconds % 60
         return f"{minutes} minutes and {seconds} seconds"
 
     def _get_max_call_time_seconds(self, obj):
-        # Calculate maximum call time in seconds based on coin balance and rate
-        rate_per_second = 3  # 3 coins per second
+        rate_per_second = 3  
         if obj.coin_balance is not None and obj.coin_balance > 0:
             return obj.coin_balance // rate_per_second
         return 0
@@ -436,7 +399,6 @@ class ExecutiveMaxCallTimeSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'coin_per_minute', 'max_call_time_minutes']
 
     def get_max_call_time_minutes(self, obj):
-        # Access the user's coin_balance passed in the context
         user_coin_balance = self.context.get('coin_balance', 0)
         if obj.coins_per_second > 0:
             return user_coin_balance // obj.coins_per_second
@@ -451,3 +413,7 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
         model = ReferralCode
         fields = ['user_id', 'name', 'code']
 
+class UserBlockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserBlock
+        fields = '__all__'

@@ -45,11 +45,11 @@ class User(AbstractBaseUser):
     is_suspended = models.BooleanField(default=False)
     is_dormant = models.BooleanField(default=False)
     is_online = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)  # Required by Django for custom users
+    is_active = models.BooleanField(default=True) 
     is_staff = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'mobile_number'
-    REQUIRED_FIELDS = ['name']  # 'mobile_number' is not required here since it's the USERNAME_FIELD
+    REQUIRED_FIELDS = ['name']  
 
     objects = CustomUserManager()
 
@@ -208,7 +208,7 @@ class Career(models.Model):
 
     MARITAL_STATUS_CHOICES = [
         ('Married', 'Married'),
-        ('Unmarried', 'Unmarried'),
+        ('Single', 'Single'),
     ]
 
     full_name = models.CharField(max_length=255)
@@ -346,3 +346,17 @@ class Channel(models.Model):
     
     def __str__(self):
         return self.name
+    
+
+class UserBlock(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_users')
+    executive = models.ForeignKey('executive.Executive', on_delete=models.CASCADE, related_name='blocked_executives')
+    is_blocked = models.BooleanField(default=False)
+    reason = models.TextField()
+    blocked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'executive')
+
+    def __str__(self):
+        return f"{self.user.user_id} blocked {self.executive.executive_id}"

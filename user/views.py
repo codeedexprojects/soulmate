@@ -6,159 +6,33 @@ from executive.models import *
 from django.db.models import Avg
 from .serializers import *
 from rest_framework.views import APIView
-from rest_framework.generics import CreateAPIView, UpdateAPIView
 from rest_framework.generics import ListAPIView
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework import generics
 from datetime import datetime
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count
 from user.utils import send_otp_2factor
 import random
 from django.db.models import Count
 from django.utils import timezone
-from datetime import timedelta
-from collections import defaultdict
-
-
-from rest_framework.views import APIView
+from datetime import datetime, timedelta
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-
-TEMP_TOKEN = "l007eJxTYJh6oOrU+j0X+NyvPtUK1zjxS8TKvmfW8oc6ErVKDxkXCk5SYLA0MzJLtUiySDJNszAxTzWzNDNMTrJMtLQ0SzVMTLU0PnYtLL0hkJHhmuNvFkYGCATx2RiSUotLMlMZGAC7DiEk/"
-APP_ID = '9626e8b8b5f847e6961cb9a996e1ae93'  # Replace with your Agora App ID
-CHANNEL_NAME = "bestie"  # Replace with your desired channel name
-
-class JoinChannelView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        app_id = "9626e8b8b5f847e6961cb9a996e1ae93"
-        app_certificate = "ab41eb854807425faa1b44481ff97fe3"
-        channel_name = request.data.get("channel_name")
-        executive_id = request.data.get("executive_id")
-        user_id = request.data.get("user_id")
-        role = 1  # Publisher
-        expiration_in_seconds = 3600
-
-        # Input validation
-        if not channel_name:
-            return Response({"error": "Channel name is required."}, status=400)
-        if not executive_id or not user_id:
-            return Response({"error": "Both executive_id and user_id are required."}, status=400)
-
-        # Validate users
-        try:
-            executive = Executives.objects.get(id=executive_id)
-            user = User.objects.get(id=user_id)
-        except Executives.DoesNotExist:
-            return Response({"error": "Invalid executive_id."}, status=404)
-        except User.DoesNotExist:
-            return Response({"error": "Invalid user_id."}, status=404)
-
-        # Generate Agora token for the user (publisher)
-        try:
-            current_time = int(time.time())
-            privilege_expired_ts = current_time + expiration_in_seconds
-            user_token = RtcTokenBuilder.buildTokenWithUid(
-                app_id,
-                app_certificate,
-                channel_name,
-                user.id,  # User ID as Agora UID for the publisher
-                role,
-                privilege_expired_ts,
-            )
-        except Exception as e:
-            return Response({"error": f"Token generation failed: {str(e)}"}, status=500)
-
-        try:
-            executive_token = RtcTokenBuilder.buildTokenWithUid(
-                app_id,
-                app_certificate,
-                channel_name,
-                executive.id,
-                2, 
-                privilege_expired_ts,
-            )
-        except Exception as e:
-            return Response({"error": f"Executive token generation failed: {str(e)}"}, status=500)
-
-        AgoraCallHistory.objects.create(
-            user=user,
-            executive=executive,
-            channel_name=channel_name,
-            start_time=now(),
-        )
-
-        return Response({
-            "message": "Token generated successfully.",
-            "token": user_token,  # User's Agora token
-            "executive_token": executive_token,  # Executive's Agora token
-            "channel_name": channel_name,
-            "caller_name": user.name,
-            "receiver_name": executive.name,
-            "user_id": user.user_id,
-            "executive_id": executive.executive_id,
-            "agora_uid": user.id,  # User's Agora UID
-        }, status=200)
-
-class LeaveChannelView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        channel_name = request.data.get("channel_name")
-        executive_id = request.data.get("executive_id")
-        user_id = request.data.get("user_id")
-
-        # Input validation
-        if not channel_name:
-            return Response({"error": "Channel name is required."}, status=400)
-        if not executive_id or not user_id:
-            return Response({"error": "Both executive_id and user_id are required."}, status=400)
-
-        # Validate users
-        try:
-            executive = Executives.objects.get(id=executive_id)
-            user = User.objects.get(id=user_id)
-        except Executives.DoesNotExist:
-            return Response({"error": "Invalid executive_id."}, status=404)
-        except User.DoesNotExist:
-            return Response({"error": "Invalid user_id."}, status=404)
-
-        # Fetch and update the ongoing call entry
-        call_entry = AgoraCallHistory.objects.filter(
-            user=user,
-            executive=executive,
-            channel_name=channel_name,
-            end_time=None,
-        ).first()
-
-        if not call_entry:
-            return Response({"error": "No ongoing call found for this channel."}, status=404)
-
-        call_entry.end_time = now()
-        call_entry.duration = call_entry.end_time - call_entry.start_time
-        call_entry.save()
-
-        return Response({
-            "message": "Successfully left the channel.",
-            "caller_name": call_entry.user.name,
-            "receiver_name": call_entry.executive.name,
-            "channel_name": call_entry.channel_name,
-            "duration": str(call_entry.duration),
-        }, status=200)
-
-
-
+from django.db import transaction
+from agora_token_builder import RtcTokenBuilder
+import time
+from rest_framework.exceptions import NotFound
+from executive.serializers import CallRatingSerializerview
+from rest_framework.generics import RetrieveAPIView
 
 class RegisterOrLoginView(APIView):
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get('mobile_number')
-        referral_code = request.data.get('referral_code')  # Optional referral code
-        otp = str(random.randint(100000, 999999))  # Generate OTP
+        referral_code = request.data.get('referral_code')
+        otp = str(random.randint(100000, 999999))  
 
         try:
-            # Check if user already exists
             user = User.objects.get(mobile_number=mobile_number)
 
             if user.is_banned:
@@ -167,7 +41,6 @@ class RegisterOrLoginView(APIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Send OTP for existing user
             try:
                 send_otp_2factor(mobile_number, otp)
             except Exception as e:
@@ -176,11 +49,9 @@ class RegisterOrLoginView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-            # Update OTP for the user
             user.otp = otp
             user.save()
 
-            # Process referral logic during login if user has no existing referral
             if referral_code and not hasattr(user, 'referred_by'):
                 try:
                     referrer = ReferralCode.objects.get(code=referral_code).user
@@ -204,7 +75,6 @@ class RegisterOrLoginView(APIView):
             )
 
         except User.DoesNotExist:
-            # Handle new user registration
             try:
                 send_otp_2factor(mobile_number, otp)
             except Exception as e:
@@ -213,14 +83,12 @@ class RegisterOrLoginView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-            # Create a new user with default coin balance
             user = User.objects.create(
                 mobile_number=mobile_number,
                 otp=otp,
-                coin_balance=300  # Default coin balance for new user
+                coin_balance=300  
             )
 
-            # Process referral code if provided
             if referral_code:
                 try:
                     referrer = ReferralCode.objects.get(code=referral_code).user
@@ -249,10 +117,8 @@ class RegisterOrLoginView(APIView):
 
 class DeleteUserAccountView(APIView):
     def delete(self, request, user_id, *args, **kwargs):
-        # Retrieve the user by ID
         user = get_object_or_404(User, id=user_id)
 
-        # Delete the user
         user.delete()
 
         return Response(
@@ -264,21 +130,17 @@ class VerifyOTPView(APIView):
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get('mobile_number')
         otp = request.data.get('otp')
-        name = request.data.get('name')  # Collect additional user details for registration
+        name = request.data.get('name') 
         gender = request.data.get('gender')
 
         try:
-            # Fetch the user based on mobile_number and otp
             user = User.objects.get(mobile_number=mobile_number, otp=otp)
 
-            # Check if the user was already verified before OTP verification
             is_existing_user = user.is_verified
 
-            # Update the user's verification status
             user.otp = None
             user.is_verified = True
 
-            # If the user is new, save additional details
             if not is_existing_user and name and gender:
                 user.name = name
                 user.gender = gender
@@ -301,16 +163,12 @@ class VerifyOTPView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
-
-
 class GetUserCoinBalanceView(APIView):
     def get(self, request, user_id):
         user_profile = get_object_or_404(UserProfile, user_id=user_id)
 
         serializer = UserProfileSerializer(user_profile)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 class UserListView(ListAPIView):
     queryset = User.objects.all()
@@ -341,7 +199,6 @@ def add_favourite(request, user_id, executive_id):
     except Executives.DoesNotExist:
         return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
-from rest_framework.permissions import AllowAny
 
 
 class ListFavouritesView(ListAPIView):
@@ -368,8 +225,6 @@ class RemoveFavouriteView(APIView):
             return Response({'message': 'Favourite removed successfully.'}, status=status.HTTP_200_OK)
         except Favourite.DoesNotExist:
             return Response({'message': 'Favourite not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
 
 @api_view(['GET'])
 def get_ratings(request, executive_id):
@@ -408,9 +263,6 @@ def average_rating_all_executives(request):
         })
 
     return Response(data, status=status.HTTP_200_OK)
-
-from rest_framework.exceptions import NotFound
-
 
 def get_object_or_404(model, **kwargs):
     try:
@@ -461,29 +313,8 @@ class LogCallView(APIView):
         )
         return Response({'message': 'Call logged successfully', 'call_id': call_history.id}, status=status.HTTP_201_CREATED)
 
-
-
-
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-from django.utils import timezone
-import requests
-
-
 # Initiate Call API
-from django.db import transaction
 
-
-from datetime import timedelta
-
-
-from agora_token_builder import RtcTokenBuilder
-from datetime import datetime, timedelta
-
-import threading
-import time
-
-from django.core.cache import cache
 AGORA_APP_ID = '9626e8b8b5f847e6961cb9a996e1ae93'
 AGORA_APP_CERTIFICATE = 'ab41eb854807425faa1b44481ff97fe3'
 
@@ -676,17 +507,13 @@ class HandlePaymentSuccessView(APIView):
 #withoutrazorpay
 class RechargeCoinsByPlanView(APIView):
     def post(self, request, user_id, plan_id):
-        # Fetch the recharge plan and user
         plan = get_object_or_404(RechargePlan, id=plan_id)
         user = get_object_or_404(User, id=user_id)
 
-        # Calculate the final price using the plan's method
         plan_price = plan.calculate_final_price()
 
-        # Recharge the user's coin balance
         user.add_coins(plan.coin_package)
 
-        # Create a purchase history record with the calculated price
         PurchaseHistory.objects.create(
             user=user,
             recharge_plan=plan,
@@ -694,27 +521,23 @@ class RechargeCoinsByPlanView(APIView):
             purchased_price=plan_price
         )
 
-        # Handle referral logic
         referral_bonus_given = False
         referral_bonus_skipped = False
 
-        if hasattr(user, 'referred_by'):  # Check if the user has a referral history
+        if hasattr(user, 'referred_by'): 
             referral_history = user.referred_by
-            if not referral_history.recharged:  # Check if bonus has not already been given
+            if not referral_history.recharged: 
                 referral_history.recharged = True
                 referral_history.save()
 
-                # Add coins to the referrer's balance
                 referrer = referral_history.referrer
-                referrer.add_coins(300)  # Award bonus coins to the referrer
+                referrer.add_coins(300)
                 referral_bonus_given = True
             else:
                 referral_bonus_skipped = True
 
-        # Serialize plan details
         plan_serializer = RechargePlanSerializer(plan)
 
-        # Response message based on referral bonus status
         response_message = 'Coins recharged successfully.'
         if referral_bonus_given:
             response_message += ' Referral bonus awarded to the referrer.'
@@ -898,10 +721,8 @@ class UserStatisticsDetailAPIView(APIView):
     def get(self, request, user_id):
         today = datetime.now().date()
 
-        # Fetch the user or return 404
         user = get_object_or_404(User, id=user_id)
 
-        # Annotate and aggregate data for the specific user
         user_data = User.objects.filter(id=user.id).annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
             total_purchases=Count('purchasehistory'),
@@ -909,7 +730,6 @@ class UserStatisticsDetailAPIView(APIView):
         ).values('id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended', 
                  'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases', 'total_talktime').first()
 
-        # Response data
         response_data = {
             'id': user_data['id'],
             'user_id': user_data['user_id'],
@@ -1132,7 +952,6 @@ class RechargePlanListByCategoryView(generics.ListAPIView):
 
         return Response(response_data)
 
-from rest_framework.generics import RetrieveAPIView
 
 
 
@@ -1147,7 +966,6 @@ class ReferralCodeByUserView(RetrieveAPIView):
             raise NotFound("Referral code not found for the given user ID.")
 
 
-from executive.serializers import CallRatingSerializerview
 
 class UserExecutiveRatingsView(APIView):
     def get(self, request, user_id):
@@ -1156,26 +974,19 @@ class UserExecutiveRatingsView(APIView):
         except User.DoesNotExist:
             raise NotFound(f"User with id {user_id} does not exist.")
 
-        # Fetch ratings for the user
         ratings = CallRating.objects.filter(user=user)
 
-        # Use the serializer to serialize the data
         serializer = CallRatingSerializerview(ratings, many=True)
         return Response(serializer.data)
 
 class UserExecutiveTotalRatingsView(APIView):
     def get(self, request):
-        # Fetch all users
         users = User.objects.all()
 
-        # Prepare data: for each user, get their ratings
         user_ratings_data = []
         for user in users:
-            # Fetch ratings for the user
             ratings = CallRating.objects.filter(user=user)
-            # Serialize the ratings
             serializer = CallRatingSerializerview(ratings, many=True)
-            # Add user and their ratings to the response data
             user_ratings_data.append({
                 "user_id": user.id,
                 "ratings": serializer.data
@@ -1639,3 +1450,34 @@ class LeaveAllCallsForExecutiveView(APIView):
             "executive_name": executive.name,
             "executive_id": executive.id,
         }, status=200)
+
+class BlockUserAPIView(APIView):
+    def post(self, request):
+        user_id = request.data.get('user_id')
+        executive_id = request.data.get('executive_id')
+        is_blocked = request.data.get('is_blocked')
+        reason = request.data.get('reason', '')
+
+        if user_id and executive_id is not None:
+            block_entry, created = UserBlock.objects.update_or_create(
+                user_id=user_id,
+                executive_id=executive_id,
+                defaults={
+                    'is_blocked': is_blocked,
+                    'reason': reason
+                }
+            )
+            if is_blocked:
+                message = 'User has been blocked successfully.'
+            else:
+                message = 'User has been unblocked successfully.'
+
+            return Response({'message': message}, status=status.HTTP_200_OK)
+        return Response({'error': 'Invalid data provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BlockedUsersListAPIView(APIView):
+    def get(self, request, executive_id):
+        blocked_users = UserBlock.objects.filter(is_blocked=True, executive_id=executive_id)
+        serializer = UserBlockSerializer(blocked_users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

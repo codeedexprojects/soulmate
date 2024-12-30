@@ -881,7 +881,7 @@ class ExecutiveProfilePictureView(APIView):
             return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, executive_id):
-        """Create a profile picture for an executive."""
+        """Create or update a profile picture for an executive."""
         try:
             executive = Executives.objects.get(executive_id=executive_id)
         except Executives.DoesNotExist:
@@ -891,15 +891,16 @@ class ExecutiveProfilePictureView(APIView):
         data = request.data.copy()  # Make request data mutable
         data['executive'] = executive.id  # Set the executive ID for the profile picture
 
-        # Use the serializer to validate and save the data
-        serializer = ExecutiveProfilePictureSerializer(data=data)
-        if serializer.is_valid():
-            # Check if the executive already has a profile picture
-            existing_profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
-            if existing_profile_picture:
-                return Response({"detail": "Profile picture already exists."}, status=status.HTTP_400_BAD_REQUEST)
+        # Check if the executive already has a profile picture
+        existing_profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
+        if existing_profile_picture:
+            # If a profile picture already exists, update it
+            serializer = ExecutiveProfilePictureSerializer(existing_profile_picture, data=data, partial=True)
+        else:
+            # Otherwise, create a new profile picture
+            serializer = ExecutiveProfilePictureSerializer(data=data)
 
-            # Save the profile picture
+        if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -925,4 +926,5 @@ class ExecutiveProfilePictureView(APIView):
             # Return the updated status of the profile picture
             return Response({"status": profile_picture.status}, status=status.HTTP_200_OK)
         
+        # Handle invalid status
         return Response({"detail": "Invalid status."}, status=status.HTTP_400_BAD_REQUEST)

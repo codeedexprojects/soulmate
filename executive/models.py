@@ -120,7 +120,7 @@ class Executives(AbstractBaseUser):
 
 class ExecutiveProfilePicture(models.Model):
     STATUS_CHOICES = [
-        ('waiting for approval', 'waiting for approval'),
+        ('waiting for approval', 'Waiting for Approval'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
@@ -134,7 +134,7 @@ class ExecutiveProfilePicture(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default='pending'
+        default='waiting for approval'  # Matches STATUS_CHOICES
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -151,6 +151,7 @@ class ExecutiveProfilePicture(models.Model):
 
     def __str__(self):
         return f"{self.executive.executive_id} - {self.status}"
+
 
 
 class TalkTime(models.Model):

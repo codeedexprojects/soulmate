@@ -132,7 +132,7 @@ class ExecutiveProfilePicture(models.Model):
     )
     profile_photo = models.ImageField(upload_to='executive_profiles/')
     status = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=STATUS_CHOICES,
         default='pending'
     )

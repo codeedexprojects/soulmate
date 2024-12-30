@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import *
+from .models import ExecutiveProfilePicture
 from executive.models import Executives
 import random
 from .utils import send_otp_2factor
@@ -430,3 +431,5 @@ class UserBlockListSerializer(serializers.ModelSerializer):
         fields = '__all__'
         # Alternatively, specify fields explicitly if needed
         # fields = ['id', 'user', 'user_id', 'blocked_until']
+
+ 

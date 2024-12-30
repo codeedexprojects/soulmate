@@ -867,3 +867,53 @@ class DeleteExecutiveAccountView(APIView):
             {"message": f"Executive with ID {executive_id} has been deleted successfully."},
             status=status.HTTP_200_OK
         )
+    
+class ExecutiveProfilePictureView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, executive_id):
+        """Get the profile picture of a specific executive."""
+        try:
+            profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
+            serializer = ExecutiveProfilePictureSerializer(profile_picture)
+            return Response(serializer.data)
+        except ExecutiveProfilePicture.DoesNotExist:
+            return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    def post(self, request, executive_id):
+        """Add a profile picture for the executive."""
+        try:
+            executive = Executives.objects.get(executive_id=executive_id)
+        except Executives.DoesNotExist:
+            return Response({"detail": "Executive not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        data = request.data
+        data['executive'] = executive.id  # Set the executive ID for the profile picture
+
+        serializer = ExecutiveProfilePictureSerializer(data=data)
+        if serializer.is_valid():
+            # Check if there's already a profile picture for this executive
+            existing_profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
+            if existing_profile_picture:
+                return Response({"detail": "Profile picture already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, executive_id):
+        """Update the profile picture (approve/reject) for the executive."""
+        try:
+            profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
+        except ExecutiveProfilePicture.DoesNotExist:
+            return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        status_value = request.data.get('status')
+        if status_value and status_value in ['approved', 'rejected']:
+            if status_value == 'approved':
+                profile_picture.approve()
+            else:
+                profile_picture.reject()
+            
+            return Response({"status": profile_picture.status})
+        return Response({"detail": "Invalid status."}, status=status.HTTP_400_BAD_REQUEST)

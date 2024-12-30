@@ -107,6 +107,52 @@ class Executives(AbstractBaseUser):
             self.duty_start_time = timezone.now()  # Start duty time if online
         super().save(*args, **kwargs)
 
+    def save(self, *args, **kwargs):
+        # Auto-generate executive_id if not provided
+        if not self.executive_id:
+            last_executive = Executives.objects.order_by('-id').first()
+            if last_executive and last_executive.executive_id.startswith('BTEX'):
+                # Extract the numeric part and increment
+                last_number = int(last_executive.executive_id[4:])  # Extract number after 'BTEX'
+                self.executive_id = f'BTEX{last_number + 1}'
+            else:
+                self.executive_id = 'BTEX1000'  # Default start
+
+class ExecutiveProfilePicture(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
+    executive = models.OneToOneField(
+        'executive.Executives',
+        on_delete=models.CASCADE,
+        related_name='profile_picture'
+    )
+    profile_photo = models.ImageField(upload_to='executive_profiles/')
+    status = models.CharField(
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def approve(self):
+        """Approve the profile photo."""
+        self.status = 'approved'
+        self.save()
+
+    def reject(self):
+        """Reject the profile photo."""
+        self.status = 'rejected'
+        self.save()
+
+    def __str__(self):
+        return f"{self.executive.executive_id} - {self.status}"
+
+
 class TalkTime(models.Model):
     call_history = models.ForeignKey('user.AgoraCallHistory', on_delete=models.CASCADE)
     

@@ -516,3 +516,12 @@ class ExecutiveOnCallSerializer(serializers.ModelSerializer):
     class Meta:
         model = Executives
         fields = ['on_call']
+
+
+
+
+class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExecutiveProfilePicture
+        fields = ['executive', 'profile_photo', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['status', 'created_at', 'updated_at']

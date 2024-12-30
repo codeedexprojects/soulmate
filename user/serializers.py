@@ -414,6 +414,11 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
         fields = ['user_id', 'name', 'code']
 
 class UserBlockSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserBlock
+        fields = '__all__'
+
+class UserBlockListSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(source='user.user_id', read_only=True)
 
     class Meta:

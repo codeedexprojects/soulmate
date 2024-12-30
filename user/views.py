@@ -1503,5 +1503,5 @@ class UnblockUserAPIView(APIView):
 class BlockedUsersListAPIView(APIView):
     def get(self, request, executive_id):
         blocked_users = UserBlock.objects.filter(is_blocked=True, executive_id=executive_id)
-        serializer = UserBlockSerializer(blocked_users, many=True)
+        serializer = UserBlockListSerializer(blocked_users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

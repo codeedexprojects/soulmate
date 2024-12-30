@@ -881,7 +881,6 @@ class ExecutiveProfilePictureView(APIView):
             return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
 
     def post(self, request, executive_id):
-        """Add a profile picture for the executive."""
         try:
             executive = Executives.objects.get(executive_id=executive_id)
         except Executives.DoesNotExist:

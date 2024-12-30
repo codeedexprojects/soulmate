@@ -120,7 +120,7 @@ class Executives(AbstractBaseUser):
 
 class ExecutiveProfilePicture(models.Model):
     STATUS_CHOICES = [
-        ('pending', 'Pending'),
+        ('waiting for approval', 'waiting for approval'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]

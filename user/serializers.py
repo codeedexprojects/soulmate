@@ -414,6 +414,10 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
         fields = ['user_id', 'name', 'code']
 
 class UserBlockSerializer(serializers.ModelSerializer):
+    user_id = serializers.CharField(source='user.user_id', read_only=True)
+
     class Meta:
         model = UserBlock
         fields = '__all__'
+        # Alternatively, specify fields explicitly if needed
+        # fields = ['id', 'user', 'user_id', 'blocked_until']

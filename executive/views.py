@@ -891,7 +891,6 @@ class ExecutiveProfilePictureView(APIView):
 
         serializer = ExecutiveProfilePictureSerializer(data=data)
         if serializer.is_valid():
-            # Check if there's already a profile picture for this executive
             existing_profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
             if existing_profile_picture:
                 return Response({"detail": "Profile picture already exists."}, status=status.HTTP_400_BAD_REQUEST)

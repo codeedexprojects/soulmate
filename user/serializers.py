@@ -423,12 +423,10 @@ class UserBlockSerializer(serializers.ModelSerializer):
 
 
 class UserBlockListSerializer(serializers.ModelSerializer):
-    user_id = serializers.CharField(source='user.user_id', read_only=True)  # Display custom user_id
-    executive_id = serializers.CharField(source='executive.executive_id', read_only=True)  # Display custom executive_id
-    user_name = serializers.CharField(source='user.name', read_only=True)  # Display user name
-    executive_name = serializers.CharField(source='executive.name', read_only=True)  # Display executive name
+    user_id = serializers.CharField(source='user.user_id', read_only=True)
 
     class Meta:
         model = UserBlock
-        fields = ['id', 'user_id', 'user_name', 'executive_id', 'executive_name', 'is_blocked', 'reason', 'blocked_at']
-
+        fields = '__all__'
+        # Alternatively, specify fields explicitly if needed
+        # fields = ['id', 'user', 'user_id', 'blocked_until']

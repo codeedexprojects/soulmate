@@ -1453,8 +1453,8 @@ class LeaveAllCallsForExecutiveView(APIView):
 
 class BlockUserAPIView(APIView):
     def post(self, request):
-        user_id = request.data.get('user_id')  # Accept custom user_id (e.g., BST1001)
-        executive_id = request.data.get('executive_id')  # Accept custom executive_id
+        user_id = request.data.get('user_id')
+        executive_id = request.data.get('executive_id')
         reason = request.data.get('reason')
 
         # Ensure both user_id and executive_id are provided, and reason is present
@@ -1463,22 +1463,10 @@ class BlockUserAPIView(APIView):
         if not reason:
             return Response({'error': 'Reason is required to block the user.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Resolve User and Executive instances
-        try:
-            user = User.objects.get(user_id=user_id)  # Lookup using user_id
-        except User.DoesNotExist:
-            return Response({'error': 'Invalid User ID.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            from executive.models import Executives
-            executive = Executives.objects.get(executive_id=executive_id)  # Lookup using executive_id
-        except Executives.DoesNotExist:
-            return Response({'error': 'Invalid Executive ID.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create or update block entry
+        # Create or update block entry with is_blocked set to True and the provided reason
         block_entry, created = UserBlock.objects.update_or_create(
-            user=user,
-            executive=executive,
+            user_id=user_id,
+            executive_id=executive_id,
             defaults={
                 'is_blocked': True,
                 'reason': reason
@@ -1487,7 +1475,6 @@ class BlockUserAPIView(APIView):
 
         message = 'User has been blocked successfully.'
         return Response({'message': message}, status=status.HTTP_200_OK)
-
 
 class UnblockUserAPIView(APIView):
     def post(self, request):
@@ -1498,22 +1485,10 @@ class UnblockUserAPIView(APIView):
         if not user_id or not executive_id:
             return Response({'error': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Resolve User and Executive instances
-        try:
-            user = User.objects.get(user_id=user_id)
-        except User.DoesNotExist:
-            return Response({'error': 'Invalid User ID.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            from executive.models import Executives
-            executive = Executives.objects.get(executive_id=executive_id)
-        except Executives.DoesNotExist:
-            return Response({'error': 'Invalid Executive ID.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Create or update block entry
+        # Create or update block entry with is_blocked set to False
         block_entry, created = UserBlock.objects.update_or_create(
-            user=user,
-            executive=executive,
+            user_id=user_id,
+            executive_id=executive_id,
             defaults={
                 'is_blocked': False,
                 'reason': ''  # No reason provided when unblocking
@@ -1522,7 +1497,6 @@ class UnblockUserAPIView(APIView):
 
         message = 'User has been unblocked successfully.'
         return Response({'message': message}, status=status.HTTP_200_OK)
-
 
 
 

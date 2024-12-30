@@ -867,29 +867,62 @@ class DeleteExecutiveAccountView(APIView):
             {"message": f"Executive with ID {executive_id} has been deleted successfully."},
             status=status.HTTP_200_OK
         )
+    
+class ExecutiveProfilePictureView(APIView):
+    permission_classes = [AllowAny]
 
-from django.http import JsonResponse
-from django.views import View
+    def get(self, request, executive_id):
+        """Get the profile picture of a specific executive."""
+        try:
+            profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
+            serializer = ExecutiveProfilePictureSerializer(profile_picture)
+            return Response(serializer.data)
+        except ExecutiveProfilePicture.DoesNotExist:
+            return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
 
-class ExecutiveProfilePictureView(View):
-    def post(self, request, executive_id, *args, **kwargs):
-        # Make request.POST mutable
-        mutable_post = request.POST.copy()
+    def post(self, request, executive_id):
+        """Create a profile picture for an executive."""
+        try:
+            executive = Executives.objects.get(executive_id=executive_id)
+        except Executives.DoesNotExist:
+            return Response({"detail": "Executive not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Assuming the 'status' field is being modified
-        status = mutable_post.get('status', None)
-        if status:
-            # Fetch the executive profile picture based on executive_id
-            try:
-                profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
-                if status == 'approved':
-                    profile_picture.approve()
-                elif status == 'rejected':
-                    profile_picture.reject()
-                else:
-                    return JsonResponse({"error": "Invalid status"}, status=400)
+        # Prepare the data for serializer, ensuring it is mutable
+        data = request.data.copy()  # Make request data mutable
+        data['executive'] = executive.id  # Set the executive ID for the profile picture
 
-                return JsonResponse({"message": "Profile picture status updated successfully"})
-            except ExecutiveProfilePicture.DoesNotExist:
-                return JsonResponse({"error": "Profile picture not found"}, status=404)
-        return JsonResponse({"error": "Missing 'status' field"}, status=400)
+        # Use the serializer to validate and save the data
+        serializer = ExecutiveProfilePictureSerializer(data=data)
+        if serializer.is_valid():
+            # Check if the executive already has a profile picture
+            existing_profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
+            if existing_profile_picture:
+                return Response({"detail": "Profile picture already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Save the profile picture
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # If the serializer is not valid, return errors
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def patch(self, request, executive_id):
+        """Approve or reject the profile picture for the executive."""
+        try:
+            profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
+        except ExecutiveProfilePicture.DoesNotExist:
+            return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get the status from the request data
+        status_value = request.data.get('status')
+        if status_value and status_value in ['approved', 'rejected']:
+            # Update the profile picture status
+            if status_value == 'approved':
+                profile_picture.approve()
+            elif status_value == 'rejected':
+                profile_picture.reject()
+
+            # Return the updated status of the profile picture
+            return Response({"status": profile_picture.status}, status=status.HTTP_200_OK)
+        
+        return Response({"detail": "Invalid status."}, status=status.HTTP_400_BAD_REQUEST)

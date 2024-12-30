@@ -924,7 +924,7 @@ class ExecutiveProfilePictureView(APIView):
                 profile_picture.reject()
 
             # Return the updated status of the profile picture
-            return Response({"status": profile_picture.status}, status=status.HTTP_200_OK)
+            return Response({"dp status": profile_picture.status, "status":True}, status=status.HTTP_200_OK)
         
         # Handle invalid status
         return Response({"detail": "Invalid status."}, status=status.HTTP_400_BAD_REQUEST)

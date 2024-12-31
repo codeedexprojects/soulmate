@@ -21,9 +21,6 @@ urlpatterns = [
     path('user/<int:user_id>/executive-ratings/', UserExecutiveRatingsView.as_view(), name='user-executive-ratings'),
     path('user-Total-ratings/', UserExecutiveTotalRatingsView.as_view(), name='user-Total-ratings'),
 
-
-    # path('calls/end/<int:call_history_id>/', EndCallByHistoryView.as_view(), name='end-call-by-history'),
-
     path('call-history/<int:user_id>/', call_history, name='call_history'),
     path('rate/<int:user_id>/<int:executive_id>/', RateExecutiveView.as_view(), name='create_rating'),
     path('log-call/<int:user_id>/', LogCallView.as_view(), name='log_call'),

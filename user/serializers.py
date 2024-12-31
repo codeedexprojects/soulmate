@@ -424,11 +424,11 @@ class UserBlockSerializer(serializers.ModelSerializer):
 
 class UserBlockListSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(source='user.user_id', read_only=True)
+    executive_id = serializers.CharField(source='executive.executive_id', read_only=True)
+    blocked_at = serializers.DateTimeField(format="%d %b %Y, %H:%M")  # Format: 1 Dec 2024, 14:30
 
     class Meta:
         model = UserBlock
         fields = '__all__'
-        # Alternatively, specify fields explicitly if needed
-        # fields = ['id', 'user', 'user_id', 'blocked_until']
 
  

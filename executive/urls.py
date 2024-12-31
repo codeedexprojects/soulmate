@@ -61,8 +61,5 @@ urlpatterns = [
     path('executives/<int:executive_id>/update-on-call/', UpdateExecutiveOnCallStatus.as_view(), name='update-on-call'),
     path('total-coins-spend/<str:user_id>/', TotalCoinsDeductedView.as_view(), name='total-coins-deducted'),
     path('delete-executive/<int:executive_id>/', DeleteExecutiveAccountView.as_view(), name='delete-executive-account'),
-
-
-
-
+    
 ]

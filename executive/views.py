@@ -311,6 +311,10 @@ class SetOnlineStatusView(APIView):
             executive.online = online_status
             executive.save()
 
+            # Log the saved value for debugging
+            print(f'Updated Online Status: {executive.online}')  # Add this for debugging
+
+
             # Serialize response
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
 

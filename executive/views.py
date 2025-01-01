@@ -257,14 +257,14 @@ class ExecutiveDetailView(APIView):
         return Response({'message': 'Executive deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
 
+from django.db import transaction
+
 class SetOnlineView(APIView):
     def patch(self, request, pk):
         try:
-            executive = Executives.objects.get(id=pk)
-            with transaction.atomic():  # Ensures the transaction commits
-                executive.online = True
-                executive.save()
-                executive.refresh_from_db()  # Refreshes from DB to confirm changes
+            with transaction.atomic():  # Ensure DB commit
+                Executives.objects.filter(id=pk).update(online=True)
+                executive = Executives.objects.get(id=pk)  # Fetch updated data
 
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
             return Response({
@@ -279,11 +279,9 @@ class SetOnlineView(APIView):
 class SetOfflineView(APIView):
     def patch(self, request, pk):
         try:
-            executive = Executives.objects.get(id=pk)
             with transaction.atomic():
-                executive.online = False
-                executive.save()
-                executive.refresh_from_db()
+                Executives.objects.filter(id=pk).update(online=False)
+                executive = Executives.objects.get(id=pk)
 
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
             return Response({
@@ -293,8 +291,8 @@ class SetOfflineView(APIView):
 
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+
         
-from django.db import transaction
 
 
 class SetOnlineStatusView(APIView):

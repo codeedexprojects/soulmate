@@ -15,6 +15,7 @@ urlpatterns = [
     path('profile-picture/approve-reject/<str:executive_id>/', ExecutiveProfilePictureView.as_view(), name='profile-picture-approve-reject'),
     path('executives/<int:pk>/set_online/', SetOnlineView.as_view(), name='set_online'),
     path('executives/<int:pk>/set_offline/', SetOfflineView.as_view(), name='set_offline'),
+    path('executives/<int:pk>/online/', SetOnlineStatusView.as_view(), name='set_online'),
 
     path('executive/<int:executive_id>/status/', ExecutiveStatusView.as_view(), name='executive_status'),
 

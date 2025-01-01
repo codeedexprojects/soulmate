@@ -289,7 +289,39 @@ class SetOfflineView(APIView):
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
+class SetOnlineStatusView(APIView):
+    permission_classes = [AllowAny]
 
+    def patch(self, request, pk):
+        try:
+            # Retrieve the executive
+            executive = Executives.objects.get(id=pk)
+            
+            # Get status from request data (default to False if not provided)
+            online_status = request.data.get('online', None)
+
+            # Validate the online status input
+            if online_status is None or not isinstance(online_status, bool):
+                return Response(
+                    {'message': 'Invalid input. "online" must be true or false.'}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Update online status
+            executive.online = online_status
+            executive.save()
+
+            # Serialize response
+            serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
+
+            # Return response
+            return Response({
+                'message': f'Executive is now {"online" if online_status else "offline"}.',
+                'details': serializer.data
+            }, status=status.HTTP_200_OK)
+
+        except Executives.DoesNotExist:
+            return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class ExecutiveStatusView(APIView):
     def get(self, request, executive_id):

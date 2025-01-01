@@ -261,8 +261,10 @@ class SetOnlineView(APIView):
     def patch(self, request, pk):
         try:
             executive = Executives.objects.get(id=pk)
-            executive.online = True
-            executive.save()
+            with transaction.atomic():  # Ensures the transaction commits
+                executive.online = True
+                executive.save()
+                executive.refresh_from_db()  # Refreshes from DB to confirm changes
 
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
             return Response({
@@ -273,12 +275,15 @@ class SetOnlineView(APIView):
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
 class SetOfflineView(APIView):
     def patch(self, request, pk):
         try:
             executive = Executives.objects.get(id=pk)
-            executive.online = False
-            executive.save()
+            with transaction.atomic():
+                executive.online = False
+                executive.save()
+                executive.refresh_from_db()
 
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
             return Response({

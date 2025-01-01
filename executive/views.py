@@ -288,6 +288,9 @@ class SetOfflineView(APIView):
 
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+from django.db import transaction
+
 
 class SetOnlineStatusView(APIView):
     permission_classes = [AllowAny]
@@ -301,6 +304,9 @@ class SetOnlineStatusView(APIView):
             online_status = request.data.get('online', None)
 
             # Validate the online status input
+            if isinstance(online_status, str):  # Handle string "true"/"false"
+                online_status = online_status.lower() in ['true', '1']
+
             if online_status is None or not isinstance(online_status, bool):
                 return Response(
                     {'message': 'Invalid input. "online" must be true or false.'}, 
@@ -308,12 +314,15 @@ class SetOnlineStatusView(APIView):
                 )
 
             # Update online status
-            executive.online = online_status
-            executive.save()
+            with transaction.atomic():
+                executive.online = online_status
+                executive.save()
+
+            # Refresh from DB to ensure changes are persisted
+            executive.refresh_from_db()
 
             # Log the saved value for debugging
-            print(f'Updated Online Status: {executive.online}')  # Add this for debugging
-
+            print(f'Updated Online Status in DB: {executive.online}')
 
             # Serialize response
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
@@ -326,6 +335,7 @@ class SetOnlineStatusView(APIView):
 
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 class ExecutiveStatusView(APIView):
     def get(self, request, executive_id):

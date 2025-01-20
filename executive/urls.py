@@ -12,6 +12,7 @@ urlpatterns = [
     path('single-executives/<int:pk>/', ExecutiveDetailView.as_view(), name='executive-detail'),
     path('executives-byuser/<int:user_id>/', ListExecutivesByUserView.as_view(), name='executives-by-user'),
     path('executive/<str:executive_id>/get-profile-picture/', ExecutiveProfileGetPictureView.as_view(), name='executive-profile-picture'),
+    path('executive/profile-pictures/approval/', ExecutiveProfilePictureApprovalListView.as_view(), name='approval-list'),
 
     path('executive/<str:executive_id>/upload/', ExecutiveProfilePictureUploadView.as_view(), name='upload-profile-picture'),
     path('executive/<str:executive_id>/approve-reject/', ExecutiveProfilePictureApprovalView.as_view(), name='approve-reject-profile-picture'),

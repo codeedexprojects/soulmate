@@ -947,3 +947,24 @@ class ExecutiveProfileGetPictureView(APIView):
         # Serialize the profile picture data
         serializer = GetExecutiveProfilePictureSerializer(profile_picture, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ExecutiveProfilePictureApprovalListView(APIView):
+    def get(self, request):
+        # Get all profile pictures with "pending" status
+        pending_profile_pictures = ExecutiveProfilePicture.objects.filter(status='pending')
+
+        # Prepare the data to return
+        data = []
+        for profile_picture in pending_profile_pictures:
+            executive = profile_picture.executive
+            data.append({
+                'id': profile_picture.id,
+                'executive_name': executive.name,
+                'mobile_number': executive.mobile_number,
+                'executive_id': executive.executive_id,
+                'profile_photo_url': profile_picture.profile_photo.url if profile_picture.profile_photo else None,
+                'status': profile_picture.status,
+            })
+        
+        return Response(data, status=status.HTTP_200_OK)

@@ -553,22 +553,14 @@ class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):
         return value
     
     def get_profile_photo_url(self, obj):
-        request = self.context.get('request')
-        if obj.profile_photo and request:
-            return request.build_absolute_uri(obj.profile_photo.url)
+        profile_picture = ExecutiveProfilePicture.objects.filter(executive=obj).first()
+
+        if profile_picture:
+            if profile_picture.status == 'approved':
+                request = self.context.get('request')
+                return request.build_absolute_uri(profile_picture.profile_photo.url) if request else profile_picture.profile_photo.url
+            elif profile_picture.status == 'pending':
+                return "waiting for approval"
+
         return None
     
-class ExecutiveProfileGetPictureSerializer(serializers.ModelSerializer):
-    profile_photo_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ExecutiveProfilePicture
-        fields = ['profile_photo_url']
-
-    def get_profile_photo_url(self, obj):
-        if obj.status == 'approved':
-            request = self.context.get('request')
-            return request.build_absolute_uri(obj.profile_photo.url) if request else obj.profile_photo.url
-        elif obj.status == 'pending':
-            return "waiting for approval"
-        return None

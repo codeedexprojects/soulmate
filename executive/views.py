@@ -904,10 +904,11 @@ class ExecutiveProfilePictureUploadView(APIView):
             serializer = ExecutiveProfilePictureSerializer(data=data, context={"request": request})
 
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(status='pending')
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class ExecutiveProfilePictureApprovalView(APIView):

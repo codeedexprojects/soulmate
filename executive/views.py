@@ -945,5 +945,5 @@ class ExecutiveProfileGetPictureView(APIView):
             return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
 
         # Serialize the profile picture data
-        serializer = ExecutiveProfileGetPictureSerializer(profile_picture, context={'request': request})
+        serializer = ExecutiveProfilePictureSerializer(profile_picture, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)

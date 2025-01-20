@@ -978,8 +978,10 @@ class ExecutiveProfilePictureApprovalListView(APIView):
 class ExecutiveProfilePictureSingleView(APIView):
     def get(self, request, executive_id):
         try:
-            # Get the profile picture for the given executive ID
-            profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
+            # Get the profile picture for the given executive ID with a "pending" status
+            profile_picture = ExecutiveProfilePicture.objects.get(
+                executive__executive_id=executive_id, status='pending'
+            )
 
             # Construct the full URL for the profile photo using the request object
             full_url = None
@@ -993,12 +995,13 @@ class ExecutiveProfilePictureSingleView(APIView):
                 'mobile_number': profile_picture.executive.mobile_number,
                 'executive_id': profile_picture.executive.executive_id,
                 'profile_photo_url': full_url,  # Full path URL
-                'status': profile_picture.status,
+                'status': "waiting for approval",
             }
             return Response(data, status=status.HTTP_200_OK)
-        
+
         except ExecutiveProfilePicture.DoesNotExist:
             return Response(
-                {"detail": "Profile picture not found for the given executive."},
+                {"detail": "No pending profile picture found for the given executive."},
                 status=status.HTTP_404_NOT_FOUND
             )
+

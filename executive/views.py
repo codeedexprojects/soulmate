@@ -958,7 +958,6 @@ class ExecutiveProfilePictureApprovalListView(APIView):
         data = []
         for profile_picture in pending_profile_pictures:
             executive = profile_picture.executive
-            request = self.context.get('request')  # Get the request object from the context
 
             # Construct the full URL for the profile photo
             full_url = None

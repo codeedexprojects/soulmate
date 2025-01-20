@@ -959,7 +959,7 @@ class ExecutiveProfilePictureApprovalListView(APIView):
         for profile_picture in pending_profile_pictures:
             executive = profile_picture.executive
 
-            # Construct the full URL for the profile photo
+            # Construct the full URL for the profile photo using request directly
             full_url = None
             if profile_picture.profile_photo:
                 full_url = request.build_absolute_uri(profile_picture.profile_photo.url)

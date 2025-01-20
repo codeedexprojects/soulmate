@@ -12,6 +12,8 @@ urlpatterns = [
     path('users/', UserListView.as_view(), name='user_list'),
     path('users/<int:id>/', UserDetailView.as_view(), name='user_detail'),
     path('user/<int:user_id>/coin-balance/', GetUserCoinBalanceView.as_view(), name='get_user_coin_balance'),
+    path('update-dp/', UpdateDPImageView.as_view(), name='update-dp'),
+
     path('add-favourite/<int:user_id>/<int:executive_id>/', add_favourite, name='add_favourite'),
     path('list-favourites/<int:user_id>/', ListFavouritesView.as_view(), name='list_favourites'),
     path('remove-favourite/<int:user_id>/<int:executive_id>/', RemoveFavouriteView.as_view(), name='remove_favourite'),

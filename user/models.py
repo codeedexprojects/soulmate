@@ -38,6 +38,7 @@ class User(AbstractBaseUser):
 
     name = models.CharField(max_length=100, blank=True, null=True)
     mobile_number = models.CharField(max_length=15, unique=True)
+    dp_image = models.ImageField(upload_to='user/dp_images/', blank=True, null=True)
     otp = models.CharField(max_length=6, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
     gender = models.CharField(max_length=8, choices=GENDER_CHOICES, blank=True, null=True)

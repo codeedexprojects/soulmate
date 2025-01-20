@@ -1505,3 +1505,19 @@ class BlockedUsersListAPIView(APIView):
         blocked_users = UserBlock.objects.filter(is_blocked=True, executive_id=executive_id)
         serializer = UserBlockListSerializer(blocked_users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class UpdateDPImageView(APIView):
+    permission_classes = [AllowAny]
+
+    def patch(self, request):
+        user = request.user
+        serializer = UserDPImageSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"detail": "Profile picture updated successfully!", "dp_image": serializer.data['dp_image']},
+                status=status.HTTP_200_OK,
+            )
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

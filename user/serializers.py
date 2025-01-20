@@ -431,4 +431,9 @@ class UserBlockListSerializer(serializers.ModelSerializer):
         model = UserBlock
         fields = '__all__'
 
- 
+class UserDPImageSerializer(serializers.ModelSerializer):
+    dp_image = serializers.ImageField(required=False)  
+
+    class Meta:
+        model = User
+        fields = ['dp_image']

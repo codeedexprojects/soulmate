@@ -958,12 +958,19 @@ class ExecutiveProfilePictureApprovalListView(APIView):
         data = []
         for profile_picture in pending_profile_pictures:
             executive = profile_picture.executive
+            request = self.context.get('request')  # Get the request object from the context
+
+            # Construct the full URL for the profile photo
+            full_url = None
+            if profile_picture.profile_photo:
+                full_url = request.build_absolute_uri(profile_picture.profile_photo.url)
+
             data.append({
                 'id': profile_picture.id,
                 'executive_name': executive.name,
                 'mobile_number': executive.mobile_number,
                 'executive_id': executive.executive_id,
-                'profile_photo_url': profile_picture.profile_photo.url if profile_picture.profile_photo else None,
+                'profile_photo_url': full_url,  # Full path URL
                 'status': profile_picture.status,
             })
         

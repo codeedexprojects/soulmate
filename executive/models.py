@@ -120,38 +120,24 @@ class Executives(AbstractBaseUser):
 
 class ExecutiveProfilePicture(models.Model):
     STATUS_CHOICES = [
-        ('waiting for approval', 'Waiting for Approval'),
+        ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     ]
 
-    executive = models.OneToOneField(
-        'executive.Executives',
-        on_delete=models.CASCADE,
-        related_name='profile_picture'
-    )
-    profile_photo = models.ImageField(upload_to='executive_profiles/')
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='waiting for approval'  # Matches STATUS_CHOICES
-    )
+    executive = models.OneToOneField(Executives, on_delete=models.CASCADE)
+    profile_photo = models.ImageField(upload_to='executive_pictures/')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def approve(self):
-        """Approve the profile photo."""
         self.status = 'approved'
         self.save()
 
     def reject(self):
-        """Reject the profile photo."""
         self.status = 'rejected'
         self.save()
-
-    def __str__(self):
-        return f"{self.executive.executive_id} - {self.status}"
-
 
 
 class TalkTime(models.Model):

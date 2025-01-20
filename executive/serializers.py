@@ -521,7 +521,23 @@ class ExecutiveOnCallSerializer(serializers.ModelSerializer):
 
 
 class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):
+    profile_photo_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ExecutiveProfilePicture
-        fields = ['executive', 'profile_photo', 'status', 'created_at', 'updated_at']
+        fields = ['executive', 'profile_photo_url','profile_photo', 'status', 'created_at', 'updated_at']
         read_only_fields = ['status', 'created_at', 'updated_at']
+
+    def validate_profile_photo(self, value):
+        if not value.content_type.startswith('image/'):
+            raise serializers.ValidationError("Uploaded file must be an image.")
+        max_size = 3 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError("Image size must not exceed 5 MB.")
+        return value
+    
+    def get_profile_photo_url(self, obj):
+        request = self.context.get('request')
+        if obj.profile_photo and request:
+            return request.build_absolute_uri(obj.profile_photo.url)
+        return None

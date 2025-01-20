@@ -1,6 +1,5 @@
 from .serializers import *
 from user.serializers import *
-
 from rest_framework import generics
 from .models import *
 from user.models import *
@@ -16,6 +15,7 @@ from django.db.models import Sum, F
 from rest_framework.decorators import action
 from .utils import send_otp, generate_otp
 from rest_framework.permissions import AllowAny
+from django.db import transaction
 
 #OTPAUTH
 class ExeRegisterOrLoginView(APIView):
@@ -142,21 +142,6 @@ class ListExecutivesByUserView(generics.ListAPIView):
 from rest_framework.generics import ListAPIView
 
 
-# class TalkTimeHistoryByExecutiveView(ListAPIView):
-#     serializer_class = TalkTimeHistorySerializer
-
-#     def get_queryset(self):
-#         executive_id = self.kwargs.get('executive_id')
-#         if not executive_id:
-#             raise NotFound("Executive ID is required.")
-        
-#         # Filter TalkTime using the related AgoraCallHistory model
-#         return TalkTime.objects.filter(
-#             call_history__executive_id=executive_id
-#         ).select_related('call_history').order_by('-call_history__start_time')
-
-
-
 class TalkTimeHistoryByExecutiveView(ListAPIView):
     serializer_class = TalkTimeHistorySerializer
 
@@ -166,7 +151,6 @@ class TalkTimeHistoryByExecutiveView(ListAPIView):
             raise NotFound("Executive ID is required.")
 
         try:
-            # Ensure the executive exists before querying
             Executives.objects.get(id=executive_id)
         except Executives.DoesNotExist:
             raise NotFound(f"Executive with ID {executive_id} does not exist.")
@@ -185,20 +169,16 @@ class TalkTimeHistoryByExecutiveAndUserView(ListAPIView):
         executive_id = self.kwargs.get('executive_id')
         user_id = self.kwargs.get('user_id')
 
-        # Ensure both executive_id and user_id are provided
         if not executive_id or not user_id:
             raise NotFound("Both Executive ID and User ID are required.")
 
         try:
-            # Ensure the executive exists before querying
             executive = Executives.objects.get(id=executive_id)
         except Executives.DoesNotExist:
             raise NotFound(f"Executive with ID {executive_id} does not exist.")
 
-        # Query the call history for the given executive and user, ordered by start_time (most recent first)
         queryset = AgoraCallHistory.objects.filter(executive_id=executive_id, user_id=user_id).order_by('-start_time')
 
-        # Return only the last 5 records
         return queryset[:5]
 
 
@@ -256,15 +236,12 @@ class ExecutiveDetailView(APIView):
         executive.delete()
         return Response({'message': 'Executive deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
 
-
-from django.db import transaction
-
 class SetOnlineView(APIView):
     def patch(self, request, pk):
         try:
-            with transaction.atomic():  # Ensure DB commit
+            with transaction.atomic(): 
                 Executives.objects.filter(id=pk).update(online=True)
-                executive = Executives.objects.get(id=pk)  # Fetch updated data
+                executive = Executives.objects.get(id=pk)
 
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
             return Response({
@@ -274,7 +251,6 @@ class SetOnlineView(APIView):
 
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
-
 
 class SetOfflineView(APIView):
     def patch(self, request, pk):
@@ -292,22 +268,16 @@ class SetOfflineView(APIView):
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        
-
-
 class SetOnlineStatusView(APIView):
     permission_classes = [AllowAny]
 
     def patch(self, request, pk):
         try:
-            # Retrieve the executive
             executive = Executives.objects.get(id=pk)
             
-            # Get status from request data (default to False if not provided)
             online_status = request.data.get('online', None)
 
-            # Validate the online status input
-            if isinstance(online_status, str):  # Handle string "true"/"false"
+            if isinstance(online_status, str): 
                 online_status = online_status.lower() in ['true', '1']
 
             if online_status is None or not isinstance(online_status, bool):
@@ -917,63 +887,46 @@ class DeleteExecutiveAccountView(APIView):
             status=status.HTTP_200_OK
         )
     
-class ExecutiveProfilePictureView(APIView):
-    permission_classes = [AllowAny]
-
-    def get(self, request, executive_id):
-        """Get the profile picture of a specific executive."""
-        try:
-            profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
-            serializer = ExecutiveProfilePictureSerializer(profile_picture)
-            return Response(serializer.data)
-        except ExecutiveProfilePicture.DoesNotExist:
-            return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
-
+class ExecutiveProfilePictureUploadView(APIView):
     def post(self, request, executive_id):
-        """Create or update a profile picture for an executive."""
         try:
             executive = Executives.objects.get(executive_id=executive_id)
         except Executives.DoesNotExist:
             return Response({"detail": "Executive not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Prepare the data for serializer, ensuring it is mutable
-        data = request.data.copy()  # Make request data mutable
-        data['executive'] = executive.id  # Set the executive ID for the profile picture
+        data = request.data.copy()
+        data['executive'] = executive.id
 
-        # Check if the executive already has a profile picture
-        existing_profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
-        if existing_profile_picture:
-            # If a profile picture already exists, update it
-            serializer = ExecutiveProfilePictureSerializer(existing_profile_picture, data=data, partial=True)
+        existing_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
+        if existing_picture:
+            serializer = ExecutiveProfilePictureSerializer(existing_picture, data=data, partial=True, context={"request": request})
         else:
-            # Otherwise, create a new profile picture
-            serializer = ExecutiveProfilePictureSerializer(data=data)
+            serializer = ExecutiveProfilePictureSerializer(data=data, context={"request": request})
 
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        # If the serializer is not valid, return errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+class ExecutiveProfilePictureApprovalView(APIView):
     def patch(self, request, executive_id):
-        """Approve or reject the profile picture for the executive."""
         try:
             profile_picture = ExecutiveProfilePicture.objects.get(executive__executive_id=executive_id)
         except ExecutiveProfilePicture.DoesNotExist:
             return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get the status from the request data
         status_value = request.data.get('status')
-        if status_value and status_value in ['approved', 'rejected']:
-            # Update the profile picture status
-            if status_value == 'approved':
-                profile_picture.approve()
-            elif status_value == 'rejected':
-                profile_picture.reject()
+        if status_value not in ['approved', 'rejected']:
+            return Response({"detail": "Invalid status value."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Return the updated status of the profile picture
-            return Response({"dp status": profile_picture.status, "status":True}, status=status.HTTP_200_OK)
-        
-        # Handle invalid status
-        return Response({"detail": "Invalid status."}, status=status.HTTP_400_BAD_REQUEST)
+        if status_value == 'approved':
+            profile_picture.approve()
+        elif status_value == 'rejected':
+            profile_picture.reject()
+
+        return Response({
+            "detail": f"Profile picture has been {status_value}.",
+            "status": profile_picture.status
+        }, status=status.HTTP_200_OK)

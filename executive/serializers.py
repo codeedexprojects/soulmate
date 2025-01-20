@@ -16,6 +16,7 @@ class ExecutivesSerializer(serializers.ModelSerializer):
     is_banned = serializers.BooleanField()
     is_suspended = serializers.BooleanField()
     call_minutes = serializers.SerializerMethodField()
+    profile_photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Executives
@@ -23,6 +24,7 @@ class ExecutivesSerializer(serializers.ModelSerializer):
             'id',
             'name',
             'mobile_number',
+            'profile_photo_url',
             'email_id',
             'age',
             'online',
@@ -65,6 +67,16 @@ class ExecutivesSerializer(serializers.ModelSerializer):
         # Handle cases where duration might be None
         total_seconds = sum([ch.duration.total_seconds() for ch in call_histories if ch.duration])
         return total_seconds or 0  # Return 0 if no calls or durations are None
+    
+    def get_profile_photo_url(self, obj):
+        """Return the profile photo URL if status is approved."""
+        profile_picture = ExecutiveProfilePicture.objects.filter(
+            executive=obj, status='approved'
+        ).first()
+        request = self.context.get('request')
+        if profile_picture and request:
+            return request.build_absolute_uri(profile_picture.profile_photo.url)
+        return None
 
     def get_picked_calls(self, obj):
         today = timezone.now().date()

@@ -568,3 +568,34 @@ class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):
 
         return None
 
+class GetExecutiveProfilePictureSerializer(serializers.ModelSerializer):
+    profile_photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ExecutiveProfilePicture
+        fields = ['executive', 'profile_photo_url', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['status', 'created_at', 'updated_at']
+
+    def validate_profile_photo(self, value):
+        if not value.content_type.startswith('image/'):
+            raise serializers.ValidationError("Uploaded file must be an image.")
+        max_size = 3 * 1024 * 1024
+        if value.size > max_size:
+            raise serializers.ValidationError("Image size must not exceed 5 MB.")
+        return value
+    
+    def get_profile_photo_url(self, obj):
+        # Ensure 'executive' instance is used to query the ExecutiveProfilePicture
+        executive = obj.executive  # 'obj' here is an instance of 'ExecutiveProfilePicture'
+        
+        if executive:
+            profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
+
+            if profile_picture:
+                if profile_picture.status == 'approved':
+                    request = self.context.get('request')
+                    return request.build_absolute_uri(profile_picture.profile_photo.url) if request else profile_picture.profile_photo.url
+                elif profile_picture.status == 'pending':
+                    return "waiting for approval"
+
+        return None

@@ -931,3 +931,19 @@ class ExecutiveProfilePictureApprovalView(APIView):
             "detail": f"Profile picture has been {status_value}.",
             "status": profile_picture.status
         }, status=status.HTTP_200_OK)
+
+class ExecutiveProfileGetPictureView(APIView):
+    def get(self, request, executive_id):
+        try:
+            executive = Executives.objects.get(executive_id=executive_id)
+        except Executives.DoesNotExist:
+            raise NotFound("Executive not found.")
+
+        # Get the profile picture for the executive
+        profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
+        if not profile_picture:
+            return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Serialize the profile picture data
+        serializer = ExecutiveProfileGetPictureSerializer(profile_picture, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)

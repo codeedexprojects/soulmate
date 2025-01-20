@@ -11,6 +11,8 @@ urlpatterns = [
     path('all-executives/', ListExecutivesView.as_view(), name='list_executives'),
     path('single-executives/<int:pk>/', ExecutiveDetailView.as_view(), name='executive-detail'),
     path('executives-byuser/<int:user_id>/', ListExecutivesByUserView.as_view(), name='executives-by-user'),
+    path('executive/<str:executive_id>/get-profile-picture/', ExecutiveProfileGetPictureView.as_view(), name='executive-profile-picture'),
+
     path('executive/<str:executive_id>/upload/', ExecutiveProfilePictureUploadView.as_view(), name='upload-profile-picture'),
     path('executive/<str:executive_id>/approve-reject/', ExecutiveProfilePictureApprovalView.as_view(), name='approve-reject-profile-picture'),
     path('executives/<int:pk>/set_online/', SetOnlineView.as_view(), name='set_online'),

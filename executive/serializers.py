@@ -74,12 +74,13 @@ class ExecutivesSerializer(serializers.ModelSerializer):
         if profile_picture:
             if profile_picture.status == 'approved':
                 request = self.context.get('request')
-                # Build absolute URL if request context is available
+                # Return the full URL if the request is available
                 return request.build_absolute_uri(profile_picture.profile_photo.url) if request else profile_picture.profile_photo.url
             elif profile_picture.status == 'pending':
                 return "waiting for approval"
 
         return None
+
 
 
     def get_picked_calls(self, obj):

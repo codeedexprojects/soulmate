@@ -69,18 +69,18 @@ class ExecutivesSerializer(serializers.ModelSerializer):
         return total_seconds or 0  # Return 0 if no calls or durations are None
     
     def get_profile_photo_url(self, obj):
-        profile_picture = ExecutiveProfilePicture.objects.filter(
-            executive=obj
-        ).first()
+        profile_picture = ExecutiveProfilePicture.objects.filter(executive=obj).first()
 
         if profile_picture:
             if profile_picture.status == 'approved':
                 request = self.context.get('request')
+                # Build absolute URL if request context is available
                 return request.build_absolute_uri(profile_picture.profile_photo.url) if request else profile_picture.profile_photo.url
             elif profile_picture.status == 'pending':
                 return "waiting for approval"
 
         return None
+
 
     def get_picked_calls(self, obj):
         today = timezone.now().date()

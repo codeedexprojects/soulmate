@@ -541,7 +541,7 @@ class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ExecutiveProfilePicture
-        fields = ['executive', 'profile_photo_url','profile_photo', 'status', 'created_at', 'updated_at']
+        fields = ['executive', 'profile_photo_url', 'profile_photo', 'status', 'created_at', 'updated_at']
         read_only_fields = ['status', 'created_at', 'updated_at']
 
     def validate_profile_photo(self, value):
@@ -553,14 +553,18 @@ class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):
         return value
     
     def get_profile_photo_url(self, obj):
-        profile_picture = ExecutiveProfilePicture.objects.filter(executive=obj).first()
+        # Ensure 'executive' instance is used to query the ExecutiveProfilePicture
+        executive = obj.executive  # 'obj' here is an instance of 'ExecutiveProfilePicture'
+        
+        if executive:
+            profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
 
-        if profile_picture:
-            if profile_picture.status == 'approved':
-                request = self.context.get('request')
-                return request.build_absolute_uri(profile_picture.profile_photo.url) if request else profile_picture.profile_photo.url
-            elif profile_picture.status == 'pending':
-                return "waiting for approval"
+            if profile_picture:
+                if profile_picture.status == 'approved':
+                    request = self.context.get('request')
+                    return request.build_absolute_uri(profile_picture.profile_photo.url) if request else profile_picture.profile_photo.url
+                elif profile_picture.status == 'pending':
+                    return "waiting for approval"
 
         return None
-    
+

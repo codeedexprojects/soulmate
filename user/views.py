@@ -1251,63 +1251,57 @@ class LeaveChannelForExecutiveView(APIView):
     def post(self, request):
         call_id = request.data.get("call_id")
 
-        # Input validation
         if not call_id:
             return Response({"error": "Call ID is required."}, status=400)
 
-        # Validate call entry
         try:
             call_entry = AgoraCallHistory.objects.select_for_update().get(id=call_id)
         except AgoraCallHistory.DoesNotExist:
             return Response({"error": "Call history not found."}, status=404)
 
-        # Ensure the call status is not already finalized
         if call_entry.status in ["left", "missed", "rejected"]:
             return Response({"error": f"Call already marked as {call_entry.status}."}, status=400)
 
-        # Expire tokens when call ends or is rejected
         user = call_entry.user
         executive = call_entry.executive
 
-        # Expiring the tokens for user and executive
-        user.token_expiry = timezone.now()  # Or set to expired
-        executive.token_expiry = timezone.now()  # Or set to expired
+        # Expire tokens
+        user.token_expiry = timezone.now()
+        executive.token_expiry = timezone.now()
         user.save()
         executive.save()
 
-        # Handle pending status
         if call_entry.status == "pending":
             call_entry.status = "rejected"
             call_entry.end_time = now()
             call_entry.is_active = False
             call_entry.save()
 
-            # Set the executive's on_call status to False
+            # Update on_call using direct query
             Executives.objects.filter(id=executive.id).update(on_call=False)
-
+            executive.refresh_from_db()
 
             return Response({
                 "message": f"Executive {executive.name} left the channel without joining.",
                 "call_id": call_entry.id,
                 "status": "rejected",
+                "on_call": executive.on_call  # Verify in response
             }, status=200)
 
-        # Handle joined status
         if call_entry.status == "joined":
-            call_entry.end_call()  # End the call and perform coin transfer
+            call_entry.end_call()
             call_entry.status = "left"
             call_entry.save()
 
-            executive.on_call = False
-            executive.save()
+            # Update on_call using direct query
+            Executives.objects.filter(id=executive.id).update(on_call=False)
+            executive.refresh_from_db()
 
             return Response({
                 "message": f"Executive {executive.name} has left the channel.",
                 "call_id": call_entry.id,
                 "status": "left",
-                "call_duration": str(call_entry.duration),
-                "coins_deducted": call_entry.coins_deducted,
-                "coins_added": call_entry.coins_added,
+                "on_call": executive.on_call  # Verify in response
             }, status=200)
 
         return Response({"error": "Unexpected call status."}, status=400)
@@ -1361,8 +1355,8 @@ class LeaveChannelForUserView(APIView):
             call_entry.status = "left"
             call_entry.save()
         
-            executive.on_call = False
-            executive.save()
+            Executives.objects.filter(id=executive.id).update(on_call=False)
+            executive.refresh_from_db()
 
             return Response({
                 "message": "Call ended successfully.",
@@ -1435,8 +1429,8 @@ class LeaveAllCallsForExecutiveView(APIView):
                 call_entry.save()
 
         # Set the executive's on_call status to False
-        executive.on_call = False
-        executive.save()
+        Executives.objects.filter(id=executive.id).update(on_call=False)
+        executive.refresh_from_db()
 
         return Response({
             "message": f"All ongoing calls for executive {executive.name} have been ended.",

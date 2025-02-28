@@ -1169,7 +1169,7 @@ class JoinChannelForExecutiveView(APIView):
     def post(self, request):
         channel_name = request.data.get("channel_name")
         executive_id = request.data.get("executive_id")
-        token = request.data.get("token")  
+        token = request.data.get("token")
 
         if not channel_name or not executive_id or not token:
             return Response({"error": "Channel name, executive_id, and token are required."}, status=400)
@@ -1179,20 +1179,28 @@ class JoinChannelForExecutiveView(APIView):
         except Executives.DoesNotExist:
             return Response({"error": "Executive not found."}, status=404)
 
-
         call_entry = AgoraCallHistory.objects.filter(
             channel_name=channel_name, executive=executive, end_time=None).first()
 
         if not call_entry:
             return Response({"error": "Channel not found or already ended."}, status=404)
-        
+
+        # Debug: Print the current value of on_call
+        print(f"Before update - on_call: {executive.on_call}")
+
+        # Update the executive's on_call status
+        executive.on_call = True
+        executive.save()
+
+        # Debug: Refresh the instance from the database to confirm the update
+        executive.refresh_from_db()
+        print(f"After update - on_call: {executive.on_call}")
+
+        # Update the call entry
         call_entry.executive_joined = True
         call_entry.status = "joined"
         call_entry.start_time = now()
         call_entry.save()
-
-        executive.on_call= True
-        executive.save()
 
         return Response({
             "message": f"Executive {executive.name} successfully joined the channel.",
@@ -1201,6 +1209,7 @@ class JoinChannelForExecutiveView(APIView):
             "executive_name": executive.name,
             "status": "joined",
             "agora_uid": executive.id,
+            "on_call": executive.on_call  # Include the field in the response
         }, status=200)
 
 

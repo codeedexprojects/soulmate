@@ -1180,23 +1180,19 @@ class JoinChannelForExecutiveView(APIView):
             return Response({"error": "Executive not found."}, status=404)
 
         call_entry = AgoraCallHistory.objects.filter(
-            channel_name=channel_name, executive=executive, end_time=None).first()
+            channel_name=channel_name, executive=executive, end_time=None
+        ).first()
 
         if not call_entry:
             return Response({"error": "Channel not found or already ended."}, status=404)
 
-        # Debug: Print the current value of on_call
-        print(f"Before update - on_call: {executive.on_call}")
+        # Update on_call using direct database query
+        Executives.objects.filter(id=executive.id).update(on_call=True)
+        
+        # Refresh the instance from the database
+        executive.refresh_from_db()  # Critical step
 
-        # Update the executive's on_call status
-        executive.on_call = True
-        executive.save()
-
-        # Debug: Refresh the instance from the database to confirm the update
-        executive.refresh_from_db()
-        print(f"After update - on_call: {executive.on_call}")
-
-        # Update the call entry
+        # Update call entry
         call_entry.executive_joined = True
         call_entry.status = "joined"
         call_entry.start_time = now()
@@ -1209,7 +1205,8 @@ class JoinChannelForExecutiveView(APIView):
             "executive_name": executive.name,
             "status": "joined",
             "agora_uid": executive.id,
-            "on_call": executive.on_call  # Include the field in the response
+            "on_call": executive.on_call,  # Now reflects the updated value
+            "call_id":call_entry.id
         }, status=200)
 
 

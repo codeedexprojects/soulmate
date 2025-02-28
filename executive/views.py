@@ -951,15 +951,12 @@ class ExecutiveProfileGetPictureView(APIView):
 
 class ExecutiveProfilePictureApprovalListView(APIView):
     def get(self, request):
-        # Get all profile pictures with "pending" status
         pending_profile_pictures = ExecutiveProfilePicture.objects.filter(status='pending')
 
-        # Prepare the data to return
         data = []
         for profile_picture in pending_profile_pictures:
             executive = profile_picture.executive
 
-            # Construct the full URL for the profile photo using request directly
             full_url = None
             if profile_picture.profile_photo:
                 full_url = request.build_absolute_uri(profile_picture.profile_photo.url)
@@ -969,7 +966,7 @@ class ExecutiveProfilePictureApprovalListView(APIView):
                 'executive_name': executive.name,
                 'mobile_number': executive.mobile_number,
                 'executive_id': executive.executive_id,
-                'profile_photo_url': full_url,  # Full path URL
+                'profile_photo_url': full_url,
                 'status': profile_picture.status,
             })
         
@@ -978,23 +975,20 @@ class ExecutiveProfilePictureApprovalListView(APIView):
 class ExecutiveProfilePictureSingleView(APIView):
     def get(self, request, executive_id):
         try:
-            # Get the profile picture for the given executive ID with a "pending" status
             profile_picture = ExecutiveProfilePicture.objects.get(
                 executive__executive_id=executive_id, status='pending'
             )
 
-            # Construct the full URL for the profile photo using the request object
             full_url = None
             if profile_picture.profile_photo:
                 full_url = request.build_absolute_uri(profile_picture.profile_photo.url)
 
-            # Prepare the response data
             data = {
                 'id': profile_picture.id,
                 'executive_name': profile_picture.executive.name,
                 'mobile_number': profile_picture.executive.mobile_number,
                 'executive_id': profile_picture.executive.executive_id,
-                'profile_photo_url': full_url,  # Full path URL
+                'profile_photo_url': full_url,
                 'status': "waiting for approval",
             }
             return Response(data, status=status.HTTP_200_OK)
@@ -1004,4 +998,3 @@ class ExecutiveProfilePictureSingleView(APIView):
                 {"detail": "No pending profile picture found for the given executive."},
                 status=status.HTTP_404_NOT_FOUND
             )
-

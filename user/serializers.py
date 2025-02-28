@@ -221,7 +221,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'plan_name', 'coin_package', 'base_price',
             'discount_percentage', 'discount_amount', 'final_amount',
-            'category_id', 'category_name'
+            'category_id', 'category_name','total_talktime'
         ]
 
     def get_discount_amount(self, obj):

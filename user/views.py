@@ -1007,11 +1007,9 @@ class CreateChannelView(APIView):
         role = 1  # Publisher (user)
         expiration_in_seconds = 3600
 
-        # Generate unique channel name if not provided
         if not channel_name:
             channel_name = f"bestie_{uuid.uuid4().hex[:8]}_{int(time.time())}"
 
-        # Input validation
         if not executive_id or not user_id:
             return Response({"error": "Both executive_id and user_id are required."}, status=400)
 
@@ -1024,18 +1022,15 @@ class CreateChannelView(APIView):
         except User.DoesNotExist:
             return Response({"error": "Invalid user_id."}, status=404)
 
-        # Check user's coin balance
         if user.coin_balance < 180:
             return Response({"error": "Insufficient balance. You need at least 180 coins to start a call."}, status=403)
 
-        # Check executive's on-call status
         if executive.on_call:
             return Response({"error": "The executive is already on another call."}, status=403)
         
         if not executive.online:
             return Response({"error": "The executive is offline."}, status=403)
 
-        # Generate Agora token for the user (publisher)
         try:
             current_time = int(time.time())
             privilege_expired_ts = current_time + expiration_in_seconds
@@ -1050,7 +1045,6 @@ class CreateChannelView(APIView):
         except Exception as e:
             return Response({"error": f"Token generation failed: {str(e)}"}, status=500)
 
-        # Generate Agora token for the executive (attendee)
         try:
             executive_token = RtcTokenBuilder.buildTokenWithUid(
                 app_id,
@@ -1063,7 +1057,6 @@ class CreateChannelView(APIView):
         except Exception as e:
             return Response({"error": f"Executive token generation failed: {str(e)}"}, status=500)
 
-        # Log the call initiation in CallHistory with pending status
         call_history = AgoraCallHistory.objects.create(
             user=user,
             executive=executive,
@@ -1103,13 +1096,11 @@ class GetRecentChannelView(APIView):
         except Executives.DoesNotExist:
             return Response({"error": "Invalid executive_id."}, status=404)
 
-        # Fetch the most recent call for the executive
         recent_call = AgoraCallHistory.objects.filter(
             executive=executive
         ).order_by("-start_time").first()
 
         if recent_call:
-            # Check if the status is not "pending"
             if recent_call.status != "pending":
                 return Response({"message": "No new calls."}, status=202)
 
@@ -1178,21 +1169,17 @@ class JoinChannelForExecutiveView(APIView):
     def post(self, request):
         channel_name = request.data.get("channel_name")
         executive_id = request.data.get("executive_id")
-        token = request.data.get("token")  # Executive's Agora token
+        token = request.data.get("token")  
 
-        # Validate inputs
         if not channel_name or not executive_id or not token:
             return Response({"error": "Channel name, executive_id, and token are required."}, status=400)
 
-        # Validate executive
         try:
             executive = Executives.objects.get(id=executive_id)
         except Executives.DoesNotExist:
             return Response({"error": "Executive not found."}, status=404)
 
-        # Optionally, you can verify the token here with Agora's API (if needed).
 
-        # Log the executive joining the channel
         call_entry = AgoraCallHistory.objects.filter(
             channel_name=channel_name, executive=executive, end_time=None).first()
 

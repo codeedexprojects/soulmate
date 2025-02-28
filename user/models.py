@@ -110,6 +110,7 @@ class RechargePlanCato(models.Model):
 
 class RechargePlan(models.Model):
     plan_name = models.CharField(max_length=100)
+    total_talktime = models.CharField(max_length=100)
     coin_package = models.PositiveIntegerField()
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     discount_percentage = models.FloatField(default=0)

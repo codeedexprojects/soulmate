@@ -121,6 +121,9 @@ class RechargePlan(models.Model):
 
     def calculate_final_price(self):
         return self.base_price - self.calculate_discount()
+    
+    def calculate_talk_time_minutes(self):
+        return self.coin_package / 180
 
     def __str__(self):
         return self.plan_name

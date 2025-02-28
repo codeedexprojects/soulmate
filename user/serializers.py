@@ -207,12 +207,13 @@ class   CallHistorySerializer(serializers.ModelSerializer):
 class RechargePlanSerializer(serializers.ModelSerializer):
     discount_amount = serializers.SerializerMethodField()
     final_amount = serializers.SerializerMethodField()
+    total_talktime = serializers.SerializerMethodField()
     category_id = serializers.PrimaryKeyRelatedField(
-        queryset=RechargePlanCato.objects.all(),  
+        queryset=RechargePlanCato.objects.all(),
         write_only=True
     )
     category_name = serializers.CharField(
-        source='category_id.name',  
+        source='category_id.name',
         read_only=True
     )
 
@@ -221,7 +222,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'plan_name', 'coin_package', 'base_price',
             'discount_percentage', 'discount_amount', 'final_amount',
-            'category_id', 'category_name','total_talktime'
+            'category_id', 'category_name', 'total_talktime'
         ]
 
     def get_discount_amount(self, obj):
@@ -229,6 +230,10 @@ class RechargePlanSerializer(serializers.ModelSerializer):
 
     def get_final_amount(self, obj):
         return obj.calculate_final_price()
+
+    def get_total_talktime(self, obj):
+        talktime_minutes = obj.coin_package / 180 
+        return f"Your plan talktime is {talktime_minutes:.0f} minutes"  
 
 
 

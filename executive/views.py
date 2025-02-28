@@ -841,18 +841,34 @@ class CallRatingListView(generics.ListAPIView):
     serializer_class = CallRatingSerializer
     # permission_classes = [IsAuthenticated]
 
+import logging
+logger = logging.getLogger(__name__)
+
 class UpdateExecutiveOnCallStatus(APIView):
     def post(self, request, executive_id):
         executive = get_object_or_404(Executives, id=executive_id)
         
-        # Directly update the field
-        new_on_call = request.data.get("on_call")
-        if not isinstance(new_on_call, bool):
-            return Response({"error": "Invalid value for on_call."}, status=400)
+        # Debug: Log the incoming request data and current on_call value
+        logger.debug(f"Request Data: {request.data}")
+        logger.debug(f"Current on_call (Before): {executive.on_call}")
 
+        # Validate the incoming data
+        serializer = ExecutiveOnCallSerializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"Serializer Errors: {serializer.errors}")
+            return Response(serializer.errors, status=400)
+
+        # Debug: Log the validated data
+        new_on_call = serializer.validated_data.get('on_call')
+        logger.debug(f"Validated on_call: {new_on_call}")
+
+        # Update the field directly
         executive.on_call = new_on_call
         executive.save(update_fields=["on_call"])  # Force-save only this field
         executive.refresh_from_db()
+
+        # Debug: Log the updated value
+        logger.debug(f"Updated on_call (After): {executive.on_call}")
 
         return Response({
             'message': 'Executive on_call status updated successfully.',

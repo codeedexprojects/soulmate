@@ -109,15 +109,21 @@ class Executives(AbstractBaseUser):
         super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
-        # Auto-generate executive_id if not provided
         if not self.executive_id:
             last_executive = Executives.objects.order_by('-id').first()
             if last_executive and last_executive.executive_id.startswith('BTEX'):
-                # Extract the numeric part and increment
-                last_number = int(last_executive.executive_id[4:])  # Extract number after 'BTEX'
+                last_number = int(last_executive.executive_id[4:]) 
                 self.executive_id = f'BTEX{last_number + 1}'
             else:
-                self.executive_id = 'BTEX1000'  # Default start
+                self.executive_id = 'BTEX1000'  
+
+        if not self.online and self.duty_start_time:
+            self.total_on_duty_seconds += (timezone.now() - self.duty_start_time).total_seconds()
+            self.duty_start_time = None  
+        elif self.online and not self.duty_start_time:
+            self.duty_start_time = timezone.now()  
+
+        super().save(*args, **kwargs)
 
 class ExecutiveProfilePicture(models.Model):
     STATUS_CHOICES = [

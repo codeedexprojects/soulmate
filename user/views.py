@@ -945,7 +945,8 @@ class RechargePlanListByCategoryView(generics.ListAPIView):
                 "coin_package": plan['coin_package'],
                 "base_price": str(plan['base_price']),
                 "discount_percentage": plan['discount_percentage'],
-                "final_price": str(Decimal(plan['base_price']) - (Decimal(plan['base_price']) * Decimal(plan['discount_percentage']) / Decimal(100)))
+                "final_price": str(Decimal(plan['base_price']) - (Decimal(plan['base_price']) * Decimal(plan['discount_percentage']) / Decimal(100))),
+                "total_talktime": f"Your plan talktime is {plan['coin_package'] / 180:.0f} minutes"  # Add total_talktime
             }
             for plan in serializer.data
         ]

@@ -1283,8 +1283,8 @@ class LeaveChannelForExecutiveView(APIView):
             call_entry.save()
 
             # Set the executive's on_call status to False
-            executive.on_call = False
-            executive.save()
+            Executives.objects.filter(id=executive.id).update(on_call=False)
+
 
             return Response({
                 "message": f"Executive {executive.name} left the channel without joining.",

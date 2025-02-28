@@ -233,7 +233,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
 
     def get_total_talktime(self, obj):
         talktime_minutes = obj.coin_package / 180 
-        return f"Your plan talktime is {talktime_minutes:.0f} minutes"  
+        return f"Your plan talktime is upto {talktime_minutes:.0f} minutes"  
 
 
 

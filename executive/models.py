@@ -65,7 +65,7 @@ class Executives(AbstractBaseUser):
     is_banned = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
     user_id = models.OneToOneField('user.User', on_delete=models.CASCADE, null=True, blank=True, default=None)
-    on_call = models.BooleanField(default=False)
+    on_call = models.BooleanField()
 
 
     objects = ExecutiveManager()

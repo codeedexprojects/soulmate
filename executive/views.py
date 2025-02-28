@@ -843,19 +843,21 @@ class CallRatingListView(generics.ListAPIView):
 
 class UpdateExecutiveOnCallStatus(APIView):
     def post(self, request, executive_id):
-        # Get the executive object by ID
         executive = get_object_or_404(Executives, id=executive_id)
+        
+        # Directly update on_call using the request data
+        new_on_call = request.data.get("on_call")
+        if not isinstance(new_on_call, bool):
+            return Response({"error": "Invalid value for on_call."}, status=400)
 
-        # Deserialize the incoming data
-        serializer = ExecutiveOnCallSerializer(executive, data=request.data, partial=True)
-        if serializer.is_valid():
-            # Save the updated on_call status
-            serializer.save()
-            return Response({
-                'message': 'Executive on_call status updated successfully.',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Update the field directly
+        Executives.objects.filter(id=executive.id).update(on_call=new_on_call)
+        executive.refresh_from_db()
+
+        return Response({
+            'message': 'Executive on_call status updated successfully.',
+            'on_call': executive.on_call
+        }, status=status.HTTP_200_OK)
 
 
 

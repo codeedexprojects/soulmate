@@ -67,7 +67,6 @@ class Executives(AbstractBaseUser):
     user_id = models.OneToOneField('user.User', on_delete=models.CASCADE, null=True, blank=True, default=None)
     on_call = models.BooleanField(default=False)
 
-
     objects = ExecutiveManager()
 
     USERNAME_FIELD = 'mobile_number'  # or 'email', depending on your setup
@@ -98,6 +97,8 @@ class Executives(AbstractBaseUser):
         self.total_missed_calls += 1
         self.save()
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
     
     def save(self, *args, **kwargs):
         if not self.online and self.duty_start_time:

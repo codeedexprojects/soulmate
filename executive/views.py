@@ -841,38 +841,23 @@ class CallRatingListView(generics.ListAPIView):
     serializer_class = CallRatingSerializer
     # permission_classes = [IsAuthenticated]
 
-import logging
-logger = logging.getLogger(__name__)
-
 class UpdateExecutiveOnCallStatus(APIView):
     def post(self, request, executive_id):
         executive = get_object_or_404(Executives, id=executive_id)
         
-        # Debug: Log the incoming request data and current on_call value
-        logger.debug(f"Request Data: {request.data}")
-        logger.debug(f"Current on_call (Before): {executive.on_call}")
+        # Directly update the field
+        new_on_call = request.data.get("on_call")
+        if not isinstance(new_on_call, bool):
+            return Response({"error": "Invalid value for on_call."}, status=400)
 
-        serializer = ExecutiveOnCallSerializer(executive, data=request.data, partial=True)
-        
-        if serializer.is_valid():
-            # Debug: Log the validated data
-            logger.debug(f"Validated Data: {serializer.validated_data}")
-            
-            # Save the serializer and refresh the instance
-            serializer.save()
-            executive.refresh_from_db()  # Critical step
-            
-            # Debug: Log the updated value
-            logger.debug(f"Updated on_call (After): {executive.on_call}")
-            
-            return Response({
-                'message': 'Executive on_call status updated successfully.',
-                'data': serializer.data
-            }, status=status.HTTP_200_OK)
-        else:
-            # Debug: Log serializer errors
-            logger.error(f"Serializer Errors: {serializer.errors}")
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        executive.on_call = new_on_call
+        executive.save(update_fields=["on_call"])  # Force-save only this field
+        executive.refresh_from_db()
+
+        return Response({
+            'message': 'Executive on_call status updated successfully.',
+            'on_call': executive.on_call
+        }, status=status.HTTP_200_OK)
 
 
 

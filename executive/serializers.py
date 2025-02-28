@@ -529,6 +529,8 @@ class CallRatingSerializerview(serializers.ModelSerializer):
 
 
 class ExecutiveOnCallSerializer(serializers.ModelSerializer):
+    on_call = serializers.BooleanField()  
+
     class Meta:
         model = Executives
         fields = ['on_call']

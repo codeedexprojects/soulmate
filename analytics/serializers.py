@@ -6,6 +6,7 @@ from datetime import datetime
 from calls.models import AgoraCallHistory
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
+from executives.models import Executives
 
 class AdminSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

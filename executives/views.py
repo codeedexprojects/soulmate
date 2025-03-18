@@ -506,13 +506,18 @@ class CreateExecutiveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if not isinstance(request.user, Admins):
-            return Response({"detail": "Admin authentication required"}, status=status.HTTP_403_FORBIDDEN)
+        # Check if the user is an Admin (Manager or Superuser)
+        try:
+            admin_user = Admins.objects.get(email=request.user.email)
+        except Admins.DoesNotExist:
+            return Response({"detail": "Admin not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        # Deserialize request data
         serializer = ExecutivesSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
-        executive = serializer.save(created_by=request.user)
+        # Save the executive with the Admin as creator
+        executive = serializer.save(created_by=admin_user)
 
         tokens = self.get_tokens_for_user(executive)
 

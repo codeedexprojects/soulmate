@@ -66,9 +66,9 @@ MIDDLEWARE = [
 AUTH_USER_MODEL = 'users.User'
 
 AUTHENTICATION_BACKENDS = [
-    'executive.authentication.backends.EmailBackend',
-    'django.contrib.auth.backends.ModelBackend',
-    'users.auth_backends.AdminAuthBackend',]
+    'django.contrib.auth.backends.ModelBackend', \
+    'users.auth_backends.AdminAuthBackend',  
+]
 
 ROOT_URLCONF = 'soulmate.urls'
 

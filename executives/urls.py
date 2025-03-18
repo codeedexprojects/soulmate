@@ -37,4 +37,6 @@ urlpatterns = [
     path('manager/executives/create/', CreateExecutiveView.as_view(), name='create-executive'),
     path('manager/executives/', ExecutiveListView.as_view(), name='list-executives'),
     path('manager/executives/<int:pk>/', ExecutiveDetailsView.as_view(), name='executive-detail'),
+    path('manager/executives/', ManagerExecutiveListCreateView.as_view(), name='manager-executives'),
+
 ]

@@ -311,9 +311,6 @@ class CreateAdminView(generics.CreateAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
 
-    def perform_create(self, serializer):
-        serializer.save()
-
 class ListAdminView(generics.ListAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
@@ -325,20 +322,22 @@ class SuperuserLoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        admin = serializer.validated_data['admin']
-
+        admin = serializer.validated_data
         return Response({
             'message': 'Login successful',
-            'email': admin.email,
-            'name': admin.name,
-            'role': admin.role,
-            'id': admin.id
+            'email': admin['email'],
+            'name': admin['name'],
+            'role': admin['role'],
+            'id': admin['id'],
+            'access_token': admin['access_token'],  
+            'refresh_token': admin['refresh_token']
         }, status=status.HTTP_200_OK)
+
 
 class AdminLogoutView(APIView):
     def post(self, request):
         logout(request)
-        return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
+        return Response({"message": "Logged out successfully"})
 
 
 class RevenueTargetView(RetrieveUpdateDestroyAPIView):

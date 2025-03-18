@@ -5,6 +5,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.utils import timezone
 from users.models import *
 from django.utils.timezone import now
+from analytics.models import Admins
 
 class ExecutiveManager(BaseUserManager):
     def create_user(self, mobile_number, name, email_id, password=None, **extra_fields):

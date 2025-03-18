@@ -1,6 +1,6 @@
 from .serializers import *
 from users.serializers import *
-from rest_framework import generics
+from rest_framework import generics,permissions
 from .models import *
 from users.models import *
 from rest_framework.views import APIView
@@ -543,3 +543,19 @@ class ExecutiveDetailsView(APIView):
         executive = self.get_object(pk)
         executive.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+class ManagerExecutivePermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role in ['manager_executive', 'superuser']
+
+class ManagerExecutiveListCreateView(generics.ListCreateAPIView):
+    serializer_class = ExecutiveSerializer
+    permission_classes = [ManagerExecutivePermission]
+
+    def get_queryset(self):
+        """Show only executives created by the logged-in manager."""
+        return Executives.objects.filter(created_by=self.request.user)
+
+    def perform_create(self, serializer):
+        """Assign the logged-in user as the executive's manager."""
+        serializer.save(created_by=self.request.user)

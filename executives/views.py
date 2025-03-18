@@ -502,19 +502,17 @@ class ExecutiveProfilePictureSingleView(APIView):
             )
         
 class CreateExecutiveView(APIView):
-    authentication_classes = [JWTAuthentication]  # Ensure JWT authentication
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if isinstance(request.user, Admins):
-            admin_user = request.user  
-        else:
+        if not isinstance(request.user, Admins):
             return Response({"detail": "Admin authentication required"}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = ExecutivesSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
-        executive = serializer.save(created_by=admin_user)
+        executive = serializer.save(created_by=request.user)
 
         tokens = self.get_tokens_for_user(executive)
 

@@ -68,8 +68,7 @@ AUTH_USER_MODEL = 'users.User'
 AUTHENTICATION_BACKENDS = [
     'executive.authentication.backends.EmailBackend',
     'django.contrib.auth.backends.ModelBackend',
-    'analytics.backends.AdminAuthBackend', 
-]
+    'users.auth_backends.AdminAuthBackend',]
 
 ROOT_URLCONF = 'soulmate.urls'
 

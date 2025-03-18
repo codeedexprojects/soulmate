@@ -53,6 +53,8 @@ class ExecutivesSerializer(serializers.ModelSerializer):
             'call_minutes',
             'coins_balance',
             'on_call',
+            'created_by',
+
         ]
         extra_kwargs = {
             'password': {'write_only': False}
@@ -113,6 +115,22 @@ class ExecutivesSerializer(serializers.ModelSerializer):
         if user and obj.coins_per_second > 0:
             return user.coin_balance // obj.coins_per_second
         return 0
+    
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        instance = super().create(validated_data)
+        if password:
+            instance.set_password(password)
+            instance.save()
+        return instance
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        instance = super().update(instance, validated_data)
+        if password:
+            instance.set_password(password)
+            instance.save()
+        return instance
 
 
 

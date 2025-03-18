@@ -46,6 +46,7 @@ class Executives(AbstractBaseUser):
     email_id = models.EmailField(max_length=255, unique=True)
     password = models.CharField(max_length=128)
     age = models.PositiveIntegerField()
+    created_by = models.ForeignKey('Admins', on_delete=models.SET_NULL, null=True, blank=True)
     online = models.BooleanField(default=False)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male')
     coins_per_second = models.FloatField(default=3)
@@ -69,8 +70,8 @@ class Executives(AbstractBaseUser):
 
     objects = ExecutiveManager()
 
-    USERNAME_FIELD = 'mobile_number'  # or 'email', depending on your setup
-    REQUIRED_FIELDS = ['name', 'email_id']  # Adjust to include fields needed for superuser creation
+    USERNAME_FIELD = 'mobile_number' 
+    REQUIRED_FIELDS = ['name', 'email_id']  
 
     def __str__(self):
         return self.name
@@ -103,9 +104,9 @@ class Executives(AbstractBaseUser):
     def save(self, *args, **kwargs):
         if not self.online and self.duty_start_time:
             self.total_on_duty_seconds += (timezone.now() - self.duty_start_time).total_seconds()
-            self.duty_start_time = None  # Clear duty start time
+            self.duty_start_time = None 
         elif self.online and not self.duty_start_time:
-            self.duty_start_time = timezone.now()  # Start duty time if online
+            self.duty_start_time = timezone.now()  
         super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
@@ -150,8 +151,6 @@ class ExecutiveProfilePicture(models.Model):
 class TalkTime(models.Model):
     call_history = models.ForeignKey('user.AgoraCallHistory', on_delete=models.CASCADE)
     
-    
-
 class AdminManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:

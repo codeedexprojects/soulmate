@@ -16,7 +16,14 @@ from rest_framework.decorators import action
 from .utils import send_otp, generate_otp
 from rest_framework.permissions import AllowAny
 from django.db import transaction
-
+from .tasks import *
+from agora_token_builder import RtcTokenBuilder
+import logging
+from django.db.models import Avg
+from rest_framework.generics import ListAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from django.db.models import Sum, DurationField
+from django.db.models.functions import Coalesce
 #OTPAUTH
 class ExeRegisterOrLoginView(APIView):
     permission_classes = [AllowAny]
@@ -26,12 +33,17 @@ class ExeRegisterOrLoginView(APIView):
         otp = generate_otp()
 
         try:
+            # Check if the executive already exists
             executive = Executives.objects.get(mobile_number=mobile_number)
 
+            # If executive is banned, deny access
             if executive.is_banned:
-                return Response({'message': 'Executive is banned and cannot log in.', 'is_banned': True},
-                                status=status.HTTP_403_FORBIDDEN)
+                return Response(
+                    {'message': 'Executive is banned and cannot log in.', 'is_banned': True},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
+            # Send OTP for login
             if send_otp(mobile_number, otp):
                 executive.otp = otp
                 executive.save()
@@ -42,15 +54,25 @@ class ExeRegisterOrLoginView(APIView):
                     'is_suspended': executive.is_suspended
                 }, status=status.HTTP_200_OK)
             else:
-                return Response({'message': 'Failed to send OTP. Please try again later.'},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(
+                    {'message': 'Failed to send OTP. Please try again later.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         except Executives.DoesNotExist:
+            # Check if the request is from a manager_executive
+            if not request.user.is_authenticated or request.user.role != 'manager_executive':
+                return Response(
+                    {'message': 'Only manager_executive can create new executives.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Validate and create a new executive
             serializer = ExecutivesSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
             if send_otp(mobile_number, otp):
-                executive = serializer.save(otp=otp)
+                executive = serializer.save(otp=otp, created_by=request.user)
                 return Response({
                     'message': 'Executive registered successfully. OTP sent to your mobile number.',
                     'executive_id': executive.id,
@@ -58,9 +80,10 @@ class ExeRegisterOrLoginView(APIView):
                     'is_suspended': False
                 }, status=status.HTTP_201_CREATED)
             else:
-                return Response({'message': 'Failed to send OTP. Please try again later.'},
-                                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+                return Response(
+                    {'message': 'Failed to send OTP. Please try again later.'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
 class ExeVerifyOTPView(APIView):
     permission_classes = [AllowAny]
@@ -79,7 +102,6 @@ class ExeVerifyOTPView(APIView):
         except Executives.DoesNotExist:
             return Response({'message': 'Invalid mobile number or OTP.'},
                             status=status.HTTP_400_BAD_REQUEST)
-
 #Authentication
 class RegisterExecutiveView(generics.CreateAPIView):
     queryset = Executives.objects.all()
@@ -98,14 +120,9 @@ class ExecutiveLoginView(APIView):
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-#Listing
-
 class ListExecutivesView(generics.ListAPIView):
     queryset = Executives.objects.all()
     serializer_class = ExecutivesSerializer
-
-from django.db.models import Avg
 
 class ListExecutivesByUserView(generics.ListAPIView):
     serializer_class = ExecutivesSerializer
@@ -115,20 +132,18 @@ class ListExecutivesByUserView(generics.ListAPIView):
         if not user_id:
             raise NotFound("User ID is required.")
 
-        # Exclude executives who have blocked the user
         blocked_executives = UserBlock.objects.filter(user_id=user_id, is_blocked=True).values_list('executive_id', flat=True)
 
-        # Annotate each executive with their average rating
         queryset = Executives.objects.filter(
             is_suspended=False,
             is_banned=False
         ).exclude(
-            id__in=blocked_executives  # Exclude executives that have blocked the user
+            id__in=blocked_executives 
         ).annotate(
-            average_rating=Avg('call_ratings__stars')  # Using related_name from CallRating model
+            average_rating=Avg('call_ratings__stars')  
         ).order_by(
-            '-online',  # First order by online status (True first)
-            '-average_rating'  # Then by highest average rating
+            '-online', 
+            '-average_rating'
         )
 
         return queryset
@@ -138,9 +153,6 @@ class ListExecutivesByUserView(generics.ListAPIView):
         context['user_id'] = self.kwargs['user_id']
         context['request'] = self.request
         return context
-
-from rest_framework.generics import ListAPIView
-
 
 class TalkTimeHistoryByExecutiveView(ListAPIView):
     serializer_class = TalkTimeHistorySerializer
@@ -181,10 +193,6 @@ class TalkTimeHistoryByExecutiveAndUserView(ListAPIView):
 
         return queryset[:5]
 
-
-
-
-
 class TalkTimeHistoryByExecutiveMinimalView(ListAPIView):
     serializer_class = TalkTimeHistoryMinimalSerializer
 
@@ -207,7 +215,6 @@ class UserCallDurationView(APIView):
             'user_coin_balance': user.coin_balance,
             'executives': serializer.data
         }, status=status.HTTP_200_OK)
-
 
 class ExecutiveDetailView(APIView):
     def get(self, request, pk):
@@ -286,21 +293,16 @@ class SetOnlineStatusView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Update online status
             with transaction.atomic():
                 executive.online = online_status
                 executive.save()
 
-            # Refresh from DB to ensure changes are persisted
             executive.refresh_from_db()
 
-            # Log the saved value for debugging
             print(f'Updated Online Status in DB: {executive.online}')
 
-            # Serialize response
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
 
-            # Return response
             return Response({
                 'message': f'Executive is now {"online" if online_status else "offline"}.',
                 'details': serializer.data
@@ -313,10 +315,8 @@ class SetOnlineStatusView(APIView):
 class ExecutiveStatusView(APIView):
     def get(self, request, executive_id):
         try:
-            # Fetch the executive
             executive = Executives.objects.get(id=executive_id)
 
-            # Calculate total on-duty time
             total_on_duty = str(timedelta(seconds=executive.total_on_duty_seconds))
             if executive.online and executive.duty_start_time:
                 current_session_duration = now() - executive.duty_start_time
@@ -324,24 +324,20 @@ class ExecutiveStatusView(APIView):
                     timedelta(seconds=executive.total_on_duty_seconds + current_session_duration.total_seconds())
                 )
 
-            # Filter today's call history for the executive
             start_of_day = now().replace(hour=0, minute=0, second=0, microsecond=0)
             call_history_today = AgoraCallHistory.objects.filter(
                 executive=executive,
                 start_time__gte=start_of_day
             )
 
-            # Calculate total talk time today
             total_talk_time_today_seconds = sum(
                 [call.duration.total_seconds() for call in call_history_today if call.duration]
             )
             total_talk_time_today = str(timedelta(seconds=total_talk_time_today_seconds))
 
-            # Calculate total joined and missed calls
             total_joined_calls = call_history_today.filter(status="joined").count()
             total_missed_calls = call_history_today.filter(status="missed").count()
 
-            # Return response
             return Response({
                 'id': executive.id,
                 'executive_name': executive.name,
@@ -355,16 +351,7 @@ class ExecutiveStatusView(APIView):
         except Executives.DoesNotExist:
             return Response({'error': 'Executive not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-from decimal import Decimal, DivisionByZero
 
-from .tasks import *
-from threading import Timer
-
-
-from agora_token_builder import RtcTokenBuilder
-import time
-import requests
-import logging
 
 AGORA_API_KEY = "6f148332fbc1404e80c0de9024484dde"
 
@@ -385,15 +372,12 @@ class ExeCallHistoryListView(generics.ListAPIView):
         executive_id = self.kwargs['executive_id']
         return AgoraCallHistory.objects.filter(executive_id=executive_id)
 
-
 class CreateAdminView(generics.CreateAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
 
     def perform_create(self, serializer):
         serializer.save()
-
-
 
 class ListAdminView(generics.ListAPIView):
     queryset = Admins.objects.all()
@@ -406,7 +390,6 @@ class SuperuserLoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get the admin instance from validated data
         admin = serializer.validated_data['admin']
 
         return Response({
@@ -421,10 +404,8 @@ class AdminLogoutView(APIView):
     def post(self, request):
         logout(request)
         return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
-
-
+    
 #banorsuspend
-
 class BanExecutiveAPIView(APIView):
 
     def post(self, request, executive_id):
@@ -436,9 +417,7 @@ class BanExecutiveAPIView(APIView):
         except Executives.DoesNotExist:
             raise NotFound("Executive not found")
 
-
 class UnbanExecutiveView(APIView):
-
     def post(self, request, executive_id):
         try:
             executive = Executives.objects.get(executive_id=executive_id)
@@ -459,7 +438,6 @@ class UnbanExecutiveView(APIView):
             return Response({'detail': 'Executive not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 class SuspendExecutiveView(APIView):
-
     def post(self, request, executive_id):
         try:
             executive = Executives.objects.get(id=executive_id)
@@ -523,7 +501,6 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-
 class ExecutiveCoinBalanceView(APIView):
     def get(self, request, executive_id):
         executive = get_object_or_404(Executives, id=executive_id)
@@ -586,25 +563,15 @@ class RedemptionRequestListView(generics.ListAPIView):
         serializer = self.get_serializer(redemption_requests, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-
 class ExecutiveCallHistoryListView(APIView):
     def get(self, request, executive_id):
-        # Fetch the executive object
         executive = get_object_or_404(Executives, id=executive_id)
 
-        # Filter call histories associated with the executive
         call_histories = AgoraCallHistory.objects.filter(executive=executive)
 
-        # Serialize the data using CallHistorySerializer
         serializer = CallHistorySerializer(call_histories, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
-
-from django.db.models import Sum, DurationField, IntegerField
-from django.db.models.functions import Coalesce
 
 class RevenueTargetView(RetrieveUpdateDestroyAPIView):
     serializer_class = RevenueTargetSerializer
@@ -620,12 +587,10 @@ class RevenueTargetView(RetrieveUpdateDestroyAPIView):
     def retrieve(self, request, *args, **kwargs):
         revenue_target = self.get_object()
 
-        # Calculate covered revenue
         covered_revenue = Sale.objects.aggregate(
             total_revenue=Coalesce(Sum('amount'), 0)
         )['total_revenue']
 
-        # Calculate covered talktime from AgoraCallHistory
         covered_talktime = self.get_covered_talktime()
 
         response_data = {
@@ -638,12 +603,10 @@ class RevenueTargetView(RetrieveUpdateDestroyAPIView):
         return Response(response_data, status=status.HTTP_200_OK)
 
     def get_covered_talktime(self):
-        # Aggregate total duration from AgoraCallHistory, specify output_field to handle the mixed types
         total_duration = AgoraCallHistory.objects.aggregate(
             total_duration=Coalesce(Sum('duration'), timedelta(0), output_field=DurationField())
         )['total_duration']
 
-        # Convert total duration to minutes
         if total_duration:
             total_minutes = total_duration.total_seconds() // 60
             return total_minutes
@@ -669,47 +632,36 @@ class RevenueTargetView(RetrieveUpdateDestroyAPIView):
         revenue_target.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
 class RevenueCreateTargetView(generics.ListCreateAPIView):
     queryset = RevenueTarget.objects.all()
     serializer_class = RevenueTargetSerializer
 
-
-from django.db.models import Avg, Count
-
 class ExecutiveStatisticsAPIView(APIView):
 
     def get(self, request, executive_id):
-        # Fetch the executive or return a 404 response
         try:
             executive = Executives.objects.get(id=executive_id)
         except Executives.DoesNotExist:
             return Response({"detail": "Executive not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Calculate total coins balance
         total_coins_balance = executive.coins_balance
 
-        # Calculate total offline days in the last 30 days (no calls and executive was not online)
         today = timezone.now().date()
         last_30_days = [today - timezone.timedelta(days=i) for i in range(30)]
 
         offline_days = 0
         for day in last_30_days:
-            # Check if the executive did not make any calls and their status was offline
             if not AgoraCallHistory.objects.filter(executive=executive, start_time__date=day).exists() and not executive.online:
                 offline_days += 1
 
-        # Calculate total ratings (average rating of all ratings)
         total_ratings = CallRating.objects.filter(executive=executive)
 
         if total_ratings.exists():
-            # Calculate the average rating (stars)
             average_rating = total_ratings.aggregate(average_rating=Avg('stars'))['average_rating'] or 0.0
             total_rating = round(average_rating, 2)
         else:
             total_rating = "No ratings yet"
 
-        # Response data
         response_data = {
             'total_coins_balance': total_coins_balance,
             'total_days_offline': offline_days,
@@ -848,26 +800,21 @@ class UpdateExecutiveOnCallStatus(APIView):
     def post(self, request, executive_id):
         executive = get_object_or_404(Executives, id=executive_id)
         
-        # Debug: Log the incoming request data and current on_call value
         logger.debug(f"Request Data: {request.data}")
         logger.debug(f"Current on_call (Before): {executive.on_call}")
 
-        # Validate the incoming data
         serializer = ExecutiveOnCallSerializer(data=request.data)
         if not serializer.is_valid():
             logger.error(f"Serializer Errors: {serializer.errors}")
             return Response(serializer.errors, status=400)
 
-        # Debug: Log the validated data
         new_on_call = serializer.validated_data.get('on_call')
         logger.debug(f"Validated on_call: {new_on_call}")
 
-        # Update the field directly
         executive.on_call = new_on_call
-        executive.save(update_fields=["on_call"])  # Force-save only this field
+        executive.save(update_fields=["on_call"])  
         executive.refresh_from_db()
 
-        # Debug: Log the updated value
         logger.debug(f"Updated on_call (After): {executive.on_call}")
 
         return Response({
@@ -879,10 +826,8 @@ class UpdateExecutiveOnCallStatus(APIView):
 
 class TotalCoinsDeductedView(APIView):
     def get(self, request, user_id):
-        # Validate if user exists
         user = get_object_or_404(User, user_id=user_id)
 
-        # Calculate total coins deducted from AgoraCallHistory for the given user
         total_coins = AgoraCallHistory.objects.filter(user=user).aggregate(
             total_deducted=Sum('coins_deducted')
         )['total_deducted'] or 0
@@ -894,10 +839,8 @@ class TotalCoinsDeductedView(APIView):
 
 class DeleteExecutiveAccountView(APIView):
     def delete(self, request, executive_id, *args, **kwargs):
-        # Retrieve the executive by ID
         executive = get_object_or_404(Executives, id=executive_id)
 
-        # Delete the executive
         executive.delete()
 
         return Response(
@@ -927,8 +870,6 @@ class ExecutiveProfilePictureUploadView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
 class ExecutiveProfilePictureApprovalView(APIView):
     def patch(self, request, executive_id):
         try:
@@ -957,15 +898,12 @@ class ExecutiveProfileGetPictureView(APIView):
         except Executives.DoesNotExist:
             raise NotFound("Executive not found.")
 
-        # Get the profile picture for the executive
         profile_picture = ExecutiveProfilePicture.objects.filter(executive=executive).first()
         if not profile_picture:
             return Response({"detail": "Profile picture not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Serialize the profile picture data
         serializer = GetExecutiveProfilePictureSerializer(profile_picture, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 class ExecutiveProfilePictureApprovalListView(APIView):
     def get(self, request):
@@ -987,7 +925,6 @@ class ExecutiveProfilePictureApprovalListView(APIView):
                 'profile_photo_url': full_url,
                 'status': profile_picture.status,
             })
-        
         return Response(data, status=status.HTTP_200_OK)
 
 class ExecutiveProfilePictureSingleView(APIView):
@@ -1016,3 +953,50 @@ class ExecutiveProfilePictureSingleView(APIView):
                 {"detail": "No pending profile picture found for the given executive."},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+from .permissions import IsManagerExecutive
+from rest_framework.permissions import IsAuthenticated
+from django.http import Http404
+
+class CreateExecutiveView(APIView):
+    permission_classes = [IsAuthenticated, IsManagerExecutive]
+
+    def post(self, request):
+        serializer = ExecutivesSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save(created_by=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class ExecutiveListView(APIView):
+    permission_classes = [IsAuthenticated, IsManagerExecutive]
+
+    def get(self, request):
+        executives = Executives.objects.filter(created_by=request.user)
+        serializer = ExecutivesSerializer(executives, many=True)
+        return Response(serializer.data)
+
+class ExecutiveDetailsView(APIView):
+    permission_classes = [IsAuthenticated, IsManagerExecutive]
+
+    def get_object(self, pk):
+        try:
+            return Executives.objects.get(pk=pk, created_by=self.request.user)
+        except Executives.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk):
+        executive = self.get_object(pk)
+        serializer = ExecutivesSerializer(executive)
+        return Response(serializer.data)
+
+    def put(self, request, pk):
+        executive = self.get_object(pk)
+        serializer = ExecutivesSerializer(executive, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, pk):
+        executive = self.get_object(pk)
+        executive.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

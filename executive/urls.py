@@ -67,4 +67,7 @@ urlpatterns = [
     path('total-coins-spend/<str:user_id>/', TotalCoinsDeductedView.as_view(), name='total-coins-deducted'),
     path('delete-executive/<int:executive_id>/', DeleteExecutiveAccountView.as_view(), name='delete-executive-account'),
     
+    path('manager/executives/create/', CreateExecutiveView.as_view(), name='create-executive'),
+    path('manager/executives/', ExecutiveListView.as_view(), name='list-executives'),
+    path('manager/executives/<int:pk>/', ExecutiveDetailsView.as_view(), name='executive-detail'),
 ]

@@ -292,10 +292,10 @@ class AgoraCallHistory(models.Model):
     executive_joined = models.BooleanField(default=False)
     uid = models.IntegerField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
-    coins_deducted = models.PositiveIntegerField(default=0)  # Track total coins deducted from the user
-    coins_added = models.PositiveIntegerField(default=0)  # Track total coins added to the executive
-    last_coin_update_time = models.DateTimeField(null=True, blank=True)  # Track the last time coins were updated
-    is_active = models.BooleanField(default=True)  # Added from CallHistory
+    coins_deducted = models.PositiveIntegerField(default=0)
+    coins_added = models.PositiveIntegerField(default=0)
+    last_coin_update_time = models.DateTimeField(null=True, blank=True) 
+    is_active = models.BooleanField(default=True)  
 
     def __str__(self):
         return f"Call from {self.user} to {self.executive} on {self.channel_name} (Status: {self.status})"

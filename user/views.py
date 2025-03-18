@@ -112,9 +112,6 @@ class RegisterOrLoginView(APIView):
                 status=status.HTTP_200_OK
             )
 
-
-
-
 class DeleteUserAccountView(APIView):
     def delete(self, request, user_id, *args, **kwargs):
         user = get_object_or_404(User, id=user_id)
@@ -199,8 +196,6 @@ def add_favourite(request, user_id, executive_id):
     except Executives.DoesNotExist:
         return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
-
-
 class ListFavouritesView(ListAPIView):
     serializer_class = FavouriteSerializer
     permission_classes = [AllowAny]
@@ -208,7 +203,6 @@ class ListFavouritesView(ListAPIView):
     def get_queryset(self):
         user_id = self.kwargs.get('user_id')
         return Favourite.objects.filter(user_id=user_id)
-
 
 class RemoveFavouriteView(APIView):
     def delete(self, request, user_id, executive_id):
@@ -270,7 +264,6 @@ def get_object_or_404(model, **kwargs):
     except model.DoesNotExist:
         raise NotFound(f"{model.__name__} not found.")
 
-
 class RateExecutiveView(APIView):
     def post(self, request, user_id, executive_id):
         try:
@@ -294,8 +287,6 @@ class RateExecutiveView(APIView):
 
         except Exception as e:
             return Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
 
 class LogCallView(APIView):
     def get(self, request, user_id):
@@ -326,13 +317,10 @@ def call_history(request, user_id):
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Sort call history by start_time in descending order
     call_history = AgoraCallHistory.objects.filter(user=user).order_by('-start_time')
 
     serializer = CallHistorySerializer(call_history, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 
 class CreateRechargePlanView(APIView):
     def post(self, request):
@@ -550,16 +538,11 @@ class RechargeCoinsByPlanView(APIView):
             'new_coin_balance': user.coin_balance
         }, status=status.HTTP_200_OK)
 
-
-
-
 class UserCoinBalanceView(APIView):
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
         serializer = UserMaxCallTimeSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 
 class UserProfileDetailView(APIView):
     def get(self, request, user_id):
@@ -568,7 +551,6 @@ class UserProfileDetailView(APIView):
         serializer = UserProfileSerializer(user_profile)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 class CarouselImageListCreateView(APIView):
     def get(self, request):
@@ -616,13 +598,10 @@ class CareerListCreateView(generics.ListCreateAPIView):
     queryset = Career.objects.all()
     serializer_class = CareerSerializer
 
-
 class CareerDetailView(generics.RetrieveAPIView):
     queryset = Career.objects.all()
     serializer_class = CareerSerializer
     lookup_field = 'id'
-
-
 
 class UserPurchaseHistoryView(APIView):
     def get(self, request, user_id):
@@ -634,9 +613,6 @@ class UserPurchaseHistoryView(APIView):
             'user_id': user_id,
             'purchase_history': serializer.data
         }, status=status.HTTP_200_OK)
-
-
-
 
 class StatisticsAPIView(APIView):
 
@@ -673,7 +649,6 @@ class StatisticsAPIView(APIView):
         }
 
         return Response(data)
-
 
 class UserStatisticsAPIView(APIView):
     # permission_classes = [IsAuthenticated]  # Adjust permissions as needed
@@ -774,7 +749,6 @@ class DailyCallStatisticsView(APIView):
 
         return Response({'daily': daily_stats}, status=status.HTTP_200_OK)
 
-
 class WeeklyCallStatisticsView(APIView):
 
     def get(self, request):
@@ -836,8 +810,6 @@ class MonthlyCallStatisticsView(APIView):
 
         return Response({'monthly': monthly_stats}, status=status.HTTP_200_OK)
 
-
-
 class BanUserAPIView(APIView):
 
     def post(self, request, user_id):
@@ -848,7 +820,6 @@ class BanUserAPIView(APIView):
             return Response({"message": f"User {user_id} has been banned."})
         except User.DoesNotExist:
             raise NotFound("User not found")
-
 
 class UnbanUserView(APIView):
 
@@ -953,9 +924,6 @@ class RechargePlanListByCategoryView(generics.ListAPIView):
 
         return Response(response_data)
 
-
-
-
 class ReferralCodeByUserView(RetrieveAPIView):
     serializer_class = ReferralCodeSerializer
 
@@ -965,8 +933,6 @@ class ReferralCodeByUserView(RetrieveAPIView):
             return ReferralCode.objects.get(user_id=user_id)
         except ReferralCode.DoesNotExist:
             raise NotFound("Referral code not found for the given user ID.")
-
-
 
 class UserExecutiveRatingsView(APIView):
     def get(self, request, user_id):
@@ -995,7 +961,6 @@ class UserExecutiveTotalRatingsView(APIView):
 
         return Response(user_ratings_data, status=200)
 
-
 class CreateChannelView(APIView):
     permission_classes = [AllowAny]
 
@@ -1005,7 +970,7 @@ class CreateChannelView(APIView):
         channel_name = request.data.get("channel_name")
         executive_id = request.data.get("executive_id")
         user_id = request.data.get("user_id")
-        role = 1  # Publisher (user)
+        role = 1 
         expiration_in_seconds = 3600
 
         if not channel_name:
@@ -1014,7 +979,6 @@ class CreateChannelView(APIView):
         if not executive_id or not user_id:
             return Response({"error": "Both executive_id and user_id are required."}, status=400)
 
-        # Validate users
         try:
             executive = Executives.objects.get(id=executive_id)
             user = User.objects.get(id=user_id)
@@ -1051,8 +1015,8 @@ class CreateChannelView(APIView):
                 app_id,
                 app_certificate,
                 channel_name,
-                executive.id,  # Executive ID as Agora UID for the attendee
-                2,  # Attendee role
+                executive.id,  
+                2,  
                 privilege_expired_ts,
             )
         except Exception as e:
@@ -1067,22 +1031,22 @@ class CreateChannelView(APIView):
             start_time=now(),
             executive_joined=False,
             uid=user.id,
-            status="pending",  # Set status as pending
+            status="pending",  
         )
 
         return Response({
             "message": "Channel created successfully.",
-            "token": user_token,  # User's Agora token
-            "executive_token": executive_token,  # Executive's Agora token
+            "token": user_token,  
+            "executive_token": executive_token,  
             "channel_name": channel_name,
             "caller_name": user.name,
             "receiver_name": executive.name,
             "user_id": user.user_id,
             "executive_id": executive.executive_id,
             "executive": executive.id,
-            "agora_uid": user.id,  # User's Agora UID
+            "agora_uid": user.id,  
             "executive_agora_uid": executive.id, 
-            "call_id": call_history.id  # call id from AgoraCallHistory
+            "call_id": call_history.id  
         }, status=200)
 
     
@@ -1092,7 +1056,6 @@ class GetRecentChannelView(APIView):
 
     def get(self, request, executive_id):
         try:
-            # Validate executive existence
             executive = Executives.objects.get(id=executive_id)
         except Executives.DoesNotExist:
             return Response({"error": "Invalid executive_id."}, status=404)
@@ -1112,7 +1075,7 @@ class GetRecentChannelView(APIView):
                 "user_id": recent_call.user.user_id,
                 "gender": recent_call.user.gender,
                 "executive_token": recent_call.executive_token,
-                "call_status": recent_call.status,  # Get status from the model
+                "call_status": recent_call.status,  
             }, status=200)
 
         return Response({"message": "No recent channel found.","status":False}, status=404)
@@ -1126,17 +1089,14 @@ class ViewChannelForExecutiveView(APIView):
         channel_name = request.query_params.get("channel_name")
         executive_id = request.query_params.get("executive_id")
 
-        # Validate inputs
         if not channel_name or not executive_id:
             return Response({"error": "Channel name and executive_id are required."}, status=400)
 
-        # Validate executive
         try:
             executive = Executives.objects.get(id=executive_id)
         except Executives.DoesNotExist:
             return Response({"error": "Executive not found."}, status=404)
 
-        # Check if the call exists for the executive
         call_entry = AgoraCallHistory.objects.filter(
             executive=executive,
             channel_name=channel_name,
@@ -1144,7 +1104,6 @@ class ViewChannelForExecutiveView(APIView):
         ).first()
 
         if call_entry:
-            # Executive already joined the channel
             return Response({
                 "message": "Executive already joined the channel.",
                 "channel_name": channel_name,
@@ -1187,13 +1146,10 @@ class JoinChannelForExecutiveView(APIView):
         if not call_entry:
             return Response({"error": "Channel not found or already ended."}, status=404)
 
-        # Update on_call using direct database query
         Executives.objects.filter(id=executive.id).update(on_call=True)
         
-        # Refresh the instance from the database
-        executive.refresh_from_db()  # Critical step
+        executive.refresh_from_db()  
 
-        # Update call entry
         call_entry.executive_joined = True
         call_entry.status = "joined"
         call_entry.start_time = now()
@@ -1206,34 +1162,19 @@ class JoinChannelForExecutiveView(APIView):
             "executive_name": executive.name,
             "status": "joined",
             "agora_uid": executive.id,
-            "on_call": executive.on_call,  # Now reflects the updated value
+            "on_call": executive.on_call,  
             "call_id":call_entry.id
         }, status=200)
-
-
-
-
-
-
-
-
-
-
-
-  
-
 
 class GetCallStatusView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, call_id):
         try:
-            # Fetch the AgoraCallHistory entry using the provided call_id
             call_history = AgoraCallHistory.objects.get(id=call_id)
         except AgoraCallHistory.DoesNotExist:
             return Response({"error": "Invalid call_id."}, status=404)
 
-        # Extracting the required fields from the AgoraCallHistory object
         return Response({
             "status": call_history.status,
             "executive_id": call_history.executive.id,
@@ -1266,7 +1207,6 @@ class LeaveChannelForExecutiveView(APIView):
         user = call_entry.user
         executive = call_entry.executive
 
-        # Expire tokens
         user.token_expiry = timezone.now()
         executive.token_expiry = timezone.now()
         user.save()
@@ -1278,7 +1218,6 @@ class LeaveChannelForExecutiveView(APIView):
             call_entry.is_active = False
             call_entry.save()
 
-            # Update on_call using direct query
             Executives.objects.filter(id=executive.id).update(on_call=False)
             executive.refresh_from_db()
 
@@ -1286,7 +1225,7 @@ class LeaveChannelForExecutiveView(APIView):
                 "message": f"Executive {executive.name} left the channel without joining.",
                 "call_id": call_entry.id,
                 "status": "rejected",
-                "on_call": executive.on_call  # Verify in response
+                "on_call": executive.on_call  
             }, status=200)
 
         if call_entry.status == "joined":
@@ -1294,7 +1233,6 @@ class LeaveChannelForExecutiveView(APIView):
             call_entry.status = "left"
             call_entry.save()
 
-            # Update on_call using direct query
             Executives.objects.filter(id=executive.id).update(on_call=False)
             executive.refresh_from_db()
 
@@ -1302,7 +1240,7 @@ class LeaveChannelForExecutiveView(APIView):
                 "message": f"Executive {executive.name} has left the channel.",
                 "call_id": call_entry.id,
                 "status": "left",
-                "on_call": executive.on_call  # Verify in response
+                "on_call": executive.on_call  
             }, status=200)
 
         return Response({"error": "Unexpected call status."}, status=400)
@@ -1315,33 +1253,27 @@ class LeaveChannelForUserView(APIView):
     def post(self, request):
         call_id = request.data.get("call_id")
 
-        # Input validation
         if not call_id:
             return Response({"error": "Call ID is required."}, status=400)
 
-        # Validate call entry
         try:
             call_entry = AgoraCallHistory.objects.select_for_update().get(id=call_id)
         except AgoraCallHistory.DoesNotExist:
             return Response({"error": "Call history not found."}, status=404)
 
-        # Ensure the call status is not already finalized
         if call_entry.status in ["left", "missed", "rejected"]:
             return Response({"error": f"Call already marked as {call_entry.status}."}, status=400)
 
-        # Expire tokens when call ends or is missed
         user = call_entry.user
         executive = call_entry.executive
 
-        # Expiring the tokens for user and executive
-        user.token_expiry = timezone.now()  # Or set to expired
-        executive.token_expiry = timezone.now()  # Or set to expired
+        user.token_expiry = timezone.now()  
+        executive.token_expiry = timezone.now()  
         user.save()
         executive.save()
 
-        # Handle pending status
         if call_entry.status == "pending":
-            call_entry.status="missed"  # Mark as missed if the executive did not join
+            call_entry.status="missed"  
             call_entry.save()
 
             return Response({
@@ -1350,9 +1282,8 @@ class LeaveChannelForUserView(APIView):
                 "status": "missed",
             }, status=200)
 
-        # Handle joined status
         if call_entry.status == "joined":
-            call_entry.end_call()  # End the call and perform coin transfer
+            call_entry.end_call()  
             call_entry.status = "left"
             call_entry.save()
         
@@ -1377,59 +1308,50 @@ class LeaveAllCallsForExecutiveView(APIView):
     def post(self, request):
         executive_id = request.data.get("executive_id")
 
-        # Validate input
         if not executive_id:
             return Response({"error": "Executive ID is required."}, status=400)
 
-        # Validate executive
         try:
             executive = Executives.objects.get(id=executive_id)
         except Executives.DoesNotExist:
             return Response({"error": "Executive not found."}, status=404)
 
-        # Fetch all ongoing calls (both pending and joined)
         ongoing_calls = AgoraCallHistory.objects.filter(executive=executive, end_time=None)
 
         if not ongoing_calls.exists():
             return Response({"message": "No ongoing calls found for this executive."}, status=404)
 
-        # Expire tokens for the executive
-        executive.token_expiry = timezone.now()  # Or set to expired
+        executive.token_expiry = timezone.now()  
         executive.save()
 
         for call_entry in ongoing_calls:
             if call_entry.status == "pending":
-                # Mark pending calls as missed
                 call_entry.status = "missed"
                 call_entry.end_time = now()
                 call_entry.save()
 
             elif call_entry.status == "joined":
-                # Mark joined calls as left
                 call_entry.status = "left"
                 call_entry.end_time = now()
                 call_duration = call_entry.end_time - call_entry.start_time
                 call_entry.duration = call_duration
 
-                # Deduct coins from user and add to executive
                 user = call_entry.user
                 total_seconds = int(call_duration.total_seconds())
-                coins_to_deduct = total_seconds * 3  # 3 coins per second
+                coins_to_deduct = total_seconds * 3  
 
                 if user.coin_balance < coins_to_deduct:
-                    coins_to_deduct = user.coin_balance  # Adjust if user has insufficient coins
+                    coins_to_deduct = user.coin_balance  
 
                 user.coin_balance -= coins_to_deduct
                 executive.coins_balance += coins_to_deduct
                 user.save()
                 executive.save()
 
-                # Save the coin deduction details
                 call_entry.coins_deducted = coins_to_deduct
                 call_entry.coins_added = coins_to_deduct
                 call_entry.save()
 
-        # Set the executive's on_call status to False
         Executives.objects.filter(id=executive.id).update(on_call=False)
         executive.refresh_from_db()
 
@@ -1445,13 +1367,11 @@ class BlockUserAPIView(APIView):
         executive_id = request.data.get('executive_id')
         reason = request.data.get('reason')
 
-        # Ensure both user_id and executive_id are provided, and reason is present
         if not user_id or not executive_id:
             return Response({'error': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
         if not reason:
             return Response({'error': 'Reason is required to block the user.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create or update block entry with is_blocked set to True and the provided reason
         block_entry, created = UserBlock.objects.update_or_create(
             user_id=user_id,
             executive_id=executive_id,
@@ -1469,24 +1389,20 @@ class UnblockUserAPIView(APIView):
         user_id = request.data.get('user_id')
         executive_id = request.data.get('executive_id')
 
-        # Ensure both user_id and executive_id are provided
         if not user_id or not executive_id:
             return Response({'error': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Create or update block entry with is_blocked set to False
         block_entry, created = UserBlock.objects.update_or_create(
             user_id=user_id,
             executive_id=executive_id,
             defaults={
                 'is_blocked': False,
-                'reason': ''  # No reason provided when unblocking
+                'reason': ''  
             }
         )
 
         message = 'User has been unblocked successfully.'
         return Response({'message': message}, status=status.HTTP_200_OK)
-
-
 
 class BlockedUsersListAPIView(APIView):
     def get(self, request, executive_id):

@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from django.shortcuts import get_object_or_404
-from datetime import timedelta
 from django.contrib.auth import logout
 from .utils import send_otp, generate_otp
 from rest_framework.permissions import AllowAny
@@ -20,6 +19,7 @@ from payments.serializers import CoinRedemptionRequestSerializer
 from executives.permissions import IsManagerExecutive
 from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 #OTPAUTH
 class ExeRegisterOrLoginView(APIView):
@@ -502,20 +502,18 @@ class ExecutiveProfilePictureSingleView(APIView):
             )
         
 class CreateExecutiveView(APIView):
+    authentication_classes = [JWTAuthentication]  # Ensure JWT authentication
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        try:
-            # Fetch the authenticated admin user
-            admin_user = Admins.objects.get(id=request.user.id)
-        except Admins.DoesNotExist:
-            return Response({"detail": "Admin not found"}, status=status.HTTP_404_NOT_FOUND)
+        if isinstance(request.user, Admins):
+            admin_user = request.user  
+        else:
+            return Response({"detail": "Admin authentication required"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Deserialize request data with admin context
         serializer = ExecutivesSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
-        # Save the executive with the admin as the creator
         executive = serializer.save(created_by=admin_user)
 
         tokens = self.get_tokens_for_user(executive)
@@ -533,7 +531,6 @@ class CreateExecutiveView(APIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
-
 
 class ExecutiveListView(APIView):
     permission_classes = [IsAuthenticated, IsManagerExecutive]

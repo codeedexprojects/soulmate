@@ -505,16 +505,30 @@ class CreateExecutiveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        try:
+            admin_user = Admins.objects.get(user=request.user)  
+        except Admins.DoesNotExist:
+            return Response({"detail": "Admin not found"}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ExecutivesSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        executive = serializer.save(created_by=request.user)
+        executive = serializer.save(created_by=admin_user) 
+
+        tokens = self.get_tokens_for_user(admin_user)
 
         return Response({
             "message": "Executive created successfully",
             "executive": serializer.data,
-            "access_token": serializer.get_access_token(executive),
-            "refresh_token": serializer.get_refresh_token(executive)
+            "access_token": tokens["access"],
+            "refresh_token": tokens["refresh"]
         }, status=status.HTTP_201_CREATED)
+
+    def get_tokens_for_user(self, user):
+        refresh = RefreshToken.for_user(user)
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+        }
 
 
 class ExecutiveListView(APIView):

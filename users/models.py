@@ -193,7 +193,7 @@ def create_referral_code(sender, instance, created, **kwargs):
 
 class UserBlock(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='blocked_users')
-    executive = models.ForeignKey('executive.Executives', on_delete=models.CASCADE, related_name='blocked_executives')
+    executive = models.ForeignKey('executives.Executives', on_delete=models.CASCADE, related_name='blocked_executives')
     is_blocked = models.BooleanField(default=False)
     reason = models.TextField()
     blocked_at = models.DateTimeField(auto_now_add=True)

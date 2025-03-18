@@ -316,21 +316,18 @@ class ListAdminView(generics.ListAPIView):
     serializer_class = AdminSerializer
 
 class SuperuserLoginView(generics.GenericAPIView):
-    serializer_class = LoginSerializer
-
     def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        email = request.data.get("email")
+        password = request.data.get("password")
 
-        admin = serializer.validated_data
+        admin = authenticate(request, email=email, password=password)
+        if not admin:
+            return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        refresh = RefreshToken.for_user(admin)
         return Response({
-            'message': 'Login successful',
-            'email': admin['email'],
-            'name': admin['name'],
-            'role': admin['role'],
-            'id': admin['id'],
-            'access_token': admin['access_token'],  
-            'refresh_token': admin['refresh_token']
+            "access_token": str(refresh.access_token),
+            "refresh_token": str(refresh)
         }, status=status.HTTP_200_OK)
 
 

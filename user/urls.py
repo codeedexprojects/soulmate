@@ -77,7 +77,7 @@ urlpatterns = [
 
     # Check channel status (connected or missed)
     path('callstatus/<int:call_id>/', GetCallStatusView.as_view(), name='channel_status'),
-    path('platform_analysis', PlatformAnalyticsView.as_view(), name='platform_analysis'),
+    path('platform_analysis/', PlatformAnalyticsView.as_view(), name='platform_analysis'),
 
 
     # Executive leaves the channel

@@ -1438,9 +1438,10 @@ class PlatformAnalyticsView(APIView):
         active_executives = Executives.objects.filter(last_login__gte=ninety_days_ago).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
 
-        on_call = AgoraCallHistory.objects.filter(call_status="ongoing").count()
+        # Fix: Use `status="joined"` instead of `call_status="ongoing"`
+        on_call = AgoraCallHistory.objects.filter(status="joined").count()
 
-        today_talk_time = AgoraCallHistory.objects.filter(call_date__date=today).aggregate(total_minutes=models.Sum('call_duration'))['total_minutes'] or 0
+        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(total_minutes=models.Sum('duration'))['total_minutes'] or 0
 
         todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(total=models.Sum('purchased_price'))['total'] or 0
 

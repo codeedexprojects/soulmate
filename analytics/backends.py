@@ -2,6 +2,7 @@ from django.contrib.auth.backends import BaseBackend
 from analytics.models import Admins
 
 class AdminAuthBackend(BaseBackend):
+
     def authenticate(self, request, email=None, password=None):
         try:
             admin = Admins.objects.get(email=email)

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'executives',
     'channels',
     'corsheaders',
+    'analytics',
 
 ]
 

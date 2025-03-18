@@ -5,8 +5,12 @@ from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('user.urls')),
-    path('api/', include('executive.urls')),
+    path('api/', include('users.urls')),
+    path('api/', include('executives.urls')),
+    path('api/', include('analytics.urls')),
+    path('api/', include('calls.urls')),
+    path('api/', include('notifications.urls')),
+    path('api/', include('payments.urls')),
 ]
 
 if settings.DEBUG: 

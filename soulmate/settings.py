@@ -117,6 +117,9 @@ DATABASES = {
     }
 }
 
+RAZORPAY_KEY_ID = 'your_key_id'
+RAZORPAY_KEY_SECRET = 'your_key_secret'
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 

@@ -14,6 +14,7 @@ from django.shortcuts import get_object_or_404
 import razorpay
 from calls.models import AgoraCallHistory
 from calls.serializers import CoinConversionSerializer
+from django.conf import settings
 
 razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))

@@ -1425,3 +1425,34 @@ class UpdateDPImageView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class PlatformAnalyticsView(APIView):
+    def get(self, request):
+        today = now().date()
+        
+        total_executives = Executives.objects.count()
+        total_users = User.objects.count()
+        
+        ninety_days_ago = now() - timedelta(days=90)
+        active_executives = Executives.objects.filter(last_login__gte=ninety_days_ago).count()
+        active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
+
+        on_call = AgoraCallHistory.objects.filter(call_status="ongoing").count()
+
+        today_talk_time = AgoraCallHistory.objects.filter(call_date__date=today).aggregate(total_minutes=models.Sum('call_duration'))['total_minutes'] or 0
+
+        todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(total=models.Sum('purchased_price'))['total'] or 0
+
+        todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(total=models.Sum('coins_purchased'))['total'] or 0
+
+        return Response({
+            "total_executives": total_executives,
+            "total_users": total_users,
+            "todays_revenue": f"₹{todays_revenue}",
+            "todays_coin_sales": todays_coin_sales,
+            "active_executives": active_executives,
+            "active_users": active_users,
+            "on_call": on_call,
+            "today_talk_time": f"{today_talk_time} Mins"
+        }, status=status.HTTP_200_OK)

@@ -529,6 +529,9 @@ class CreateExecutiveView(APIView):
             "refresh": str(refresh),
             "access": str(refresh.access_token),
         }
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
 
 class ExecutiveListView(APIView):

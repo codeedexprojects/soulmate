@@ -63,7 +63,7 @@ MIDDLEWARE = [
 ]
 
 AUTH_USER_MODEL = 'analytics.Admins'
-AUTH_USER_MODEL = 'users.User'
+# AUTH_USER_MODEL = 'users.User'
 
 AUTHENTICATION_BACKENDS = [
     'executive.authentication.backends.EmailBackend',
@@ -77,6 +77,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 }
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=150),  

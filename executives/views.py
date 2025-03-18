@@ -502,7 +502,7 @@ class ExecutiveProfilePictureSingleView(APIView):
             )
         
 class CreateExecutiveView(APIView):
-    permission_classes = [IsAuthenticated, IsManagerExecutive]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = ExecutivesSerializer(data=request.data, context={'request': request})

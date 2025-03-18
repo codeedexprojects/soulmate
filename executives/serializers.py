@@ -14,6 +14,7 @@ class ExecutivesSerializer(serializers.ModelSerializer):
     profile_photo_url = serializers.SerializerMethodField()
     access_token = serializers.SerializerMethodField()
     refresh_token = serializers.SerializerMethodField()
+    manager = serializers.SerializerMethodField()
 
     class Meta:
         model = Executives
@@ -23,7 +24,7 @@ class ExecutivesSerializer(serializers.ModelSerializer):
             'executive_id', 'set_coin', 'duty_start_time', 'total_on_duty_seconds', 'total_talk_seconds_today',
             'total_picked_calls', 'total_missed_calls', 'rating', 'is_favorited', 'password', 'today_talk_time',
             'picked_calls', 'missed_calls', 'is_banned', 'is_suspended', 'call_minutes', 'coins_balance',
-            'on_call', 'created_by', 'access_token', 'refresh_token'
+            'on_call', 'created_by', 'access_token', 'refresh_token','manager'
         ]
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -43,6 +44,9 @@ class ExecutivesSerializer(serializers.ModelSerializer):
         total_seconds = sum([ch.duration.total_seconds() for ch in call_histories if ch.duration])
         return total_seconds or 0 
     
+    def get_manager(self, obj):
+        return obj.created_by.name if obj.created_by else None
+
     def get_profile_photo_url(self, obj):
         profile_picture = ExecutiveProfilePicture.objects.filter(executive=obj).first()
         if profile_picture:

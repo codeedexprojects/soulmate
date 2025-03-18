@@ -506,7 +506,7 @@ class CreateExecutiveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # Check if the user is an Admin (Manager or Superuser)
+        # Identify if the request is coming from an Admin (Manager, HR)
         try:
             admin_user = Admins.objects.get(email=request.user.email)
         except Admins.DoesNotExist:

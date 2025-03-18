@@ -502,20 +502,27 @@ class ExecutiveProfilePictureSingleView(APIView):
             )
         
 class CreateExecutiveView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsManagerExecutive]
 
     def post(self, request):
         serializer = ExecutivesSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save(created_by=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        executive = serializer.save(created_by=request.user)
+
+        return Response({
+            "message": "Executive created successfully",
+            "executive": serializer.data,
+            "access_token": serializer.get_access_token(executive),
+            "refresh_token": serializer.get_refresh_token(executive)
+        }, status=status.HTTP_201_CREATED)
+
 
 class ExecutiveListView(APIView):
     permission_classes = [IsAuthenticated, IsManagerExecutive]
 
     def get(self, request):
         executives = Executives.objects.filter(created_by=request.user)
-        serializer = ExecutivesSerializer(executives, many=True)
+        serializer = ExecutivesSerializer(executives, many=True, context={'request': request})
         return Response(serializer.data)
 
 class ExecutiveDetailsView(APIView):
@@ -529,12 +536,12 @@ class ExecutiveDetailsView(APIView):
 
     def get(self, request, pk):
         executive = self.get_object(pk)
-        serializer = ExecutivesSerializer(executive)
+        serializer = ExecutivesSerializer(executive, context={'request': request})
         return Response(serializer.data)
 
     def put(self, request, pk):
         executive = self.get_object(pk)
-        serializer = ExecutivesSerializer(executive, data=request.data, partial=True)
+        serializer = ExecutivesSerializer(executive, data=request.data, partial=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -542,7 +549,8 @@ class ExecutiveDetailsView(APIView):
     def delete(self, request, pk):
         executive = self.get_object(pk)
         executive.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Executive deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
     
 class ManagerExecutivePermission(permissions.BasePermission):
     def has_permission(self, request, view):

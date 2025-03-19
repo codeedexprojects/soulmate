@@ -68,6 +68,8 @@ class Executives(AbstractBaseUser):
     is_suspended = models.BooleanField(default=False)
     user_id = models.OneToOneField('users.User', on_delete=models.CASCADE, null=True, blank=True, default=None)
     on_call = models.BooleanField(default=False)
+    manager_executive = models.ForeignKey('analytics.Admins', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_executives')
+
 
     objects = ExecutiveManager()
 

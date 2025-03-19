@@ -30,17 +30,14 @@ class ExeRegisterOrLoginView(APIView):
         otp = generate_otp()
 
         try:
-            # Check if the executive already exists
             executive = Executives.objects.get(mobile_number=mobile_number)
 
-            # If executive is banned, deny access
             if executive.is_banned:
                 return Response(
                     {'message': 'Executive is banned and cannot log in.', 'is_banned': True},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Send OTP for login
             if send_otp(mobile_number, otp):
                 executive.otp = otp
                 executive.save()
@@ -57,19 +54,32 @@ class ExeRegisterOrLoginView(APIView):
                 )
 
         except Executives.DoesNotExist:
-            # Check if the request is from a manager_executive
             if not request.user.is_authenticated or request.user.role != 'manager_executive':
                 return Response(
                     {'message': 'Only manager_executive can create new executives.'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Validate and create a new executive
+            manager_executive_id = request.data.get('manager_executive')
+            if not manager_executive_id:
+                return Response(
+                    {'message': 'Manager executive is required.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            try:
+                manager_executive = Admins.objects.get(id=manager_executive_id, role='manager_executive')
+            except Admins.DoesNotExist:
+                return Response(
+                    {'message': 'Invalid manager executive selection.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
             serializer = ExecutivesSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
             if send_otp(mobile_number, otp):
-                executive = serializer.save(otp=otp, created_by=request.user)
+                executive = serializer.save(otp=otp, created_by=request.user, manager_executive=manager_executive)
                 return Response({
                     'message': 'Executive registered successfully. OTP sent to your mobile number.',
                     'executive_id': executive.id,
@@ -81,7 +91,7 @@ class ExeRegisterOrLoginView(APIView):
                     {'message': 'Failed to send OTP. Please try again later.'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-
+            
 class ExeVerifyOTPView(APIView):
     permission_classes = [AllowAny]
 

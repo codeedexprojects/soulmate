@@ -15,6 +15,7 @@ class ExecutivesSerializer(serializers.ModelSerializer):
     access_token = serializers.SerializerMethodField()
     refresh_token = serializers.SerializerMethodField()
     manager = serializers.SerializerMethodField()
+    manager_executive = serializers.PrimaryKeyRelatedField(queryset=Admins.objects.filter(role='manager_executive'), required=False)
 
     class Meta:
         model = Executives
@@ -24,7 +25,7 @@ class ExecutivesSerializer(serializers.ModelSerializer):
             'executive_id', 'set_coin', 'duty_start_time', 'total_on_duty_seconds', 'total_talk_seconds_today',
             'total_picked_calls', 'total_missed_calls', 'rating', 'is_favorited', 'password', 'today_talk_time',
             'picked_calls', 'missed_calls', 'is_banned', 'is_suspended', 'call_minutes', 'coins_balance',
-            'on_call', 'created_by', 'access_token', 'refresh_token','manager'
+            'on_call', 'created_by', 'access_token', 'refresh_token','manager','manager_executive'
         ]
         extra_kwargs = {'password': {'write_only': True}}
 

@@ -69,7 +69,7 @@ class Executives(AbstractBaseUser):
     user_id = models.OneToOneField('users.User', on_delete=models.CASCADE, null=True, blank=True, default=None)
     on_call = models.BooleanField(default=False)
     manager_executive = models.ForeignKey('analytics.Admins', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_executives')
-
+    device_id = models.CharField(max_length=255, null=True, blank=True)
 
     objects = ExecutiveManager()
 
@@ -128,6 +128,13 @@ class Executives(AbstractBaseUser):
             self.duty_start_time = timezone.now()  
 
         super().save(*args, **kwargs)
+
+class BlockedDevices(models.Model):
+    device_id = models.CharField(max_length=255, unique=True)
+    is_banned = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Device {self.device_id} - {'Banned' if self.is_banned else 'Allowed'}"
 
 class ExecutiveProfilePicture(models.Model):
     STATUS_CHOICES = [

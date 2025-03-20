@@ -27,8 +27,16 @@ class ExeRegisterOrLoginView(APIView):
 
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get('mobile_number')
-        otp = generate_otp()
+        device_id = request.data.get('device_id')  # Capture device ID
 
+        # Check if the device is banned
+        if BlockedDevices.objects.filter(device_id=device_id, is_banned=True).exists():
+            return Response(
+                {'message': 'Your device is banned. You cannot log in.', 'status': False},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        otp = generate_otp()
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
 
@@ -40,6 +48,7 @@ class ExeRegisterOrLoginView(APIView):
 
             if send_otp(mobile_number, otp):
                 executive.otp = otp
+                executive.device_id = device_id  # Store latest device ID
                 executive.save()
                 return Response({
                     'message': 'Login OTP sent to your mobile number.',
@@ -54,43 +63,8 @@ class ExeRegisterOrLoginView(APIView):
                 )
 
         except Executives.DoesNotExist:
-            if not request.user.is_authenticated or request.user.role != 'manager_executive':
-                return Response(
-                    {'message': 'Only manager_executive can create new executives.'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-            manager_executive_id = request.data.get('manager_executive')
-            if not manager_executive_id:
-                return Response(
-                    {'message': 'Manager executive is required.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            try:
-                manager_executive = Admins.objects.get(id=manager_executive_id, role='manager_executive')
-            except Admins.DoesNotExist:
-                return Response(
-                    {'message': 'Invalid manager executive selection.'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            serializer = ExecutivesSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-
-            if send_otp(mobile_number, otp):
-                executive = serializer.save(otp=otp, created_by=request.user, manager_executive=manager_executive)
-                return Response({
-                    'message': 'Executive registered successfully. OTP sent to your mobile number.',
-                    'executive_id': executive.id,
-                    'status': True,
-                    'is_suspended': False
-                }, status=status.HTTP_201_CREATED)
-            else:
-                return Response(
-                    {'message': 'Failed to send OTP. Please try again later.'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
             
 class ExeVerifyOTPView(APIView):
     permission_classes = [AllowAny]
@@ -259,31 +233,53 @@ class SetOnlineStatusView(APIView):
         
 
 class BanExecutiveAPIView(APIView):
-
     def post(self, request, executive_id):
         try:
-            executive = Executives.objects.get(executive_id=executive_id)
+            executive = Executives.objects.get(id=executive_id)
+
             executive.is_banned = True
             executive.save()
-            return Response({"message": f"Executive {executive_id} has been banned."})
+
+            if executive.device_id:
+                blocked_device, created = BlockedDevices.objects.get_or_create(device_id=executive.device_id)
+                blocked_device.is_banned = True
+                blocked_device.save()
+
+            return Response(
+                {
+                    "message": f"Executive {executive_id} and their device have been banned.",
+                    "executive_id": executive_id,
+                    "device_id": executive.device_id,
+                    "status": True
+                },
+                status=status.HTTP_200_OK
+            )
+
         except Executives.DoesNotExist:
-            raise NotFound("Executive not found")
+            raise NotFound("Executive not found.")
 
 class UnbanExecutiveView(APIView):
     def post(self, request, executive_id):
         try:
-            executive = Executives.objects.get(executive_id=executive_id)
+            executive = Executives.objects.get(id=executive_id)
+            
             if not executive.is_banned:
                 return Response({'detail': 'Executive is not banned.'}, status=status.HTTP_400_BAD_REQUEST)
+            
             executive.is_banned = False
             executive.save()
 
+            if executive.device_id:
+                BlockedDevices.objects.filter(device_id=executive.device_id).update(is_banned=False)
+
             return Response({
-                'detail': 'Executive has been successfully unbanned.',
-                'id': executive.id,
+                'detail': 'Executive and their device have been successfully unbanned.',
+                'executive_id': executive.id,
                 'name': executive.name,
                 'mobile_number': executive.mobile_number,
-                'is_banned': executive.is_banned
+                'is_banned': executive.is_banned,
+                'device_id': executive.device_id,
+                'device_unbanned': True
             }, status=status.HTTP_200_OK)
 
         except Executives.DoesNotExist:

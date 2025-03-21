@@ -70,7 +70,7 @@ class Executives(AbstractBaseUser):
     on_call = models.BooleanField(default=False)
     manager_executive = models.ForeignKey('analytics.Admins', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_executives')
     device_id = models.CharField(max_length=255, null=True, blank=True)
-
+    created_at = models.DateTimeField(auto_now_add=True)
     objects = ExecutiveManager()
 
     USERNAME_FIELD = 'mobile_number' 

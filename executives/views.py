@@ -27,19 +27,20 @@ class ExeRegisterOrLoginView(APIView):
 
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get("mobile_number")
-        device_id = request.data.get("device_id", str(uuid.uuid4()))  # Generate UUID if missing
+        device_id = request.data.get("device_id", str(uuid.uuid4()))
 
         if not mobile_number:
             return Response({"message": "Mobile number is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if the device is banned
         if BlockedDevices.objects.filter(device_id=device_id, is_banned=True).exists():
-            return Response(
-                {"message": "Your device is banned. You cannot log in.", "status": False},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"message": "Your device is banned.", "status": False}, status=status.HTTP_403_FORBIDDEN)
 
         otp = generate_otp()
+
+        # Generate unique Executive ID properly
+        last_executive = Executives.objects.order_by('-id').first()
+        last_number = int(last_executive.executive_id[4:]) if last_executive and last_executive.executive_id.startswith('EXE-') else 1000
+        executive_id = f"EXE-{last_number + 1}"
 
         # Get or create the executive
         executive, created = Executives.objects.get_or_create(
@@ -53,7 +54,7 @@ class ExeRegisterOrLoginView(APIView):
                 "skills": request.data.get("skills", ""),
                 "place": request.data.get("place", ""),
                 "status": "active",
-                "executive_id": f"EXE-{Executives.objects.count() + 1:03}",  # Generate unique ID
+                "executive_id": executive_id,
                 "set_coin": request.data.get("set_coin", 0.0),
                 "total_on_duty_seconds": 0,
                 "total_talk_seconds_today": 0,
@@ -66,20 +67,16 @@ class ExeRegisterOrLoginView(APIView):
             }
         )
 
-        # If executive already exists, check if banned
         if not created and executive.is_banned:
-            return Response(
-                {"message": "Executive is banned and cannot log in.", "is_banned": True},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            return Response({"message": "Executive is banned.", "is_banned": True}, status=status.HTTP_403_FORBIDDEN)
 
         # Send OTP
         if send_otp(mobile_number, otp):
             executive.otp = otp
-            executive.device_id = device_id  # Update device ID if changed
+            executive.device_id = device_id
             executive.save()
             return Response({
-                "message": "OTP sent to your mobile number.",
+                "message": "OTP sent successfully.",
                 "executive_id": executive.id,
                 "device_id": device_id,
                 "status": True,
@@ -87,11 +84,7 @@ class ExeRegisterOrLoginView(APIView):
                 "is_banned": executive.is_banned
             }, status=status.HTTP_200_OK)
         else:
-            return Response(
-                {"message": "Failed to send OTP. Please try again later."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
+            return Response({"message": "Failed to send OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             
 class ExeVerifyOTPView(APIView):
@@ -101,19 +94,17 @@ class ExeVerifyOTPView(APIView):
         mobile_number = request.data.get("mobile_number")
         otp = request.data.get("otp")
 
-        otp_entry = Executives.objects.filter(mobile_number=mobile_number, otp=otp).first()
+        executive = Executives.objects.filter(mobile_number=mobile_number, otp=otp).first()
 
-        if not otp_entry:
-            return Response({"message": "Invalid mobile number or OTP."}, status=status.HTTP_400_BAD_REQUEST)
+        if not executive:
+            return Response({"message": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
-        executive = Executives.objects.filter(mobile_number=mobile_number).first()
-        if executive:
-            executive.is_verified = True
-            executive.save()
-
-        otp_entry.delete()  # Remove OTP after successful verification
+        executive.is_verified = True
+        executive.otp = None  # Clear OTP instead of deleting the record
+        executive.save()
 
         return Response({"message": "OTP verified successfully.", "executive_id": executive.id}, status=status.HTTP_200_OK)
+
     
 #Authentication
 class RegisterExecutiveView(generics.CreateAPIView):

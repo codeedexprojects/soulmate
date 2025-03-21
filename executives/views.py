@@ -37,12 +37,16 @@ class ExeRegisterOrLoginView(APIView):
 
         otp = generate_otp()
 
-        # Generate unique Executive ID properly
-        last_executive = Executives.objects.order_by('-id').first()
-        last_number = int(last_executive.executive_id[4:]) if last_executive and last_executive.executive_id.startswith('EXE-') else 1000
-        executive_id = f"EXE-{last_number + 1}"
+        # Get the manager executive
+        manager_executive_id = request.data.get("manager_executive")
+        manager_executive = None
+        if manager_executive_id:
+            try:
+                manager_executive = Admins.objects.get(id=manager_executive_id)
+            except Admins.DoesNotExist:
+                return Response({"message": "Manager executive not found.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get or create the executive
+        # Create or update the executive
         executive, created = Executives.objects.get_or_create(
             mobile_number=mobile_number,
             defaults={
@@ -54,7 +58,7 @@ class ExeRegisterOrLoginView(APIView):
                 "skills": request.data.get("skills", ""),
                 "place": request.data.get("place", ""),
                 "status": "active",
-                "executive_id": executive_id,
+                "executive_id": f"EXE-{Executives.objects.count() + 1:03}",
                 "set_coin": request.data.get("set_coin", 0.0),
                 "total_on_duty_seconds": 0,
                 "total_talk_seconds_today": 0,
@@ -63,12 +67,14 @@ class ExeRegisterOrLoginView(APIView):
                 "is_suspended": False,
                 "is_banned": False,
                 "created_at": timezone.now(),
-                "device_id": device_id
+                "device_id": device_id,
+                "manager_executive": manager_executive,  # Assigning the Admins object
             }
         )
 
-        if not created and executive.is_banned:
-            return Response({"message": "Executive is banned.", "is_banned": True}, status=status.HTTP_403_FORBIDDEN)
+        if not created:
+            executive.manager_executive = manager_executive  # Update if already exists
+            executive.save()
 
         # Send OTP
         if send_otp(mobile_number, otp):
@@ -76,15 +82,15 @@ class ExeRegisterOrLoginView(APIView):
             executive.device_id = device_id
             executive.save()
             return Response({
-                "message": "OTP sent successfully.",
+                "message": "OTP sent to your mobile number.",
                 "executive_id": executive.id,
                 "device_id": device_id,
                 "status": True,
                 "is_suspended": executive.is_suspended,
                 "is_banned": executive.is_banned
             }, status=status.HTTP_200_OK)
-        else:
-            return Response({"message": "Failed to send OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message": "Failed to send OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             
 class ExeVerifyOTPView(APIView):

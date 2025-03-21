@@ -26,44 +26,50 @@ class ExeRegisterOrLoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        mobile_number = request.data.get('mobile_number')
-        device_id = request.data.get('device_id')  # Capture device ID
+        mobile_number = request.data.get("mobile_number")
+        device_id = request.data.get("device_id")  # Capture device ID
+
+        if not mobile_number:
+            return Response({"message": "Mobile number is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not device_id:
+            return Response({"message": "Device ID is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the device is banned
         if BlockedDevices.objects.filter(device_id=device_id, is_banned=True).exists():
             return Response(
-                {'message': 'Your device is banned. You cannot log in.', 'status': False},
+                {"message": "Your device is banned. You cannot log in.", "status": False},
                 status=status.HTTP_403_FORBIDDEN
             )
 
         otp = generate_otp()
-        try:
-            executive = Executives.objects.get(mobile_number=mobile_number)
 
-            if executive.is_banned:
-                return Response(
-                    {'message': 'Executive is banned and cannot log in.', 'is_banned': True},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+        # Check if the executive already exists
+        executive, created = Executives.objects.get_or_create(mobile_number=mobile_number)
 
-            if send_otp(mobile_number, otp):
-                executive.otp = otp
-                executive.device_id = device_id  # Store latest device ID
-                executive.save()
-                return Response({
-                    'message': 'Login OTP sent to your mobile number.',
-                    'executive_id': executive.id,
-                    'status': True,
-                    'is_suspended': executive.is_suspended
-                }, status=status.HTTP_200_OK)
-            else:
-                return Response(
-                    {'message': 'Failed to send OTP. Please try again later.'},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+        if executive.is_banned:
+            return Response(
+                {"message": "Executive is banned and cannot log in.", "is_banned": True},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-        except Executives.DoesNotExist:
-            return Response({'message': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        if send_otp(mobile_number, otp):
+            executive.otp = otp
+            executive.device_id = device_id  # Store latest device ID
+            executive.save()
+            return Response({
+                "message": "OTP sent to your mobile number.",
+                "executive_id": executive.id,
+                "status": True,
+                "is_suspended": executive.is_suspended,
+                "is_banned": executive.is_banned
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {"message": "Failed to send OTP. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
             
 class ExeVerifyOTPView(APIView):

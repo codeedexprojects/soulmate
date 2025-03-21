@@ -47,7 +47,7 @@ class Executives(AbstractBaseUser):
     email_id = models.EmailField(max_length=255, unique=True)
     password = models.CharField(max_length=128)
     age = models.PositiveIntegerField()
-    created_by = models.ForeignKey('analytics.Admins', on_delete=models.SET_NULL, null=True, blank=True)
+    # created_by = models.ForeignKey('analytics.Admins', on_delete=models.SET_NULL, null=True, blank=True)
     online = models.BooleanField(default=False)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male')
     coins_per_second = models.FloatField(default=3)

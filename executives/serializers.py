@@ -54,7 +54,7 @@ class ExecutivesSerializer(serializers.ModelSerializer):
         return value
 
     def get_manager(self, obj):
-        return obj.created_by.name if obj.created_by else None
+        return obj.manager_executive.name if obj.manager_executive else None
 
     def get_profile_photo_url(self, obj):
         profile_picture = ExecutiveProfilePicture.objects.filter(executive=obj).first()

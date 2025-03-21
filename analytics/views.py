@@ -325,11 +325,17 @@ class SuperuserLoginView(generics.GenericAPIView):
             return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
         refresh = RefreshToken.for_user(admin)
+
         return Response({
             "access_token": str(refresh.access_token),
-            "refresh_token": str(refresh)
+            "refresh_token": str(refresh),
+            "user_id": admin.id,
+            "email": admin.email,
+            "name": admin.name,
+            "role": admin.role, 
+            "is_superuser": admin.is_superuser,
+            "is_staff": admin.is_staff
         }, status=status.HTTP_200_OK)
-
 
 class AdminLogoutView(APIView):
     def post(self, request):

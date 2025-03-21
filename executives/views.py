@@ -27,13 +27,10 @@ class ExeRegisterOrLoginView(APIView):
 
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get("mobile_number")
-        device_id = request.data.get("device_id")  # Capture device ID
+        device_id = request.data.get("device_id", str(uuid.uuid4()))  # Generate if missing
 
         if not mobile_number:
             return Response({"message": "Mobile number is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
-
-        if not device_id:
-            return Response({"message": "Device ID is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if the device is banned
         if BlockedDevices.objects.filter(device_id=device_id, is_banned=True).exists():
@@ -60,6 +57,7 @@ class ExeRegisterOrLoginView(APIView):
             return Response({
                 "message": "OTP sent to your mobile number.",
                 "executive_id": executive.id,
+                "device_id": device_id,  # Return generated ID if needed
                 "status": True,
                 "is_suspended": executive.is_suspended,
                 "is_banned": executive.is_banned

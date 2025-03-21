@@ -25,6 +25,8 @@ from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from payments.models import Sale
 from django.db.models.functions import Coalesce
 from django.db.models import Sum, DurationField
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 
 class PlatformAnalyticsView(APIView):
     def get(self, request):
@@ -633,3 +635,23 @@ class TotalCoinsDeductedView(APIView):
             'user_id': user_id,
             'total_coins_deducted': total_coins
         }, status=status.HTTP_200_OK)
+
+
+
+class ExecutivesUnderManagerView(generics.ListAPIView):
+    serializer_class = ExecutivesSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if self.request.user.role != "manager_executive":
+            raise PermissionDenied("You are not authorized to view this data.")
+
+        return Executives.objects.filter(manager_executive=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            "manager_executive": request.user.name,
+            "executives": serializer.data
+        })

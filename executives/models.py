@@ -72,7 +72,7 @@ class Executives(AbstractBaseUser):
     device_id = models.CharField(max_length=255, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     objects = ExecutiveManager()
-
+    otp = models.CharField(max_length=6, null=True, blank=True)
     USERNAME_FIELD = 'mobile_number' 
     REQUIRED_FIELDS = ['name', 'email_id']  
 

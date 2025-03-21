@@ -98,19 +98,23 @@ class ExeVerifyOTPView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        mobile_number = request.data.get('mobile_number')
-        otp = request.data.get('otp')
+        mobile_number = request.data.get("mobile_number")
+        otp = request.data.get("otp")
 
-        try:
-            executive = Executives.objects.get(mobile_number=mobile_number, otp=otp)
-            executive.otp = None
+        otp_entry = Executives.objects.filter(mobile_number=mobile_number, otp=otp).first()
+
+        if not otp_entry:
+            return Response({"message": "Invalid mobile number or OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+        executive = Executives.objects.filter(mobile_number=mobile_number).first()
+        if executive:
             executive.is_verified = True
             executive.save()
-            return Response({'message': 'OTP verified successfully.', 'executive_id': executive.id},
-                            status=status.HTTP_200_OK)
-        except Executives.DoesNotExist:
-            return Response({'message': 'Invalid mobile number or OTP.'},
-                            status=status.HTTP_400_BAD_REQUEST)
+
+        otp_entry.delete()  # Remove OTP after successful verification
+
+        return Response({"message": "OTP verified successfully.", "executive_id": executive.id}, status=status.HTTP_200_OK)
+    
 #Authentication
 class RegisterExecutiveView(generics.CreateAPIView):
     queryset = Executives.objects.all()

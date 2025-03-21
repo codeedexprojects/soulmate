@@ -27,7 +27,7 @@ class ExeRegisterOrLoginView(APIView):
 
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get("mobile_number")
-        device_id = request.data.get("device_id", str(uuid.uuid4()))  # Generate if missing
+        device_id = request.data.get("device_id", str(uuid.uuid4()))  # Generate UUID if missing
 
         if not mobile_number:
             return Response({"message": "Mobile number is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
@@ -41,23 +41,47 @@ class ExeRegisterOrLoginView(APIView):
 
         otp = generate_otp()
 
-        # Check if the executive already exists
-        executive, created = Executives.objects.get_or_create(mobile_number=mobile_number)
+        # Get or create the executive
+        executive, created = Executives.objects.get_or_create(
+            mobile_number=mobile_number,
+            defaults={
+                "name": request.data.get("name", "Guest"),
+                "age": request.data.get("age", 18),
+                "email_id": request.data.get("email_id", ""),
+                "gender": request.data.get("gender", "unspecified"),
+                "profession": request.data.get("profession", "Not Provided"),
+                "skills": request.data.get("skills", ""),
+                "place": request.data.get("place", ""),
+                "status": "active",
+                "executive_id": f"EXE-{Executives.objects.count() + 1:03}",  # Generate unique ID
+                "set_coin": request.data.get("set_coin", 0.0),
+                "total_on_duty_seconds": 0,
+                "total_talk_seconds_today": 0,
+                "total_picked_calls": 0,
+                "total_missed_calls": 0,
+                "is_suspended": False,
+                "is_banned": False,
+                "created_at": timezone.now(),
+                "device_id": device_id
+            }
+        )
 
-        if executive.is_banned:
+        # If executive already exists, check if banned
+        if not created and executive.is_banned:
             return Response(
                 {"message": "Executive is banned and cannot log in.", "is_banned": True},
                 status=status.HTTP_403_FORBIDDEN
             )
 
+        # Send OTP
         if send_otp(mobile_number, otp):
             executive.otp = otp
-            executive.device_id = device_id  # Store latest device ID
+            executive.device_id = device_id  # Update device ID if changed
             executive.save()
             return Response({
                 "message": "OTP sent to your mobile number.",
                 "executive_id": executive.id,
-                "device_id": device_id,  # Return generated ID if needed
+                "device_id": device_id,
                 "status": True,
                 "is_suspended": executive.is_suspended,
                 "is_banned": executive.is_banned

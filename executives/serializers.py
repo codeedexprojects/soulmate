@@ -16,6 +16,9 @@ class ExecutivesSerializer(serializers.ModelSerializer):
     refresh_token = serializers.SerializerMethodField()
     manager = serializers.SerializerMethodField()
     manager_executive = serializers.PrimaryKeyRelatedField(queryset=Admins.objects.filter(role='manager_executive'), required=False)
+    age = serializers.IntegerField(required=True)  # Ensure age is mandatory
+
+    
 
     class Meta:
         model = Executives
@@ -45,6 +48,11 @@ class ExecutivesSerializer(serializers.ModelSerializer):
         total_seconds = sum([ch.duration.total_seconds() for ch in call_histories if ch.duration])
         return total_seconds or 0 
     
+    def validate_age(self, value):
+        if value is None:
+            raise serializers.ValidationError("Age is required.")
+        return value
+
     def get_manager(self, obj):
         return obj.created_by.name if obj.created_by else None
 

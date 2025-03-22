@@ -3,7 +3,7 @@ from .views import *
 
 urlpatterns = [
 
-    path('platform_analysis/', PlatformAnalyticsView.as_view(), name='platform_analysis'),
+    path('full_report/', PlatformAnalyticsView.as_view(), name='platform_analysis'),
     path('log-call/<int:user_id>/', LogCallView.as_view(), name='log_call'),
     path('call-statistics/daily/', DailyCallStatisticsView.as_view(), name='daily-call-statistics'),
     path('call-statistics/weekly/', WeeklyCallStatisticsView.as_view(), name='weekly-call-statistics'),
@@ -38,7 +38,7 @@ urlpatterns = [
 
     path('executives/<int:executive_id>/update-on-call/', UpdateExecutiveOnCallStatus.as_view(), name='update-on-call'),
     path('total-coins-spend/<str:user_id>/', TotalCoinsDeductedView.as_view(), name='total-coins-deducted'),
-    path('executive/<int:executive_id>/', ExecutiveAnalyticsView.as_view(), name='executive-analytics'),
+    path('executive-report/<int:executive_id>/', ExecutiveAnalyticsView.as_view(), name='executive-analytics'),
 
 ]
 

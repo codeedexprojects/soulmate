@@ -604,6 +604,8 @@ class ExecutiveDetailsView(APIView):
         executive.delete()
         return Response({"message": "Executive deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
+from rest_framework.exceptions import NotAuthenticated
+
     
 class ManagerExecutivePermission(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -611,12 +613,18 @@ class ManagerExecutivePermission(permissions.BasePermission):
 
 class ManagerExecutiveListCreateView(generics.ListCreateAPIView):
     serializer_class = ExecutiveSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [AllowAny]  # Allows both authenticated and anonymous users
 
     def get_queryset(self):
-        """Show only executives assigned to the logged-in manager."""
-        return Executives.objects.filter(manager_executive=self.request.user)
+        """Show only executives assigned to the logged-in manager. Return empty queryset for anonymous users."""
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            return Executives.objects.none()  # Return an empty queryset instead of raising an error
+        return Executives.objects.filter(manager_executive=user)
 
     def perform_create(self, serializer):
-        """Assign the logged-in user as the executive's manager."""
-        serializer.save(manager_executive=self.request.user)
+        """Assign the logged-in user as the executive's manager. Reject anonymous users."""
+        user = self.request.user
+        if not user or not user.is_authenticated:
+            raise NotAuthenticated("Authentication credentials were not provided.")
+        serializer.save(manager_executive=user)

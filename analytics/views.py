@@ -31,21 +31,33 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 class PlatformAnalyticsView(APIView):
     def get(self, request):
         today = now().date()
-        
+        ninety_days_ago = now() - timedelta(days=90)
+
         total_executives = Executives.objects.count()
         total_users = User.objects.count()
-        
-        ninety_days_ago = now() - timedelta(days=90)
+
         active_executives = Executives.objects.filter(last_login__gte=ninety_days_ago).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
 
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
 
-        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(total_minutes=models.Sum('duration'))['total_minutes'] or 0
+        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
+            total_minutes=Sum('duration'))['total_minutes'] or 0
 
-        todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(total=models.Sum('purchased_price'))['total'] or 0
+        todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
+            total=Sum('purchased_price'))['total'] or 0
 
-        todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(total=models.Sum('coins_purchased'))['total'] or 0
+        todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
+            total=Sum('coins_purchased'))['total'] or 0
+
+        # **New Report Data**
+        user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
+            total=Sum('coins_spent'))['total'] or 0
+
+        executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
+            total=Sum('coins_added'))['total'] or 0
+
+        missed_calls = AgoraCallHistory.objects.filter(status="missed", start_time__date=today).count()
 
         return Response({
             "total_executives": total_executives,
@@ -55,7 +67,10 @@ class PlatformAnalyticsView(APIView):
             "active_executives": active_executives,
             "active_users": active_users,
             "on_call": on_call,
-            "today_talk_time": f"{today_talk_time} Mins"
+            "today_talk_time": f"{today_talk_time} Mins",
+            "user_coin_spending": user_coin_spending,
+            "executive_coin_earnings": executive_coin_earnings,
+            "missed_calls": missed_calls
         }, status=status.HTTP_200_OK)
 
 
@@ -67,17 +82,22 @@ class ExecutiveAnalyticsView(APIView):
         total_calls = AgoraCallHistory.objects.filter(executive=executive).count()
 
         total_coins_earned = AgoraCallHistory.objects.filter(executive=executive).aggregate(
-            total=models.Sum('coins_added'))['total'] or 0
+            total=Sum('coins_added'))['total'] or 0
 
         total_talk_time_seconds = AgoraCallHistory.objects.filter(executive=executive).aggregate(
-            total=models.Sum('duration'))['total'] or 0
+            total=Sum('duration'))['total'] or 0
         total_talk_time = round(total_talk_time_seconds.total_seconds() / 60) if total_talk_time_seconds else 0
 
         last_call = AgoraCallHistory.objects.filter(executive=executive).order_by('-start_time').first()
         last_call_date = last_call.start_time.strftime("%a, %d %b %I:%M %p") if last_call and last_call.start_time else "No Calls Yet"
 
         todays_earnings = AgoraCallHistory.objects.filter(executive=executive, start_time__date=today).aggregate(
-            total=models.Sum('coins_added'))['total'] or 0
+            total=Sum('coins_added'))['total'] or 0
+
+        # **New Report Data**
+        duty_reports = AgoraCallHistory.objects.filter(executive=executive, start_time__date=today).count()
+
+        missed_calls = AgoraCallHistory.objects.filter(executive=executive, status="missed", start_time__date=today).count()
 
         return Response({
             "executive_id": executive.id,
@@ -85,7 +105,9 @@ class ExecutiveAnalyticsView(APIView):
             "total_coins_earned": total_coins_earned,
             "total_talk_time": f"{total_talk_time} Mins",
             "last_call_date": last_call_date,
-            "todays_earnings": todays_earnings
+            "todays_earnings": todays_earnings,
+            "duty_reports": duty_reports,
+            "missed_calls": missed_calls
         }, status=status.HTTP_200_OK)
     
 class LogCallView(APIView):

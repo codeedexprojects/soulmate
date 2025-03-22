@@ -574,7 +574,7 @@ class ExecutiveListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        executives = Executives.objects.filter(created_by=request.user)
+        executives = Executives.objects.filter(manager_executive=request.user)
         serializer = ExecutivesSerializer(executives, many=True, context={'request': request})
         return Response(serializer.data)
 

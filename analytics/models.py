@@ -22,7 +22,7 @@ class AdminManager(BaseUserManager):
         return self.create_admin(email, password, **extra_fields)
 
 class Admins(AbstractBaseUser, PermissionsMixin):
-    
+  
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
     
@@ -58,8 +58,6 @@ class CoinRedemptionRequest(models.Model):
 
     def __str__(self):
         return f"{self.executive} - {self.amount_requested} - {self.status}"
-
-
 
 class RevenueTarget(models.Model):
     target_revenue = models.DecimalField(max_digits=10, decimal_places=2)

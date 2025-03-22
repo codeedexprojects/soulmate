@@ -50,14 +50,34 @@ class PlatformAnalyticsView(APIView):
         todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
             total=Sum('coins_purchased'))['total'] or 0
 
-        # **Fix: Replace coins_spent with coins_deducted**
         user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
             total=Sum('coins_deducted'))['total'] or 0
 
         executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
             total=Sum('coins_added'))['total'] or 0
 
-        missed_calls = AgoraCallHistory.objects.filter(status="missed", start_time__date=today).count()
+        # **Retrieve missed call details**
+        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed", start_time__date=today)
+
+        missed_calls = missed_calls_qs.count()
+
+        # **Prepare missed call details with executive and user info**
+        missed_call_details = []
+        for call in missed_calls_qs:
+            missed_call_details.append({
+                "executive": {
+                    "id": call.executive.id if call.executive else None,
+                    "name": call.executive.name if call.executive else "Unknown",
+                    "email": call.executive.email if call.executive else "Unknown",
+                },
+                "user": {
+                    "id": call.user.id if call.user else None,
+                    "name": call.user.name if call.user else "Unknown",
+                    "email": call.user.email if call.user else "Unknown",
+                },
+                "start_time": call.start_time,
+                "end_time": call.end_time,
+            })
 
         return Response({
             "total_executives": total_executives,
@@ -70,7 +90,8 @@ class PlatformAnalyticsView(APIView):
             "today_talk_time": f"{today_talk_time} Mins",
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
-            "missed_calls": missed_calls
+            "missed_calls": missed_calls,
+            "missed_call_details": missed_call_details,
         }, status=status.HTTP_200_OK)
 
 

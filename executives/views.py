@@ -571,7 +571,7 @@ class CreateExecutiveView(APIView):
         }
 
 class ExecutiveListView(APIView):
-    permission_classes = [IsAuthenticated, IsManagerExecutive]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         executives = Executives.objects.filter(created_by=request.user)
@@ -579,7 +579,7 @@ class ExecutiveListView(APIView):
         return Response(serializer.data)
 
 class ExecutiveDetailsView(APIView):
-    permission_classes = [IsAuthenticated, IsManagerExecutive]
+    permission_classes = [AllowAny]
 
     def get_object(self, pk):
         try:
@@ -611,7 +611,7 @@ class ManagerExecutivePermission(permissions.BasePermission):
 
 class ManagerExecutiveListCreateView(generics.ListCreateAPIView):
     serializer_class = ExecutiveSerializer
-    permission_classes = [ManagerExecutivePermission]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         """Show only executives created by the logged-in manager."""

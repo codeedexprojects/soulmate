@@ -615,8 +615,8 @@ class ManagerExecutiveListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """Show only executives created by the logged-in manager."""
-        return Executives.objects.filter(created_by=self.request.user)
+        return Executives.objects.filter(manager_executive=self.request.user)
 
     def perform_create(self, serializer):
         """Assign the logged-in user as the executive's manager."""
-        serializer.save(created_by=self.request.user)
+        serializer.save(manager_executive=self.request.user)

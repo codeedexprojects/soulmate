@@ -583,7 +583,7 @@ class ExecutiveDetailsView(APIView):
 
     def get_object(self, pk):
         try:
-            return Executives.objects.get(pk=pk, created_by=self.request.user)
+            return Executives.objects.get(pk=pk, manager_executive=pk.user)
         except Executives.DoesNotExist:
             raise Http404
 

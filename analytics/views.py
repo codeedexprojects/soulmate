@@ -50,9 +50,9 @@ class PlatformAnalyticsView(APIView):
         todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
             total=Sum('coins_purchased'))['total'] or 0
 
-        # **New Report Data**
+        # **Fix: Replace coins_spent with coins_deducted**
         user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total=Sum('coins_spent'))['total'] or 0
+            total=Sum('coins_deducted'))['total'] or 0
 
         executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
             total=Sum('coins_added'))['total'] or 0
@@ -72,6 +72,7 @@ class PlatformAnalyticsView(APIView):
             "executive_coin_earnings": executive_coin_earnings,
             "missed_calls": missed_calls
         }, status=status.HTTP_200_OK)
+
 
 
 class ExecutiveAnalyticsView(APIView):

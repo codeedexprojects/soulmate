@@ -114,27 +114,28 @@ class ExecutiveAnalyticsView(APIView):
 
         # **Total Calls**
         total_calls = AgoraCallHistory.objects.filter(
-            executive_id=executive.id, start_time__date__gte=start_date
+            executive=executive, start_time__date__gte=start_date
         ).count()
 
         # **Total Coins Earned**
         total_coins_earned = AgoraCallHistory.objects.filter(
-            executive_id=executive.id, start_time__date__gte=start_date
+            executive=executive, start_time__date__gte=start_date
         ).aggregate(total=Sum("coins_added"))["total"] or 0
 
         # **Total Talk Time**
         total_talk_time_seconds = (
             AgoraCallHistory.objects.filter(
-                executive_id=executive.id, start_time__date__gte=start_date
+                executive=executive, start_time__date__gte=start_date
             ).aggregate(total=Sum("duration"))["total"]
-            or 0
+            or timedelta(seconds=0)
         )
-        total_talk_time = round(total_talk_time_seconds / 60)  # Convert to minutes
+
+        total_talk_time = round(total_talk_time_seconds.total_seconds() / 60)  # Convert to minutes
 
         # **Last Call Details**
         last_call = (
             AgoraCallHistory.objects.filter(
-                executive_id=executive.id, start_time__date__gte=start_date
+                executive=executive, start_time__date__gte=start_date
             )
             .order_by("-start_time")
             .first()
@@ -146,14 +147,10 @@ class ExecutiveAnalyticsView(APIView):
         # **Earnings (Coins Added)**
         earnings = total_coins_earned  # Same as total_coins_earned
 
-        # **Duty Reports (Total Calls Taken)**
-        duty_reports = total_calls
-
         # **Missed Calls**
         missed_calls = AgoraCallHistory.objects.filter(
-            executive_id=executive.id, status="missed", start_time__date__gte=start_date
+            executive=executive, status="missed", start_time__date__gte=start_date
         )
-
         missed_call_count = missed_calls.count()
 
         # **Missed Call Details**
@@ -170,7 +167,7 @@ class ExecutiveAnalyticsView(APIView):
 
         # **User Coin Spending**
         user_coin_spending = AgoraCallHistory.objects.filter(
-            executive_id=executive.id, start_time__date__gte=start_date
+            executive=executive, start_time__date__gte=start_date
         ).aggregate(total=Sum("coins_deducted"))["total"] or 0
 
         # **Coin Sales (Same as earnings)**
@@ -179,24 +176,13 @@ class ExecutiveAnalyticsView(APIView):
         # **Average Call Duration**
         avg_call_duration = round(total_talk_time / total_calls, 2) if total_calls else 0
 
-        # **Total Online Time Calculation**
-        total_online_time_seconds = (
-            Executives.objects.filter(
-                id=executive.id, online_time__date__gte=start_date, offline_time__isnull=False
-            )
-            .aggregate(
-                total=Sum(
-                    ExpressionWrapper(F("offline_time") - F("online_time"), output_field=DurationField())
-                )
-            )["total"]
-            or timedelta(seconds=0)
-        )
-
-        total_online_minutes = round(total_online_time_seconds.total_seconds() / 60)
+        # **Total Online Time Calculation using existing fields**
+        total_online_time_seconds = executive.total_on_duty_seconds  # Use existing field
+        total_online_minutes = round(total_online_time_seconds / 60)
 
         # **Total Calls Per Day (for Chart)**
         calls_per_day = (
-            AgoraCallHistory.objects.filter(executive_id=executive.id, start_time__date__gte=start_date)
+            AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date)
             .values("start_time__date")
             .annotate(total_calls=Count("id"))  # Count calls per day
             .order_by("start_time__date")
@@ -204,7 +190,7 @@ class ExecutiveAnalyticsView(APIView):
 
         # **Average Rating for Executive**
         avg_rating = (
-            Rating.objects.filter(executive_id=executive.id, created_at__date__gte=start_date)
+            Rating.objects.filter(executive=executive, created_at__date__gte=start_date)
             .aggregate(avg=Avg("rating"))["avg"]
             or 0
         )
@@ -219,7 +205,6 @@ class ExecutiveAnalyticsView(APIView):
                 "earnings": earnings,
                 "user_coin_spending": user_coin_spending,
                 "coin_sales": coin_sales,
-                "duty_reports": duty_reports,
                 "missed_calls_count": missed_call_count,
                 "missed_call_details": missed_call_details,
                 "avg_call_duration": f"{avg_call_duration} Mins",

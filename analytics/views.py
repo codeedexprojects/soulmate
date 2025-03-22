@@ -27,7 +27,7 @@ from django.db.models.functions import Coalesce
 from django.db.models import Sum, DurationField
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg
+from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Count
 
 
 class PlatformAnalyticsView(APIView):
@@ -104,47 +104,54 @@ class ExecutiveAnalyticsView(APIView):
         today = now().date()
 
         # Get period parameter (default: 1 day)
-        period = request.query_params.get('period', '1d')  # Default to 1 day
-        if period == '7d':
+        period = request.query_params.get("period", "1d")  # Default to 1 day
+        if period == "7d":
             start_date = today - timedelta(days=7)
-        elif period == '1m':
+        elif period == "1m":
             start_date = today - timedelta(days=30)
         else:  # Default to 1 day
             start_date = today
 
         # **Total Calls**
         total_calls = AgoraCallHistory.objects.filter(
-            executive=executive, start_time__date__gte=start_date
+            executive_id=executive.id, start_time__date__gte=start_date
         ).count()
 
         # **Total Coins Earned**
         total_coins_earned = AgoraCallHistory.objects.filter(
-            executive=executive, start_time__date__gte=start_date
-        ).aggregate(total=Sum('coins_added'))['total'] or 0
+            executive_id=executive.id, start_time__date__gte=start_date
+        ).aggregate(total=Sum("coins_added"))["total"] or 0
 
         # **Total Talk Time**
-        total_talk_time_seconds = AgoraCallHistory.objects.filter(
-            executive=executive, start_time__date__gte=start_date
-        ).aggregate(total=Sum('duration'))['total'] or 0
-        total_talk_time = round(total_talk_time_seconds.total_seconds() / 60) if total_talk_time_seconds else 0
+        total_talk_time_seconds = (
+            AgoraCallHistory.objects.filter(
+                executive_id=executive.id, start_time__date__gte=start_date
+            ).aggregate(total=Sum("duration"))["total"]
+            or 0
+        )
+        total_talk_time = round(total_talk_time_seconds / 60)  # Convert to minutes
 
         # **Last Call Details**
-        last_call = AgoraCallHistory.objects.filter(
-            executive=executive, start_time__date__gte=start_date
-        ).order_by('-start_time').first()
-        last_call_date = last_call.start_time.strftime("%a, %d %b %I:%M %p") if last_call else "No Calls Yet"
+        last_call = (
+            AgoraCallHistory.objects.filter(
+                executive_id=executive.id, start_time__date__gte=start_date
+            )
+            .order_by("-start_time")
+            .first()
+        )
+        last_call_date = (
+            last_call.start_time.strftime("%a, %d %b %I:%M %p") if last_call else "No Calls Yet"
+        )
 
         # **Earnings (Coins Added)**
-        earnings = AgoraCallHistory.objects.filter(
-            executive=executive, start_time__date__gte=start_date
-        ).aggregate(total=Sum('coins_added'))['total'] or 0
+        earnings = total_coins_earned  # Same as total_coins_earned
 
         # **Duty Reports (Total Calls Taken)**
         duty_reports = total_calls
 
         # **Missed Calls**
         missed_calls = AgoraCallHistory.objects.filter(
-            executive=executive, status="missed", start_time__date__gte=start_date
+            executive_id=executive.id, status="missed", start_time__date__gte=start_date
         )
 
         missed_call_count = missed_calls.count()
@@ -154,15 +161,17 @@ class ExecutiveAnalyticsView(APIView):
             {
                 "user_id": call.user.id if call.user else None,
                 "user_name": call.user.full_name if call.user else "Unknown",
-                "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown"
+                "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p")
+                if call.start_time
+                else "Unknown",
             }
             for call in missed_calls
         ]
 
         # **User Coin Spending**
         user_coin_spending = AgoraCallHistory.objects.filter(
-            executive=executive, start_time__date__gte=start_date
-        ).aggregate(total=Sum('coins_deducted'))['total'] or 0
+            executive_id=executive.id, start_time__date__gte=start_date
+        ).aggregate(total=Sum("coins_deducted"))["total"] or 0
 
         # **Coin Sales (Same as earnings)**
         coin_sales = earnings
@@ -171,49 +180,56 @@ class ExecutiveAnalyticsView(APIView):
         avg_call_duration = round(total_talk_time / total_calls, 2) if total_calls else 0
 
         # **Total Online Time Calculation**
-        total_online_time_seconds = Executives.objects.filter(
-            executive=executive,
-            online_time__date__gte=start_date,
-            offline_time__isnull=False  # Ensure offline_time is recorded
-        ).aggregate(
-            total=Sum(
-                ExpressionWrapper(F('offline_time') - F('online_time'), output_field=DurationField())
+        total_online_time_seconds = (
+            Executives.objects.filter(
+                id=executive.id, online_time__date__gte=start_date, offline_time__isnull=False
             )
-        )['total'] or timedelta(seconds=0)
+            .aggregate(
+                total=Sum(
+                    ExpressionWrapper(F("offline_time") - F("online_time"), output_field=DurationField())
+                )
+            )["total"]
+            or timedelta(seconds=0)
+        )
 
         total_online_minutes = round(total_online_time_seconds.total_seconds() / 60)
 
         # **Total Calls Per Day (for Chart)**
         calls_per_day = (
-            AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date)
-            .values('start_time__date')
-            .annotate(total_calls=Sum('id'))  # Count calls per day
-            .order_by('start_time__date')
+            AgoraCallHistory.objects.filter(executive_id=executive.id, start_time__date__gte=start_date)
+            .values("start_time__date")
+            .annotate(total_calls=Count("id"))  # Count calls per day
+            .order_by("start_time__date")
         )
 
         # **Average Rating for Executive**
-        avg_rating = Rating.objects.filter(
-            executive=executive, created_at__date__gte=start_date
-        ).aggregate(avg=Avg('rating'))['avg'] or 0
+        avg_rating = (
+            Rating.objects.filter(executive_id=executive.id, created_at__date__gte=start_date)
+            .aggregate(avg=Avg("rating"))["avg"]
+            or 0
+        )
 
-        return Response({
-            "executive_id": executive.id,
-            "total_calls": total_calls,
-            "total_coins_earned": total_coins_earned,
-            "total_talk_time": f"{total_talk_time} Mins",
-            "last_call_date": last_call_date,
-            "earnings": earnings,
-            "user_coin_spending": user_coin_spending,
-            "coin_sales": coin_sales,
-            "duty_reports": duty_reports,
-            "missed_calls_count": missed_call_count,
-            "missed_call_details": missed_call_details,
-            "avg_call_duration": f"{avg_call_duration} Mins",
-            "total_online_time": f"{total_online_minutes} Mins",
-            "calls_per_day": list(calls_per_day),  # Useful for frontend charts
-            "average_rating": round(avg_rating, 2),
-            "period": period  # Include period info in response
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "executive_id": executive.id,
+                "total_calls": total_calls,
+                "total_coins_earned": total_coins_earned,
+                "total_talk_time": f"{total_talk_time} Mins",
+                "last_call_date": last_call_date,
+                "earnings": earnings,
+                "user_coin_spending": user_coin_spending,
+                "coin_sales": coin_sales,
+                "duty_reports": duty_reports,
+                "missed_calls_count": missed_call_count,
+                "missed_call_details": missed_call_details,
+                "avg_call_duration": f"{avg_call_duration} Mins",
+                "total_online_time": f"{total_online_minutes} Mins",
+                "calls_per_day": list(calls_per_day),  # Useful for frontend charts
+                "average_rating": round(avg_rating, 2),
+                "period": period,  # Include period info in response
+            },
+            status=status.HTTP_200_OK,
+        )
     
 class LogCallView(APIView):
     def get(self, request, user_id):

@@ -100,44 +100,61 @@ class ExecutiveAnalyticsView(APIView):
     def get(self, request, executive_id):
         executive = get_object_or_404(Executives, id=executive_id)
         today = now().date()
+        
+        # Get period parameter (default: 1 day)
+        period = request.query_params.get('period', '1d')  # Default is 1 day
+        if period == '7d':
+            start_date = today - timedelta(days=7)
+        elif period == '1m':
+            start_date = today - timedelta(days=30)
+        else:  # Default to 1 day
+            start_date = today
 
         # **Total Calls**
-        total_calls = AgoraCallHistory.objects.filter(executive=executive).count()
+        total_calls = AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date).count()
 
         # **Total Coins Earned by Executive**
-        total_coins_earned = AgoraCallHistory.objects.filter(executive=executive).aggregate(
-            total=Sum('coins_added'))['total'] or 0
+        total_coins_earned = AgoraCallHistory.objects.filter(
+            executive=executive, start_time__date__gte=start_date
+        ).aggregate(total=Sum('coins_added'))['total'] or 0
 
         # **Total Talk Time**
-        total_talk_time_seconds = AgoraCallHistory.objects.filter(executive=executive).aggregate(
-            total=Sum('duration'))['total'] or 0
+        total_talk_time_seconds = AgoraCallHistory.objects.filter(
+            executive=executive, start_time__date__gte=start_date
+        ).aggregate(total=Sum('duration'))['total'] or 0
         total_talk_time = round(total_talk_time_seconds.total_seconds() / 60) if total_talk_time_seconds else 0
 
         # **Last Call Details**
         last_call = AgoraCallHistory.objects.filter(executive=executive).order_by('-start_time').first()
         last_call_date = last_call.start_time.strftime("%a, %d %b %I:%M %p") if last_call and last_call.start_time else "No Calls Yet"
 
-        # **Today's Earnings (Coins Added)**
-        todays_earnings = AgoraCallHistory.objects.filter(executive=executive, start_time__date=today).aggregate(
-            total=Sum('coins_added'))['total'] or 0
+        # **Earnings (Coins Added) in Given Period**
+        earnings = AgoraCallHistory.objects.filter(
+            executive=executive, start_time__date__gte=start_date
+        ).aggregate(total=Sum('coins_added'))['total'] or 0
 
-        # **Today's Talk Time for Executive**
-        todays_talk_time = AgoraCallHistory.objects.filter(executive=executive, start_time__date=today).aggregate(
-            total_minutes=Sum('duration'))['total_minutes'] or 0
+        # **Talk Time in Given Period**
+        talk_time_period = AgoraCallHistory.objects.filter(
+            executive=executive, start_time__date__gte=start_date
+        ).aggregate(total_minutes=Sum('duration'))['total_minutes'] or 0
 
-        # **Duty Reports (Total Calls Taken by Executive Today)**
-        duty_reports = AgoraCallHistory.objects.filter(executive=executive, start_time__date=today).count()
+        # **Duty Reports (Total Calls Taken)**
+        duty_reports = AgoraCallHistory.objects.filter(
+            executive=executive, start_time__date__gte=start_date
+        ).count()
 
-        # **Missed Calls by Executive**
-        missed_calls = AgoraCallHistory.objects.filter(executive=executive, status="missed", start_time__date=today).count()
+        # **Missed Calls**
+        missed_calls = AgoraCallHistory.objects.filter(
+            executive=executive, status="missed", start_time__date__gte=start_date
+        ).count()
 
-        # **User Coin Spending for Executive's Calls**
-        user_coin_spending = AgoraCallHistory.objects.filter(executive=executive, start_time__date=today).aggregate(
-            total=Sum('coins_deducted'))['total'] or 0
+        # **User Coin Spending**
+        user_coin_spending = AgoraCallHistory.objects.filter(
+            executive=executive, start_time__date__gte=start_date
+        ).aggregate(total=Sum('coins_deducted'))['total'] or 0
 
-        # **Coin Sales (Total Coins Earned by Executive from Calls)**
-        coin_sales = AgoraCallHistory.objects.filter(executive=executive, start_time__date=today).aggregate(
-            total=Sum('coins_added'))['total'] or 0  # Same as today's earnings
+        # **Coin Sales (Same as earnings)**
+        coin_sales = earnings
 
         return Response({
             "executive_id": executive.id,
@@ -145,12 +162,13 @@ class ExecutiveAnalyticsView(APIView):
             "total_coins_earned": total_coins_earned,
             "total_talk_time": f"{total_talk_time} Mins",
             "last_call_date": last_call_date,
-            "todays_earnings": todays_earnings,
-            "todays_talk_time": f"{todays_talk_time} Mins",
+            "earnings": earnings,
+            "talk_time_period": f"{talk_time_period} Mins",
             "user_coin_spending": user_coin_spending,
             "coin_sales": coin_sales,
             "duty_reports": duty_reports,
-            "missed_calls": missed_calls
+            "missed_calls": missed_calls,
+            "period": period  # Include period info in response
         }, status=status.HTTP_200_OK)
     
 class LogCallView(APIView):

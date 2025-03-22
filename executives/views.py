@@ -628,3 +628,12 @@ class ManagerExecutiveListCreateView(generics.ListCreateAPIView):
         if not user or not user.is_authenticated:
             raise NotAuthenticated("Authentication credentials were not provided.")
         serializer.save(manager_executive=user)
+
+
+class AdminManagerExecutiveListView(generics.ListAPIView):
+    serializer_class = ManagerExecutiveSerializer
+    permission_classes = [AllowAny]  # Allows all users to access the API
+
+    def get_queryset(self):
+        """Filter only users with the 'manager_executive' role."""
+        return Admins.objects.filter(role='manager_executive')

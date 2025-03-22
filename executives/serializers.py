@@ -106,7 +106,10 @@ class ExecutivesSerializer(serializers.ModelSerializer):
             instance.save()
         return instance
 
-
+class ManagerExecutiveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Admins
+        fields = ['id', 'name', 'email', 'role']
 
 class ExecutiveLoginSerializer(serializers.Serializer):
     mobile_number = serializers.CharField(max_length=15)

@@ -10,7 +10,7 @@ from datetime import  timedelta
 from .models import *
 from .serializers import *
 from executives.models import Executives
-from users.models import User
+from users.models import User,Rating
 from calls.models import AgoraCallHistory,TalkTime,CallRating
 from payments.models import PurchaseHistory
 from django.utils.timezone import now

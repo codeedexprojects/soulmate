@@ -20,6 +20,7 @@ from executives.permissions import IsManagerExecutive
 from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.contrib.auth.hashers import make_password
 
 #OTPAUTH
 class ExeRegisterOrLoginView(APIView):
@@ -148,6 +149,12 @@ class RegisterExecutiveView(generics.CreateAPIView):
             except Admins.DoesNotExist:
                 return Response({"message": "Manager executive not found.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Ensure password is hashed
+        raw_password = request.data.get("password")
+        if not raw_password:
+            return Response({"message": "Password is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
+        hashed_password = make_password(raw_password)
+
         # Create or update the executive
         executive, created = Executives.objects.get_or_create(
             mobile_number=mobile_number,
@@ -170,6 +177,7 @@ class RegisterExecutiveView(generics.CreateAPIView):
                 "created_at": timezone.now(),
                 "device_id": device_id,
                 "manager_executive": manager_executive,
+                "password": hashed_password,  # Storing hashed password
             }
         )
 
@@ -183,10 +191,15 @@ class RegisterExecutiveView(generics.CreateAPIView):
                 executive.executive_id = 'BTEX1000'
             executive.save()
 
-        # Update device_id and manager if executive already exists
+        # Update existing executive with device_id, manager, and password if necessary
         if not created:
             executive.device_id = device_id
             executive.manager_executive = manager_executive
+
+            # Update password if provided (for existing executive)
+            if raw_password:
+                executive.password = hashed_password
+
             executive.save()
 
         serializer = self.get_serializer(executive)

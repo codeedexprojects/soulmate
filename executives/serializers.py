@@ -3,6 +3,7 @@ from .models import *
 from users.models import *
 from calls.models import AgoraCallHistory
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.hashers import check_password
 
 class ExecutivesSerializer(serializers.ModelSerializer):
     rating = serializers.SerializerMethodField()
@@ -123,13 +124,14 @@ class ExecutiveLoginSerializer(serializers.Serializer):
             executive = Executives.objects.get(mobile_number=mobile_number)
 
             if executive.is_banned:
-                raise serializers.ValidationError("This executive has been banned.")
+                raise serializers.ValidationError({"non_field_errors": ["This executive has been banned."]})
 
-            if executive.password != password:
-                raise serializers.ValidationError('Invalid mobile number or password.')
+            # Use check_password for proper password validation
+            if not check_password(password, executive.password):
+                raise serializers.ValidationError({"non_field_errors": ["Invalid mobile number or password."]})
 
         except Executives.DoesNotExist:
-            raise serializers.ValidationError('Invalid mobile number or password.')
+            raise serializers.ValidationError({"non_field_errors": ["Invalid mobile number or password."]})
 
         return {
             'id': executive.id,

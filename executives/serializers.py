@@ -122,16 +122,15 @@ class ExecutiveLoginSerializer(serializers.Serializer):
 
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
-
-            if executive.is_banned:
-                raise serializers.ValidationError({"non_field_errors": ["This executive has been banned."]})
-
-            # Use check_password for proper password validation
-            if not check_password(password, executive.password):
-                raise serializers.ValidationError({"non_field_errors": ["Invalid mobile number or password."]})
-
         except Executives.DoesNotExist:
-            raise serializers.ValidationError({"non_field_errors": ["Invalid mobile number or password."]})
+            raise serializers.ValidationError({'mobile_number': 'Mobile number not found.'})
+
+        if executive.is_banned:
+            raise serializers.ValidationError({'error': 'This executive has been banned.'})
+
+        # ✅ Differentiate password error
+        if not check_password(password, executive.password):
+            raise serializers.ValidationError({'password': 'Incorrect password.'})
 
         return {
             'id': executive.id,

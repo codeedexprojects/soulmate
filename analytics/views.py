@@ -689,8 +689,8 @@ class ExecutiveStatsView(viewsets.ViewSet):
         else:
             return Response({'error': 'Invalid period. Use "today", "week", or "month".'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Filter CallHistoryExe records for the given executive and time range
-        filtered_calls = AgoraCallHistory.objects.filter(executive=executive, created_at__date__gte=start_date)
+        # ✅ Using 'start_time' from AgoraCallHistory instead of 'created_at'
+        filtered_calls = AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date)
 
         # Calculate stats based on filtered calls
         total_calls = filtered_calls.count()
@@ -705,23 +705,6 @@ class ExecutiveStatsView(viewsets.ViewSet):
             'message': f'Executive stats retrieved for {period}'
         }
         return Response(response_data, status=status.HTTP_200_OK)
-
-    def update(self, request, pk=None):
-        try:
-            executive = Executives.objects.get(pk=pk)
-        except Executives.DoesNotExist:
-            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        serializer = self.serializer_class(executive, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            response_data = serializer.data
-            response_data.update({
-                'status': 'success',
-                'message': 'Executive stats updated successfully'
-            })
-            return Response(response_data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CallRatingCreateView(generics.CreateAPIView):
     queryset = CallRating.objects.all()

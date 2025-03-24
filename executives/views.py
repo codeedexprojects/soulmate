@@ -71,6 +71,8 @@ class ExeRegisterOrLoginView(APIView):
                 "manager_executive": manager_executive,
             }
         )
+        if created:
+            executive.save()
 
 
         if not created:

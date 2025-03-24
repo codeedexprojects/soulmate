@@ -109,7 +109,7 @@ class ExeCallHistorySerializer(serializers.ModelSerializer):
 class CallHistoryRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = CallRating
-        fields = ['id', 'rating']
+        fields = ['id', 'stars','comment']
 
     def validate_rating(self, value):
         if not (0 <= value <= 5):

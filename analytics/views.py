@@ -70,12 +70,11 @@ class PlatformAnalyticsView(APIView):
                 "executive": {
                     "id": call.executive.id if call.executive else None,
                     "name": call.executive.name if call.executive else "Unknown",
-                    "email": call.executive.email if call.executive else "Unknown",
+                    "email": call.executive.email_id if call.executive else "Unknown",
                 },
                 "user": {
                     "id": call.user.id if call.user else None,
                     "name": call.user.name if call.user else "Unknown",
-                    "email": call.user.email if call.user else "Unknown",
                 },
                 "start_time": call.start_time,
                 "end_time": call.end_time,

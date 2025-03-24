@@ -429,7 +429,7 @@ class ExeCallHistoryListView(generics.ListAPIView):
     
 class CallHistoryViewSet(viewsets.ModelViewSet):
     queryset = AgoraCallHistory.objects.all()
-    serializer_class = CallHistoryRatingSerializer
+    serializer_class = ExecutiveCallHistorySerializer
     # permission_classes = [IsAuthenticated]
 
     def update(self, request, *args, **kwargs):

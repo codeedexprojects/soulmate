@@ -665,12 +665,45 @@ class ExecutiveStatsView(viewsets.ViewSet):
         except Executives.DoesNotExist:
             return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        serializer = self.serializer_class(executive)
-        response_data = serializer.data
-        response_data.update({
+        # Get filtering parameters
+        period = request.query_params.get('period', None)  # 'today', 'week', 'month'
+
+        # Default: Return full stats
+        if not period:
+            serializer = self.serializer_class(executive)
+            response_data = serializer.data
+            response_data.update({
+                'status': 'success',
+                'message': 'Full executive stats retrieved successfully'
+            })
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        # Define date ranges based on period
+        today = timezone.now().date()
+        if period == 'today':
+            start_date = today
+        elif period == 'week':
+            start_date = today - timedelta(days=7)
+        elif period == 'month':
+            start_date = today - timedelta(days=30)
+        else:
+            return Response({'error': 'Invalid period. Use "today", "week", or "month".'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Filter CallHistoryExe records for the given executive and time range
+        filtered_calls = AgoraCallHistory.objects.filter(executive=executive, created_at__date__gte=start_date)
+
+        # Calculate stats based on filtered calls
+        total_calls = filtered_calls.count()
+        total_duration = sum(call.duration for call in filtered_calls)  # Assuming 'duration' field exists
+
+        response_data = {
+            'executive_id': executive.executive_id,
+            'name': executive.name,
+            'total_calls': total_calls,
+            'total_duration': total_duration,
             'status': 'success',
-            'message': 'Executive stats retrieved successfully'
-        })
+            'message': f'Executive stats retrieved for {period}'
+        }
         return Response(response_data, status=status.HTTP_200_OK)
 
     def update(self, request, pk=None):

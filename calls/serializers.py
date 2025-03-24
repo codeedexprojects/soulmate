@@ -108,7 +108,7 @@ class ExeCallHistorySerializer(serializers.ModelSerializer):
     
 class CallHistoryRatingSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AgoraCallHistory
+        model = CallRating
         fields = ['id', 'rating']
 
     def validate_rating(self, value):

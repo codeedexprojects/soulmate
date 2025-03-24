@@ -27,11 +27,14 @@ class ExeRegisterOrLoginView(APIView):
 
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get("mobile_number")
-        device_id = request.data.get("device_id", str(uuid.uuid4()))
 
         if not mobile_number:
             return Response({"message": "Mobile number is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Auto-generate device_id if not provided
+        device_id = request.data.get("device_id") or str(uuid.uuid4())
+
+        # Check if device is banned
         if BlockedDevices.objects.filter(device_id=device_id, is_banned=True).exists():
             return Response({"message": "Your device is banned.", "status": False}, status=status.HTTP_403_FORBIDDEN)
 
@@ -58,7 +61,6 @@ class ExeRegisterOrLoginView(APIView):
                 "skills": request.data.get("skills", ""),
                 "place": request.data.get("place", ""),
                 "status": "active",
-                "executive_id": f"EXE-{Executives.objects.count() + 1:03}",  # Issue here
                 "set_coin": request.data.get("set_coin", 0.0),
                 "total_on_duty_seconds": 0,
                 "total_talk_seconds_today": 0,
@@ -71,23 +73,31 @@ class ExeRegisterOrLoginView(APIView):
                 "manager_executive": manager_executive,
             }
         )
-        if created:
+
+        # Auto-generate executive_id if not already assigned
+        if created and not executive.executive_id:
+            last_executive = Executives.objects.order_by('-id').first()
+            if last_executive and last_executive.executive_id.startswith('BTEX'):
+                last_number = int(last_executive.executive_id[4:])
+                executive.executive_id = f'BTEX{last_number + 1}'
+            else:
+                executive.executive_id = 'BTEX1000'
             executive.save()
 
-
+        # Update device_id if executive already exists
         if not created:
-            executive.manager_executive = manager_executive  # Update if already exists
+            executive.device_id = device_id
+            executive.manager_executive = manager_executive
             executive.save()
 
         # Send OTP
         if send_otp(mobile_number, otp):
             executive.otp = otp
-            executive.device_id = device_id
             executive.save()
             return Response({
                 "message": "OTP sent to your mobile number.",
                 "executive_id": executive.id,
-                "device_id": device_id,
+                "device_id": device_id,  # Return the auto-generated or provided device_id
                 "status": True,
                 "is_suspended": executive.is_suspended,
                 "is_banned": executive.is_banned

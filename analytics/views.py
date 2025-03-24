@@ -692,9 +692,9 @@ class ExecutiveStatsView(viewsets.ViewSet):
         # ✅ Using 'start_time' from AgoraCallHistory instead of 'created_at'
         filtered_calls = AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date)
 
-        # Calculate stats based on filtered calls
+        # ✅ Handling None values in duration safely
         total_calls = filtered_calls.count()
-        total_duration = sum(call.duration for call in filtered_calls)  # Assuming 'duration' field exists
+        total_duration = sum(call.duration or 0 for call in filtered_calls)  # Default to 0 if None
 
         response_data = {
             'executive_id': executive.executive_id,

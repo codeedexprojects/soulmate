@@ -689,18 +689,18 @@ class ExecutiveStatsView(viewsets.ViewSet):
         else:
             return Response({'error': 'Invalid period. Use "today", "week", or "month".'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Using 'start_time' from AgoraCallHistory instead of 'created_at'
+        # ✅ Use 'start_time' instead of 'created_at'
         filtered_calls = AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date)
 
-        # ✅ Handling None values in duration safely
+        # ✅ Convert timedelta to seconds to avoid TypeError
         total_calls = filtered_calls.count()
-        total_duration = sum(call.duration or 0 for call in filtered_calls)  # Default to 0 if None
+        total_duration = sum(call.duration.total_seconds() if call.duration else 0 for call in filtered_calls)
 
         response_data = {
             'executive_id': executive.executive_id,
             'name': executive.name,
             'total_calls': total_calls,
-            'total_duration': total_duration,
+            'total_duration': total_duration,  # Returns total duration in seconds
             'status': 'success',
             'message': f'Executive stats retrieved for {period}'
         }

@@ -58,7 +58,7 @@ class ExeRegisterOrLoginView(APIView):
                 "skills": request.data.get("skills", ""),
                 "place": request.data.get("place", ""),
                 "status": "active",
-                "executive_id": f"EXE-{Executives.objects.count() + 1:03}",
+                "executive_id": f"EXE-{Executives.objects.count() + 1:03}",  # Issue here
                 "set_coin": request.data.get("set_coin", 0.0),
                 "total_on_duty_seconds": 0,
                 "total_talk_seconds_today": 0,
@@ -68,9 +68,10 @@ class ExeRegisterOrLoginView(APIView):
                 "is_banned": False,
                 "created_at": timezone.now(),
                 "device_id": device_id,
-                "manager_executive": manager_executive,  # Assigning the Admins object
+                "manager_executive": manager_executive,
             }
         )
+
 
         if not created:
             executive.manager_executive = manager_executive  # Update if already exists

@@ -32,10 +32,10 @@ from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Coun
 
 class PlatformAnalyticsView(APIView):
     def get(self, request):
-        today = now().date()  # Actual current date
-        ninety_days_ago = now() - timedelta(days=90)  # For active users (last 90 days)
+        today = now().date()
+        ninety_days_ago = now() - timedelta(days=90)
 
-        # Total counts (lifetime)
+        # Total counts
         total_executives = Executives.objects.count()
         total_users = User.objects.count()
 
@@ -43,11 +43,17 @@ class PlatformAnalyticsView(APIView):
         active_executives = Executives.objects.filter(last_login__gte=ninety_days_ago).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
 
-        # Lifetime metrics for calls
+        # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
-        today_talk_time = AgoraCallHistory.objects.aggregate(
-            total_minutes=Sum('duration')
-        )['total_minutes'] or 0
+        
+        # Calculate talk time in minutes with 2 decimal places
+        talk_time_seconds = AgoraCallHistory.objects.aggregate(
+            total_seconds=Sum('duration')
+        )['total_seconds'] or 0
+        talk_time_minutes = talk_time_seconds / 60
+        formatted_talk_time = f"{talk_time_minutes:.2f}".rstrip('0').rstrip('.') + " Mins"
+
+        # Coin metrics
         user_coin_spending = AgoraCallHistory.objects.aggregate(
             total=Sum('coins_deducted')
         )['total'] or 0
@@ -55,7 +61,7 @@ class PlatformAnalyticsView(APIView):
             total=Sum('coins_added')
         )['total'] or 0
 
-        # Today's metrics for purchases
+        # Today's purchases
         todays_revenue = PurchaseHistory.objects.filter(
             purchase_date__date=today
         ).aggregate(total=Sum('purchased_price'))['total'] or 0
@@ -63,7 +69,7 @@ class PlatformAnalyticsView(APIView):
             purchase_date__date=today
         ).aggregate(total=Sum('coins_purchased'))['total'] or 0
 
-        # Missed calls (lifetime)
+        # Missed calls
         missed_calls_qs = AgoraCallHistory.objects.filter(status="missed")
         missed_call_count = missed_calls_qs.count()
         missed_call_details = [
@@ -85,7 +91,7 @@ class PlatformAnalyticsView(APIView):
             "active_executives": active_executives,
             "active_users": active_users,
             "on_call": on_call,
-            "today_talk_time": f"{today_talk_time // 60} Mins",  # Convert seconds to minutes
+            "today_talk_time": formatted_talk_time,  # Formatted as "4.63 Mins" or "120 Mins"
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
             "total_missed_calls": missed_call_count,

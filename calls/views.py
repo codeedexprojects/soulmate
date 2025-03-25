@@ -428,9 +428,35 @@ class ExeCallHistoryListView(generics.ListAPIView):
         return AgoraCallHistory.objects.filter(executive_id=executive_id)
     
 class CallHistoryViewSet(viewsets.ModelViewSet):
-    queryset = AgoraCallHistory.objects.all()
     serializer_class = CallHistorySerializer
     # permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Get user_id from query parameters
+        user_id = self.request.query_params.get('user_id')
+        
+        if user_id:
+            # Filter call history by user_id
+            return AgoraCallHistory.objects.filter(user_id=user_id).order_by('-start_time')
+        else:
+            # Return all call history if no user_id specified
+            return AgoraCallHistory.objects.all().order_by('-start_time')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
@@ -441,11 +467,6 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
 
         self.perform_update(serializer)
 
-        return Response(serializer.data)
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
 class ExecutiveCallHistoryListView(APIView):

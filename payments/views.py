@@ -274,25 +274,39 @@ class StatisticsAPIView(APIView):
         return Response(data)
 
 class UserStatisticsAPIView(APIView):
-
     def get(self, request):
         today = datetime.now().date()
 
+        # Get user data with aggregated statistics
         user_data = User.objects.annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
             total_purchases=Count('purchasehistory'),
-            total_talktime=Sum('caller__duration')
+            total_talktime_seconds=Sum('caller__duration')  # Get duration in seconds
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_online', 
-            'is_suspended', 'is_dormant', 'total_coins_spent', 'total_purchases', 'total_talktime'
+            'is_suspended', 'is_dormant', 'total_coins_spent', 
+            'total_purchases', 'total_talktime_seconds'
         )
 
+        # Calculate user counts
         total_users = User.objects.count()
         active_users_count = User.objects.filter(last_login__isnull=False).count()
         inactive_users_count = total_users - active_users_count
 
-        response_data = [
-            {
+        # Prepare response data with formatted talk time
+        response_data = []
+        for user in user_data:
+            # Convert seconds to minutes with 2 decimal places
+            talktime_seconds = user['total_talktime_seconds'] or 0
+            talktime_minutes = talktime_seconds / 60
+            
+            # Format to remove trailing .00 if whole number
+            if talktime_minutes == int(talktime_minutes):
+                formatted_talktime = f"{int(talktime_minutes)} Mins"
+            else:
+                formatted_talktime = f"{talktime_minutes:.2f} Mins".replace('.00', '')
+            
+            response_data.append({
                 'id': user['id'],
                 'User_ID': user['user_id'],
                 'mobile_number': user['mobile_number'],
@@ -303,9 +317,9 @@ class UserStatisticsAPIView(APIView):
                 'is_online': user['is_online'],
                 'Total_Coin_Spend': user['total_coins_spent'] or 0,
                 'Total_Purchases': user['total_purchases'] or 0,
-                'Total_Talktime': user['total_talktime'] or 0,
-            } for user in user_data
-        ]
+                'Total_Talktime': formatted_talktime,  # Formatted as "5.36 Mins" or "120 Mins"
+                'Total_Talktime_Seconds': talktime_seconds  # Raw seconds for reference
+            })
 
         return Response({
             'total_users': total_users,

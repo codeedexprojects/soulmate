@@ -157,6 +157,7 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
             "executive": {
                 "id": executive.id if executive else None,
                 "name": executive.name if executive else None,
+                "gender": executive.gender if executive else None,  # ✅ Added gender field
             } if executive else None,
             "status": obj.status,
             "channel_name": obj.channel_name,
@@ -200,7 +201,8 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
         if user and executive:
             blocked = UserBlock.objects.filter(user=user, executive=executive, is_blocked=True).exists()
             return blocked
-        return False 
+        return False
+
     
 
 

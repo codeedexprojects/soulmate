@@ -46,16 +46,22 @@ class PlatformAnalyticsView(APIView):
         # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
         
-        # Calculate total talk time
-        call_data = AgoraCallHistory.objects.exclude(duration__isnull=True).aggregate(
-            total_seconds=Sum('duration'),
-            call_count=Count('id')
-        )
-        total_seconds = call_data['total_seconds'] or 0
+        # Calculate total talk time in seconds
+        duration_sum = AgoraCallHistory.objects.aggregate(
+            total_duration=Sum('duration')
+        )['total_duration'] or timedelta(seconds=0)
+        
+        # Convert to total seconds (handling both timedelta and direct seconds)
+        if isinstance(duration_sum, timedelta):
+            total_seconds = duration_sum.total_seconds()
+        else:
+            total_seconds = duration_sum or 0
+        
+        # Convert to minutes
         talk_time_minutes = total_seconds / 60
         
-        # Format talk time
-        if talk_time_minutes.is_integer():
+        # Format with 2 decimal places, removing trailing .00 if needed
+        if talk_time_minutes == int(talk_time_minutes):
             formatted_talk_time = f"{int(talk_time_minutes)} Mins"
         else:
             formatted_talk_time = f"{talk_time_minutes:.2f} Mins".replace('.00', '')
@@ -89,7 +95,7 @@ class PlatformAnalyticsView(APIView):
                 "status": call.status,
                 "start_time": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "end_time": call.end_time.strftime("%Y-%m-%d %H:%M:%S") if call.end_time else None,
-                "duration": call.duration,
+                "duration": call.duration.total_seconds() if isinstance(call.duration, timedelta) else call.duration,
                 "coins_deducted": call.coins_deducted,
                 "coins_added": call.coins_added
             })
@@ -105,7 +111,7 @@ class PlatformAnalyticsView(APIView):
                 "user_id": call.user.id if call.user else None,
                 "user_name": call.user.name if call.user else "Unknown",
                 "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
-                "duration": call.duration
+                "duration": call.duration.total_seconds() if isinstance(call.duration, timedelta) else call.duration
             } 
             for call in missed_calls
         ]

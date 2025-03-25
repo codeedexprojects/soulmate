@@ -4,23 +4,33 @@ from users.serializers import UserSerializer,ExecutiveSerializer
 from django.utils.timezone import localtime
 from payments.models import CoinConversion
 
-class   CallHistorySerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    executive = ExecutiveSerializer()
+class CallHistorySerializer(serializers.ModelSerializer):
     formatted_duration = serializers.SerializerMethodField()
     formatted_start_time = serializers.SerializerMethodField()
     formatted_end_time = serializers.SerializerMethodField()
     executive_gender = serializers.SerializerMethodField()
-    duration_seconds = serializers.SerializerMethodField() 
-    duration_minutes_seconds = serializers.SerializerMethodField()  
-    duration_hours_minutes_seconds = serializers.SerializerMethodField() 
+    duration_seconds = serializers.SerializerMethodField()
+    duration_minutes_seconds = serializers.SerializerMethodField()
+    duration_hours_minutes_seconds = serializers.SerializerMethodField()
+    user_name = serializers.SerializerMethodField()
+    user_mobile = serializers.SerializerMethodField()
+    user_gender = serializers.SerializerMethodField()
+    user_coin_balance = serializers.SerializerMethodField()
+    user_id = serializers.SerializerMethodField()
+    executive_name = serializers.SerializerMethodField()
+    executive_is_favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = AgoraCallHistory
         fields = [
-            'id', 
-            'user',
-            'executive',
+            'id',
+            'user_name',
+            'user_mobile',
+            'user_gender',
+            'user_coin_balance',
+            'user_id',
+            'executive_name',
+            'executive_is_favorited',
             'executive_gender',
             'duration',
             'status',
@@ -34,6 +44,28 @@ class   CallHistorySerializer(serializers.ModelSerializer):
             'duration_hours_minutes_seconds',
         ]
 
+    def get_user_name(self, obj):
+        return obj.user.name if obj.user else None
+
+    def get_user_mobile(self, obj):
+        return obj.user.mobile_number if obj.user else None
+
+    def get_user_gender(self, obj):
+        return obj.user.gender if obj.user else None
+
+    def get_user_coin_balance(self, obj):
+        return obj.user.coin_balance if obj.user else None
+
+    def get_user_id(self, obj):
+        return obj.user.user_id if obj.user else None
+
+    def get_executive_name(self, obj):
+        return obj.executive.name if obj.executive else None
+
+    def get_executive_is_favorited(self, obj):
+        return obj.executive.is_favorited if obj.executive else None
+
+    # Keep all existing duration and time formatting methods
     def get_formatted_duration(self, obj):
         duration = obj.duration
         if duration is None:
@@ -94,7 +126,7 @@ class   CallHistorySerializer(serializers.ModelSerializer):
         return obj.end_time.strftime('%B %d, %Y, %I:%M %p')
 
     def get_executive_gender(self, obj):
-        return obj.executive.gender
+        return obj.executive.gender if obj.executive else None
     
 class ExeCallHistorySerializer(serializers.ModelSerializer):
     call_date = serializers.SerializerMethodField()

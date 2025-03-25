@@ -40,31 +40,38 @@ class PlatformAnalyticsView(APIView):
         total_users = User.objects.count()
 
         # Active users (last 90 days)
-        active_executives = Executives.objects.filter(online=True).count()  # Fixed syntax for online check
+        active_executives = Executives.objects.filter(online=True).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
 
         # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
         
-        # Calculate total talk time in seconds
-        duration_sum = AgoraCallHistory.objects.aggregate(
+        # Calculate total talk time in seconds (for today)
+        today_duration_sum = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
             total_duration=Sum('duration')
         )['total_duration'] or timedelta(seconds=0)
         
-        # Convert to total seconds (handling both timedelta and direct seconds)
-        if isinstance(duration_sum, timedelta):
-            total_seconds = duration_sum.total_seconds()
-        else:
-            total_seconds = duration_sum or 0
+        # Calculate lifetime talk time in seconds (for all users)
+        lifetime_duration_sum = AgoraCallHistory.objects.aggregate(
+            total_duration=Sum('duration')
+        )['total_duration'] or timedelta(seconds=0)
         
-        # Convert to minutes
-        talk_time_minutes = total_seconds / 60
-        
-        # Format with 2 decimal places, removing trailing .00 if needed
-        if talk_time_minutes == int(talk_time_minutes):
-            formatted_talk_time = f"{int(talk_time_minutes)} Mins"
-        else:
-            formatted_talk_time = f"{talk_time_minutes:.2f} Mins".replace('.00', '')
+        # Function to format duration
+        def format_duration(duration_sum):
+            if isinstance(duration_sum, timedelta):
+                total_seconds = duration_sum.total_seconds()
+            else:
+                total_seconds = duration_sum or 0
+            
+            talk_time_minutes = total_seconds / 60
+            
+            if talk_time_minutes == int(talk_time_minutes):
+                return f"{int(talk_time_minutes)} Mins"
+            return f"{talk_time_minutes:.2f} Mins".replace('.00', '')
+
+        # Format both durations
+        formatted_today_talk_time = format_duration(today_duration_sum)
+        formatted_total_talk_time = format_duration(lifetime_duration_sum)
 
         # Coin metrics
         user_coin_spending = AgoraCallHistory.objects.aggregate(
@@ -95,7 +102,7 @@ class PlatformAnalyticsView(APIView):
                 "status": call.status,
                 "start_time": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "end_time": call.end_time.strftime("%Y-%m-%d %H:%M:%S") if call.end_time else None,
-                "duration": call.duration.total_seconds() if isinstance(call.duration, timedelta) else call.duration,
+                "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration,
                 "coins_deducted": call.coins_deducted,
                 "coins_added": call.coins_added
             })
@@ -111,7 +118,7 @@ class PlatformAnalyticsView(APIView):
                 "user_id": call.user.id if call.user else None,
                 "user_name": call.user.name if call.user else "Unknown",
                 "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
-                "duration": call.duration.total_seconds() if isinstance(call.duration, timedelta) else call.duration
+                "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
             } 
             for call in missed_calls
         ]
@@ -124,7 +131,8 @@ class PlatformAnalyticsView(APIView):
             "active_executives": active_executives,
             "active_users": active_users,
             "on_call": on_call,
-            "today_talk_time": formatted_talk_time,
+            "today_talk_time": formatted_today_talk_time,
+            "total_talk_time": formatted_total_talk_time,  # Added total talk time
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
             "total_missed_calls": missed_call_count,

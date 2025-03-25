@@ -32,7 +32,7 @@ from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Coun
 
 class PlatformAnalyticsView(APIView):
     def get(self, request):
-        ninety_days_ago = now() - timedelta(days=90)
+        ninety_days_ago = now() - timedelta(days=90000)
 
         total_executives = Executives.objects.count()
         total_users = User.objects.count()

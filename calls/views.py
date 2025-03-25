@@ -432,29 +432,19 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
     queryset = AgoraCallHistory.objects.all()
     
     def get_queryset(self):
-        if self.action == 'list':
-            # Check if the URL has a numeric component (user_id)
-            if hasattr(self, 'kwargs') and 'pk' in self.kwargs:
-                user_id = self.kwargs['pk']
-                return AgoraCallHistory.objects.filter(user_id=user_id).order_by('-start_time')
+        # Check if the URL has a numeric component (user_id)
+        if 'pk' in self.kwargs:
+            user_id = self.kwargs['pk']
+            return AgoraCallHistory.objects.filter(user_id=user_id).order_by('-start_time')
         return super().get_queryset()
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        
-        # Disable pagination when getting by user ID
+    def retrieve(self, request, *args, **kwargs):
+        # Override retrieve to return list when user_id is provided
         if 'pk' in kwargs:
+            queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
-            
-        # Normal pagination for listing all records
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-            
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return super().retrieve(request, *args, **kwargs)
 
 class ExecutiveCallHistoryListView(APIView):
     def get(self, request, executive_id):

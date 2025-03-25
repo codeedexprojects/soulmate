@@ -46,19 +46,15 @@ class PlatformAnalyticsView(APIView):
         # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
         
-        # Calculate total talk time in seconds
-        total_seconds = AgoraCallHistory.objects.aggregate(
-            total_seconds=Sum('duration')
-        )['total_seconds'] or timedelta(seconds=0)
-        
-        # Convert to total seconds (handling both timedelta and direct seconds)
-        if isinstance(total_seconds, timedelta):
-            total_seconds = total_seconds.total_seconds()
-        
-        # Convert to minutes with 2 decimal places
+        # Calculate total talk time
+        call_data = AgoraCallHistory.objects.exclude(duration__isnull=True).aggregate(
+            total_seconds=Sum('duration'),
+            call_count=Count('id')
+        )
+        total_seconds = call_data['total_seconds'] or 0
         talk_time_minutes = total_seconds / 60
         
-        # Format with 2 decimal places, removing trailing .00 if needed
+        # Format talk time
         if talk_time_minutes.is_integer():
             formatted_talk_time = f"{int(talk_time_minutes)} Mins"
         else:
@@ -80,18 +76,38 @@ class PlatformAnalyticsView(APIView):
             purchase_date__date=today
         ).aggregate(total=Sum('coins_purchased'))['total'] or 0
 
-        # Missed calls
-        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed")
-        missed_call_count = missed_calls_qs.count()
-        missed_call_details = [
-            {
+        # Get all calls with details
+        all_calls = AgoraCallHistory.objects.all().order_by('-start_time')
+        call_details = []
+        for call in all_calls:
+            call_details.append({
+                "call_id": call.id,
                 "executive_id": call.executive.id if call.executive else None,
                 "executive_name": call.executive.name if call.executive else "Unknown",
                 "user_id": call.user.id if call.user else None,
                 "user_name": call.user.name if call.user else "Unknown",
-                "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown",
+                "status": call.status,
+                "start_time": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
+                "end_time": call.end_time.strftime("%Y-%m-%d %H:%M:%S") if call.end_time else None,
+                "duration": call.duration,
+                "coins_deducted": call.coins_deducted,
+                "coins_added": call.coins_added
+            })
+
+        # Missed calls
+        missed_calls = AgoraCallHistory.objects.filter(status="missed")
+        missed_call_count = missed_calls.count()
+        missed_call_details = [
+            {
+                "call_id": call.id,
+                "executive_id": call.executive.id if call.executive else None,
+                "executive_name": call.executive.name if call.executive else "Unknown",
+                "user_id": call.user.id if call.user else None,
+                "user_name": call.user.name if call.user else "Unknown",
+                "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
+                "duration": call.duration
             } 
-            for call in missed_calls_qs
+            for call in missed_calls
         ]
 
         return Response({
@@ -107,8 +123,10 @@ class PlatformAnalyticsView(APIView):
             "executive_coin_earnings": executive_coin_earnings,
             "total_missed_calls": missed_call_count,
             "missed_call_details": missed_call_details,
+            "all_call_details": call_details,
+            "total_calls": len(call_details)
         }, status=status.HTTP_200_OK)
-
+    
 class ExecutiveAnalyticsView(APIView):
     def get(self, request, executive_id):
         executive = get_object_or_404(Executives, id=executive_id)

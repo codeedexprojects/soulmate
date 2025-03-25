@@ -40,7 +40,7 @@ class PlatformAnalyticsView(APIView):
         total_users = User.objects.count()
 
         # Active users (last 90 days)
-        active_executives = Executives.objects.filter(last_login__gte=ninety_days_ago).count()
+        active_executives = Executives.objects.filter(online=True).count()  # Fixed syntax for online check
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
 
         # Call metrics

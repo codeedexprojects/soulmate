@@ -102,20 +102,19 @@ class ExecutiveAnalyticsView(APIView):
         executive = get_object_or_404(Executives, id=executive_id)
         today = now().date()
 
-        # Get period parameter (default to lifetime if not provided)
-        period = request.query_params.get("period", None)
-        
+        # **Handle Period Parameter (Default: Lifetime)**
+        period = request.query_params.get("period", None)  # '1d', '7d', '1m'
         if period == "7d":
             start_date = today - timedelta(days=7)
             total_days = 7
         elif period == "1m":
             start_date = today - timedelta(days=30)
             total_days = 30
-        else:  # Lifetime data (No filter applied)
+        else:  # **Default: Lifetime Data**
             start_date = None
-            total_days = None  # No limit
+            total_days = None  # No fixed range
 
-        # Define base queryset filter
+        # **Filter Calls Based on Period**
         call_filter = {"executive_id": executive.id}
         if start_date:
             call_filter["start_time__date__gte"] = start_date
@@ -125,14 +124,16 @@ class ExecutiveAnalyticsView(APIView):
 
         # **Total Coins Earned**
         total_coins_earned = (
-            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_added"))["total"] or 0
+            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_added"))["total"]
+            or 0
         )
 
-        # **Total Talk Time**
+        # **Total Talk Time (Convert timedelta to minutes)**
         total_talk_time_seconds = (
-            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("duration"))["total"] or 0
-        )
-        total_talk_time = round(total_talk_time_seconds / 60)  # Convert seconds to minutes
+            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("duration"))["total"]
+            or timedelta()
+        ).total_seconds()
+        total_talk_time = round(total_talk_time_seconds / 60)  # Convert to minutes
 
         # **Last Call Details**
         last_call = (
@@ -160,7 +161,8 @@ class ExecutiveAnalyticsView(APIView):
 
         # **User Coin Spending**
         user_coin_spending = (
-            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_deducted"))["total"] or 0
+            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_deducted"))["total"]
+            or 0
         )
 
         # **Coin Sales (Same as earnings)**
@@ -169,7 +171,7 @@ class ExecutiveAnalyticsView(APIView):
         # **Average Call Duration**
         avg_call_duration = round(total_talk_time / total_calls, 2) if total_calls else 0
 
-        # **Total Online Time**
+        # **Total Online Time (Convert timedelta to minutes)**
         total_online_seconds = executive.total_on_duty_seconds or 0
         total_online_minutes = round(total_online_seconds / 60)
 
@@ -184,8 +186,8 @@ class ExecutiveAnalyticsView(APIView):
         # **Average Rating for Executive**
         avg_rating = (
             Rating.objects.filter(executive_id=executive.id)
-            .aggregate(avg=Avg("rating"))["avg"] or 0
-        )
+            .filter(created_at__date__gte=start_date) if start_date else Rating.objects.filter(executive_id=executive.id)
+        ).aggregate(avg=Avg("rating"))["avg"] or 0
 
         # **Online Days Calculation**
         online_days = (
@@ -195,8 +197,8 @@ class ExecutiveAnalyticsView(APIView):
             .count()
         )
 
-        # **Offline Days Calculation (only if period is selected)**
-        offline_days = total_days - online_days if total_days else "N/A"
+        # **Offline Days Calculation**
+        offline_days = (total_days - online_days) if total_days else "N/A (Lifetime Data)"
 
         return Response(
             {
@@ -216,7 +218,7 @@ class ExecutiveAnalyticsView(APIView):
                 "average_rating": round(avg_rating, 2),
                 "online_days": online_days,
                 "offline_days": offline_days,
-                "period": period or "lifetime",  # Default to "lifetime"
+                "period": period or "lifetime",
             },
             status=status.HTTP_200_OK,
         )

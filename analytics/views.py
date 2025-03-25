@@ -46,12 +46,23 @@ class PlatformAnalyticsView(APIView):
         # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
         
-        # Calculate talk time in minutes with 2 decimal places
-        talk_time_seconds = AgoraCallHistory.objects.aggregate(
+        # Calculate total talk time in seconds
+        total_seconds = AgoraCallHistory.objects.aggregate(
             total_seconds=Sum('duration')
-        )['total_seconds'] or 0
-        talk_time_minutes = talk_time_seconds / 60
-        formatted_talk_time = f"{talk_time_minutes:.2f}".rstrip('0').rstrip('.') + " Mins"
+        )['total_seconds'] or timedelta(seconds=0)
+        
+        # Convert to total seconds (handling both timedelta and direct seconds)
+        if isinstance(total_seconds, timedelta):
+            total_seconds = total_seconds.total_seconds()
+        
+        # Convert to minutes with 2 decimal places
+        talk_time_minutes = total_seconds / 60
+        
+        # Format with 2 decimal places, removing trailing .00 if needed
+        if talk_time_minutes.is_integer():
+            formatted_talk_time = f"{int(talk_time_minutes)} Mins"
+        else:
+            formatted_talk_time = f"{talk_time_minutes:.2f} Mins".replace('.00', '')
 
         # Coin metrics
         user_coin_spending = AgoraCallHistory.objects.aggregate(
@@ -91,7 +102,7 @@ class PlatformAnalyticsView(APIView):
             "active_executives": active_executives,
             "active_users": active_users,
             "on_call": on_call,
-            "today_talk_time": formatted_talk_time,  # Formatted as "4.63 Mins" or "120 Mins"
+            "today_talk_time": formatted_talk_time,
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
             "total_missed_calls": missed_call_count,

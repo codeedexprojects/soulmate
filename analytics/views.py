@@ -66,8 +66,8 @@ class PlatformAnalyticsView(APIView):
             talk_time_minutes = total_seconds / 60
             
             if talk_time_minutes == int(talk_time_minutes):
-                return f"{int(talk_time_minutes)} Mins"
-            return f"{talk_time_minutes:.2f} Mins".replace('.00', '')
+                return f"{int(talk_time_minutes)}"
+            return f"{talk_time_minutes:.2f}".replace('.00', '')
 
         # Format both durations
         formatted_today_talk_time = format_duration(today_duration_sum)
@@ -126,7 +126,7 @@ class PlatformAnalyticsView(APIView):
         return Response({
             "total_executives": total_executives,
             "total_users": total_users,
-            "todays_revenue": f"₹{todays_revenue}",
+            "todays_revenue": todays_revenue,
             "todays_coin_sales": todays_coin_sales,
             "active_executives": active_executives,
             "active_users": active_users,

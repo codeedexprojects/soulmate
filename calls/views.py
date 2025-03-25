@@ -429,15 +429,15 @@ class ExeCallHistoryListView(generics.ListAPIView):
     
 class CallHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = CallHistorySerializer
-    lookup_field = None  # Disable the default lookup by pk
-
+    queryset = AgoraCallHistory.objects.all()
+    
     def get_queryset(self):
-        # If the URL contains a pk (like /api/call-history/1/)
-        if 'pk' in self.kwargs:
-            user_id = self.kwargs['pk']
-            return AgoraCallHistory.objects.filter(user_id=user_id).order_by('-start_time')
-        # Default case for /api/call-history/
-        return AgoraCallHistory.objects.all().order_by('-start_time')
+        if self.action == 'list':
+            # Check if the URL has a numeric component (user_id)
+            if hasattr(self, 'kwargs') and 'pk' in self.kwargs:
+                user_id = self.kwargs['pk']
+                return AgoraCallHistory.objects.filter(user_id=user_id).order_by('-start_time')
+        return super().get_queryset()
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

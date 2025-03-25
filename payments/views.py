@@ -281,11 +281,11 @@ class UserStatisticsAPIView(APIView):
         user_data = User.objects.annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
             total_purchases=Count('purchasehistory'),
-            total_talktime_seconds=Sum('caller__duration')  # Get duration in seconds
+            total_talktime=Sum('caller__duration')
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_online', 
             'is_suspended', 'is_dormant', 'total_coins_spent', 
-            'total_purchases', 'total_talktime_seconds'
+            'total_purchases', 'total_talktime'
         )
 
         # Calculate user counts
@@ -296,9 +296,15 @@ class UserStatisticsAPIView(APIView):
         # Prepare response data with formatted talk time
         response_data = []
         for user in user_data:
+            # Handle timedelta conversion
+            talktime = user['total_talktime']
+            if isinstance(talktime, timedelta):
+                total_seconds = talktime.total_seconds()
+            else:
+                total_seconds = talktime or 0
+            
             # Convert seconds to minutes with 2 decimal places
-            talktime_seconds = user['total_talktime_seconds'] or 0
-            talktime_minutes = talktime_seconds / 60
+            talktime_minutes = total_seconds / 60
             
             # Format to remove trailing .00 if whole number
             if talktime_minutes == int(talktime_minutes):
@@ -317,8 +323,8 @@ class UserStatisticsAPIView(APIView):
                 'is_online': user['is_online'],
                 'Total_Coin_Spend': user['total_coins_spent'] or 0,
                 'Total_Purchases': user['total_purchases'] or 0,
-                'Total_Talktime': formatted_talktime,  # Formatted as "5.36 Mins" or "120 Mins"
-                'Total_Talktime_Seconds': talktime_seconds  # Raw seconds for reference
+                'Total_Talktime': formatted_talktime,
+                'Total_Talktime_Seconds': total_seconds
             })
 
         return Response({

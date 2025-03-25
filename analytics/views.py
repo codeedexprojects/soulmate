@@ -32,7 +32,6 @@ from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Coun
 
 class PlatformAnalyticsView(APIView):
     def get(self, request):
-        today = now().date()
         ninety_days_ago = now() - timedelta(days=90)
 
         total_executives = Executives.objects.count()
@@ -43,31 +42,35 @@ class PlatformAnalyticsView(APIView):
 
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
 
-        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
+        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=ninety_days_ago).aggregate(
             total_minutes=Sum('duration')
         )['total_minutes'] or 0
 
-        todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
+        todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=ninety_days_ago).aggregate(
             total=Sum('purchased_price')
         )['total'] or 0
 
-        todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
+        todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=ninety_days_ago).aggregate(
             total=Sum('coins_purchased')
         )['total'] or 0
 
-        user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
+        user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=ninety_days_ago).aggregate(
             total=Sum('coins_deducted')
         )['total'] or 0
 
-        executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
+        executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=ninety_days_ago).aggregate(
             total=Sum('coins_added')
         )['total'] or 0
 
         # **Retrieve missed call details for all executives**
-        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed", start_time__date=today)
+        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed", start_time__date=ninety_days_ago)
         missed_call_count = missed_calls_qs.count()
         
         # **Collect all missed calls with details (user, executive, timestamp)**
+        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed")  # Remove date filter
+        missed_call_count = missed_calls_qs.count()
+
+        # Detailed list of all lifetime missed calls
         missed_call_details = []
         for call in missed_calls_qs:
             executive_id = call.executive.id if call.executive else None

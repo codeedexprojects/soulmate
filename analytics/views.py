@@ -43,30 +43,37 @@ class PlatformAnalyticsView(APIView):
 
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
 
-        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total_minutes=Sum('duration'))['total_minutes'] or 0
+        today_talk_time_seconds = (
+            AgoraCallHistory.objects.filter(start_time__date=today).aggregate(total=Sum("duration"))["total"]
+            or 0
+        )
+        today_talk_time = round(today_talk_time_seconds / 60)  # Convert to minutes
 
-        todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
-            total=Sum('purchased_price'))['total'] or 0
+        todays_revenue = (
+            PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(total=Sum("purchased_price"))["total"]
+            or 0
+        )
 
-        todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
-            total=Sum('coins_purchased'))['total'] or 0
+        todays_coin_sales = (
+            PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(total=Sum("coins_purchased"))["total"]
+            or 0
+        )
 
-        user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total=Sum('coins_deducted'))['total'] or 0
+        user_coin_spending = (
+            AgoraCallHistory.objects.filter(start_time__date=today).aggregate(total=Sum("coins_deducted"))["total"]
+            or 0
+        )
 
-        executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total=Sum('coins_added'))['total'] or 0
+        executive_coin_earnings = (
+            AgoraCallHistory.objects.filter(start_time__date=today).aggregate(total=Sum("coins_added"))["total"]
+            or 0
+        )
 
-        # **Retrieve missed call details**
+        # **Retrieve missed call details accurately**
         missed_calls_qs = AgoraCallHistory.objects.filter(status="missed", start_time__date=today)
-
-        missed_calls = missed_calls_qs.count()
-
-        # **Prepare missed call details with executive and user info**
-        missed_call_details = []
-        for call in missed_calls_qs:
-            missed_call_details.append({
+        missed_call_count = missed_calls_qs.count()
+        missed_call_details = [
+            {
                 "executive": {
                     "id": call.executive.id if call.executive else None,
                     "name": call.executive.name if call.executive else "Unknown",
@@ -76,24 +83,28 @@ class PlatformAnalyticsView(APIView):
                     "id": call.user.id if call.user else None,
                     "name": call.user.name if call.user else "Unknown",
                 },
-                "start_time": call.start_time,
-                "end_time": call.end_time,
-            })
+                "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown",
+            }
+            for call in missed_calls_qs
+        ]
 
-        return Response({
-            "total_executives": total_executives,
-            "total_users": total_users,
-            "todays_revenue": f"₹{todays_revenue}",
-            "todays_coin_sales": todays_coin_sales,
-            "active_executives": active_executives,
-            "active_users": active_users,
-            "on_call": on_call,
-            "today_talk_time": f"{today_talk_time} Mins",
-            "user_coin_spending": user_coin_spending,
-            "executive_coin_earnings": executive_coin_earnings,
-            "missed_calls": missed_calls,
-            "missed_call_details": missed_call_details,
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "total_executives": total_executives,
+                "total_users": total_users,
+                "todays_revenue": f"₹{todays_revenue}",
+                "todays_coin_sales": todays_coin_sales,
+                "active_executives": active_executives,
+                "active_users": active_users,
+                "on_call": on_call,
+                "today_talk_time": f"{today_talk_time} Mins",
+                "user_coin_spending": user_coin_spending,
+                "executive_coin_earnings": executive_coin_earnings,
+                "missed_calls": missed_call_count,
+                "missed_call_details": missed_call_details,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 

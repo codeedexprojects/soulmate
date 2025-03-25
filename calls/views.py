@@ -428,33 +428,31 @@ class ExeCallHistoryListView(generics.ListAPIView):
         return AgoraCallHistory.objects.filter(executive_id=executive_id)
     
 class CallHistoryViewSet(viewsets.ModelViewSet):
-    queryset = AgoraCallHistory.objects.all()
     serializer_class = CallHistorySerializer
-    # permission_classes = [IsAuthenticated]
+    lookup_field = None  # Disable the default lookup by pk
 
     def get_queryset(self):
-        # Get user_id from query parameters
-        user_id = self.request.query_params.get('user_id')
-        
-        if user_id:
-            # Filter call history by user_id
+        # If the URL contains a pk (like /api/call-history/1/)
+        if 'pk' in self.kwargs:
+            user_id = self.kwargs['pk']
             return AgoraCallHistory.objects.filter(user_id=user_id).order_by('-start_time')
+        # Default case for /api/call-history/
         return AgoraCallHistory.objects.all().order_by('-start_time')
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         
-        # Check if it's a list request with user_id parameter
-        if 'user_id' in request.query_params:
+        # Disable pagination when getting by user ID
+        if 'pk' in kwargs:
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
-        
-        # Default paginated response for other cases
+            
+        # Normal pagination for listing all records
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
+            
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 

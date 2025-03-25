@@ -67,30 +67,22 @@ class PlatformAnalyticsView(APIView):
         missed_calls_qs = AgoraCallHistory.objects.filter(status="missed", start_time__date=today)
         missed_call_count = missed_calls_qs.count()
         
-        # **Group missed calls by executive**
-        missed_calls_by_executive = {}
+        # **Collect all missed calls with details (user, executive, timestamp)**
+        missed_call_details = []
         for call in missed_calls_qs:
-            executive_id = call.executive.id if call.executive else "Unknown"
+            executive_id = call.executive.id if call.executive else None
             executive_name = call.executive.name if call.executive else "Unknown"
+            user_id = call.user.id if call.user else None
+            user_name = call.user.name if call.user else "Unknown"
             missed_at = call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown"
             
-            if executive_id not in missed_calls_by_executive:
-                missed_calls_by_executive[executive_id] = {
-                    "executive_id": executive_id,
-                    "executive_name": executive_name,
-                    "missed_call_count": 0,
-                    "missed_call_details": []
-                }
-            
-            missed_calls_by_executive[executive_id]["missed_call_count"] += 1
-            missed_calls_by_executive[executive_id]["missed_call_details"].append({
-                "user_id": call.user.id if call.user else None,
-                "user_name": call.user.name if call.user else "Unknown",
+            missed_call_details.append({
+                "executive_id": executive_id,
+                "executive_name": executive_name,
+                "user_id": user_id,
+                "user_name": user_name,
                 "missed_at": missed_at,
             })
-        
-        # Convert dictionary to list for API response
-        missed_call_summary = list(missed_calls_by_executive.values())
 
         return Response({
             "total_executives": total_executives,
@@ -103,8 +95,8 @@ class PlatformAnalyticsView(APIView):
             "today_talk_time": f"{today_talk_time} Mins",
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
-            "total_missed_calls": missed_call_count,
-            "missed_calls_by_executive": missed_call_summary,
+            "total_missed_calls": missed_call_count,  # Renamed to match ExecutiveAnalyticsView if needed
+            "missed_call_details": missed_call_details,  # Flat list of all missed calls
         }, status=status.HTTP_200_OK)
 
 class ExecutiveAnalyticsView(APIView):

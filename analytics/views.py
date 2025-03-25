@@ -32,60 +32,50 @@ from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Coun
 
 class PlatformAnalyticsView(APIView):
     def get(self, request):
-        ninety_days_ago = now() - timedelta(days=90000)
+        today = now().date()  # Actual current date
+        ninety_days_ago = now() - timedelta(days=90)  # For active users (last 90 days)
 
+        # Total counts (lifetime)
         total_executives = Executives.objects.count()
         total_users = User.objects.count()
 
+        # Active users (last 90 days)
         active_executives = Executives.objects.filter(last_login__gte=ninety_days_ago).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
 
+        # Lifetime metrics for calls
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
-
-        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=ninety_days_ago).aggregate(
+        today_talk_time = AgoraCallHistory.objects.aggregate(
             total_minutes=Sum('duration')
         )['total_minutes'] or 0
-
-        todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=ninety_days_ago).aggregate(
-            total=Sum('purchased_price')
-        )['total'] or 0
-
-        todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=ninety_days_ago).aggregate(
-            total=Sum('coins_purchased')
-        )['total'] or 0
-
-        user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=ninety_days_ago).aggregate(
+        user_coin_spending = AgoraCallHistory.objects.aggregate(
             total=Sum('coins_deducted')
         )['total'] or 0
-
-        executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=ninety_days_ago).aggregate(
+        executive_coin_earnings = AgoraCallHistory.objects.aggregate(
             total=Sum('coins_added')
         )['total'] or 0
 
-        # **Retrieve missed call details for all executives**
-        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed", start_time__date=ninety_days_ago)
-        missed_call_count = missed_calls_qs.count()
-        
-        # **Collect all missed calls with details (user, executive, timestamp)**
-        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed")  # Remove date filter
-        missed_call_count = missed_calls_qs.count()
+        # Today's metrics for purchases
+        todays_revenue = PurchaseHistory.objects.filter(
+            purchase_date__date=today
+        ).aggregate(total=Sum('purchased_price'))['total'] or 0
+        todays_coin_sales = PurchaseHistory.objects.filter(
+            purchase_date__date=today
+        ).aggregate(total=Sum('coins_purchased'))['total'] or 0
 
-        # Detailed list of all lifetime missed calls
-        missed_call_details = []
-        for call in missed_calls_qs:
-            executive_id = call.executive.id if call.executive else None
-            executive_name = call.executive.name if call.executive else "Unknown"
-            user_id = call.user.id if call.user else None
-            user_name = call.user.name if call.user else "Unknown"
-            missed_at = call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown"
-            
-            missed_call_details.append({
-                "executive_id": executive_id,
-                "executive_name": executive_name,
-                "user_id": user_id,
-                "user_name": user_name,
-                "missed_at": missed_at,
-            })
+        # Missed calls (lifetime)
+        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed")
+        missed_call_count = missed_calls_qs.count()
+        missed_call_details = [
+            {
+                "executive_id": call.executive.id if call.executive else None,
+                "executive_name": call.executive.name if call.executive else "Unknown",
+                "user_id": call.user.id if call.user else None,
+                "user_name": call.user.name if call.user else "Unknown",
+                "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown",
+            } 
+            for call in missed_calls_qs
+        ]
 
         return Response({
             "total_executives": total_executives,
@@ -95,11 +85,11 @@ class PlatformAnalyticsView(APIView):
             "active_executives": active_executives,
             "active_users": active_users,
             "on_call": on_call,
-            "today_talk_time": f"{today_talk_time} Mins",
+            "today_talk_time": f"{today_talk_time // 60} Mins",  # Convert seconds to minutes
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
-            "total_missed_calls": missed_call_count,  # Renamed to match ExecutiveAnalyticsView if needed
-            "missed_call_details": missed_call_details,  # Flat list of all missed calls
+            "total_missed_calls": missed_call_count,
+            "missed_call_details": missed_call_details,
         }, status=status.HTTP_200_OK)
 
 class ExecutiveAnalyticsView(APIView):

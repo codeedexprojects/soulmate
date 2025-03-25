@@ -44,40 +44,34 @@ class PlatformAnalyticsView(APIView):
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
 
         today_talk_time = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total_minutes=Sum('duration'))['total_minutes'] or 0
+            total_minutes=Sum('duration')
+        )['total_minutes'] or 0
 
         todays_revenue = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
-            total=Sum('purchased_price'))['total'] or 0
+            total=Sum('purchased_price')
+        )['total'] or 0
 
         todays_coin_sales = PurchaseHistory.objects.filter(purchase_date__date=today).aggregate(
-            total=Sum('coins_purchased'))['total'] or 0
+            total=Sum('coins_purchased')
+        )['total'] or 0
 
         user_coin_spending = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total=Sum('coins_deducted'))['total'] or 0
+            total=Sum('coins_deducted')
+        )['total'] or 0
 
         executive_coin_earnings = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total=Sum('coins_added'))['total'] or 0
+            total=Sum('coins_added')
+        )['total'] or 0
 
         # **Retrieve missed call details**
-        missed_calls_qs = AgoraCallHistory.objects.filter(
-            status="missed",
-            start_time__date=today
-        )
-
-        missed_calls = missed_calls_qs.count()
-
-        # **Prepare missed call details with executive and user info**
+        missed_calls_qs = AgoraCallHistory.objects.filter(status="missed", start_time__date=today)
+        missed_call_count = missed_calls_qs.count()
         missed_call_details = [
             {
-                "executive": {
-                    "id": call.executive.id if call.executive else None,
-                    "name": call.executive.name if call.executive else "Unknown",
-                    "email": call.executive.email_id if call.executive else "Unknown",
-                },
-                "user": {
-                    "id": call.user.id if call.user else None,
-                    "name": call.user.name if call.user else "Unknown",
-                },
+                "user_id": call.user.id if call.user else None,
+                "user_name": call.user.name if call.user else "Unknown",
+                "executive_id": call.executive.id if call.executive else None,
+                "executive_name": call.executive.name if call.executive else "Unknown",
                 "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown",
             }
             for call in missed_calls_qs
@@ -94,9 +88,10 @@ class PlatformAnalyticsView(APIView):
             "today_talk_time": f"{today_talk_time} Mins",
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
-            "missed_calls": missed_calls,
+            "missed_calls": missed_call_count,
             "missed_call_details": missed_call_details,
         }, status=status.HTTP_200_OK)
+
 
 
 

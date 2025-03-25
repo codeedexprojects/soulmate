@@ -151,7 +151,7 @@ class ExecutiveAnalyticsView(APIView):
         missed_call_details = [
             {
                 "user_id": call.user.id if call.user else None,
-                "user_name": call.user.full_name if call.user else "Unknown",
+                "user_name": call.user.name if call.user else "Unknown",
                 "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p")
                 if call.start_time
                 else "Unknown",

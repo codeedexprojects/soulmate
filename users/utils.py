@@ -4,36 +4,17 @@ import time
 import random
 from agora_token_builder import RtcTokenBuilder
 
-def send_otp_2factor(mobile_number):
-    """
-    Sends an auto-generated OTP to the specified mobile number using 2Factor API.
-    Returns a dict with status and session_id or raises an exception on failure.
-    """
+def send_otp_2factor(mobile_number, otp):
     api_key = settings.TWO_FACTOR_API_KEY
-    template_name = "Voicy"
-    url = f"https://2factor.in/API/V1/{api_key}/SMS/{mobile_number}/AUTOGEN/{template_name}"
+    url = f"https://2factor.in/API/V1/{api_key}/SMS/{mobile_number}/{otp}"
 
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
+    response = requests.get(url)
+    data = response.json()
 
-        if data.get('Status') == 'Success':
-            return {
-                "message": "OTP sent successfully.",
-                "session_id": data.get("Details")
-            }
-        else:
-            return {
-                "message": "Failed to send OTP. Please try again later.",
-                "error": data.get("Details")
-            }
-
-    except requests.exceptions.RequestException as e:
-        return {
-            "message": "OTP request failed due to a network error.",
-            "error": str(e)
-        }
+    if data.get('Status') == 'Success':
+        return True
+    else:
+        raise Exception(f"Failed to send OTP: {data.get('Details')}")
 
 
 import time

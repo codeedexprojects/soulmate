@@ -6,15 +6,17 @@ from agora_token_builder import RtcTokenBuilder
 
 def send_otp_2factor(mobile_number, otp):
     api_key = settings.TWO_FACTOR_API_KEY
-    template_name = "Koottu_app"  # This is your approved template name
-    url = f"https://2factor.in/API/V1/{api_key}/SMS/{mobile_number}/AUTOGEN/{template_name}"
-
+    template_name = "Voicy"  # Your approved DLT template
+    url = f"https://2factor.in/API/V1/{api_key}/SMS/{mobile_number}/{otp}/{template_name}"
 
     response = requests.get(url)
     data = response.json()
 
     if data.get('Status') == 'Success':
-        return True
+        return {
+            "message": "OTP sent successfully",
+            "details": data.get("Details")
+        }
     else:
         raise Exception(f"Failed to send OTP: {data.get('Details')}")
 

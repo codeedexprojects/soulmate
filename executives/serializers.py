@@ -115,10 +115,12 @@ class ManagerExecutiveSerializer(serializers.ModelSerializer):
 class ExecutiveLoginSerializer(serializers.Serializer):
     mobile_number = serializers.CharField(max_length=15)
     password = serializers.CharField(write_only=True)
+    device_id = serializers.CharField(max_length=255, required=False)  # Optional device tracking
 
     def validate(self, data):
         mobile_number = data.get('mobile_number')
         password = data.get('password')
+        device_id = data.get('device_id')
 
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
@@ -128,7 +130,6 @@ class ExecutiveLoginSerializer(serializers.Serializer):
         if executive.is_banned:
             raise serializers.ValidationError({'error': 'This executive has been banned.'})
 
-        # ✅ Differentiate password error
         if not check_password(password, executive.password):
             raise serializers.ValidationError({'password': 'Incorrect password.'})
 
@@ -139,6 +140,7 @@ class ExecutiveLoginSerializer(serializers.Serializer):
             'mobile_number': executive.mobile_number,
             'gender': executive.gender,
             'online': executive.online,
+            'device_id': device_id,
         }
     
 class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):

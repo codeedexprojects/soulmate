@@ -203,3 +203,7 @@ class UserBlock(models.Model):
 
     def __str__(self):
         return f"{self.user.user_id} blocked {self.executive.executive_id}"
+    
+class DeletedUser(models.Model):
+    mobile_number = models.CharField(max_length=15, unique=True)
+    deleted_at = models.DateTimeField(auto_now_add=True)

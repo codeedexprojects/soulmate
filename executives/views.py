@@ -21,6 +21,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.http import Http404
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth.hashers import make_password
+from django.contrib.sessions.models import Session
 
 #OTPAUTH
 class ExeRegisterOrLoginView(APIView):
@@ -208,9 +209,69 @@ class RegisterExecutiveView(generics.CreateAPIView):
 class ExecutiveLoginView(APIView):
     def post(self, request):
         serializer = ExecutiveLoginSerializer(data=request.data)
-        if serializer.is_valid():
-            return Response(serializer.validated_data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        mobile_number = serializer.validated_data['mobile_number']
+        device_id = serializer.validated_data.get('device_id')
+        
+        try:
+            executive = Executives.objects.get(mobile_number=mobile_number)
+            
+            # If already logged in from another device/session
+            if executive.online and executive.current_session_key:
+                try:
+                    # Force logout previous session
+                    Session.objects.get(session_key=executive.current_session_key).delete()
+                except Session.DoesNotExist:
+                    pass
+                
+                
+            executive.online = True
+            executive.last_login = timezone.now()
+            executive.current_session_key = request.session.session_key
+            if device_id:
+                executive.device_id = device_id
+            executive.save()
+            
+            request.session['executive_id'] = executive.id
+            request.session.save()
+            
+            response_data = serializer.validated_data
+            response_data.pop('device_id', None)  
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Executives.DoesNotExist:
+            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+class ExecutiveLogoutView(APIView):
+    def post(self, request):
+        mobile_number = request.data.get('mobile_number')
+        
+        try:
+            executive = Executives.objects.get(mobile_number=mobile_number)
+            
+            # Clear session if exists
+            if executive.current_session_key:
+                try:
+                    Session.objects.get(session_key=executive.current_session_key).delete()
+                except Session.DoesNotExist:
+                    pass
+            
+            # Update executive status
+            executive.online = False
+            executive.current_session_key = None
+            executive.save()
+            
+            # Clear current session if logging out self
+            if request.session.get('executive_id') == executive.id:
+                request.session.flush()
+            
+            return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+            
+        except Executives.DoesNotExist:
+            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class ListExecutivesView(generics.ListAPIView):
     queryset = Executives.objects.all()

@@ -21,11 +21,17 @@ from rest_framework.generics import RetrieveAPIView
 from django.shortcuts import get_object_or_404
 from calls.models import CallRating
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+import random
+from .models import User, ReferralCode, ReferralHistory, DeletedUser
+
 class RegisterOrLoginView(APIView):
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get('mobile_number')
         referral_code = request.data.get('referral_code')
-        otp = str(random.randint(100000, 999999))  
+        otp = str(random.randint(100000, 999999))
 
         try:
             user = User.objects.get(mobile_number=mobile_number)
@@ -70,6 +76,10 @@ class RegisterOrLoginView(APIView):
             )
 
         except User.DoesNotExist:
+            # New code added here - check for deleted account
+            has_deleted_account = DeletedUser.objects.filter(mobile_number=mobile_number).exists()
+            initial_coin_balance = 0 if has_deleted_account else 300  # Set balance based on deletion history
+
             try:
                 send_otp_2factor(mobile_number, otp)
             except Exception as e:
@@ -78,10 +88,11 @@ class RegisterOrLoginView(APIView):
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
+            # Modified to use initial_coin_balance instead of hardcoded 300
             user = User.objects.create(
                 mobile_number=mobile_number,
                 otp=otp,
-                coin_balance=300  
+                coin_balance=initial_coin_balance
             )
 
             if referral_code:
@@ -110,9 +121,11 @@ class RegisterOrLoginView(APIView):
 class DeleteUserAccountView(APIView):
     def delete(self, request, user_id, *args, **kwargs):
         user = get_object_or_404(User, id=user_id)
-
+        
+        DeletedUser.objects.get_or_create(mobile_number=user.mobile_number)
+        
         user.delete()
-
+        
         return Response(
             {"message": f"User with ID {user_id} has been deleted successfully."},
             status=status.HTTP_200_OK

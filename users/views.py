@@ -67,6 +67,7 @@ class RegisterOrLoginView(APIView):
                 {
                     'message': 'Login OTP sent to your mobile number.',
                     'user_id': user.id,
+                    'mobile_number':user.mobile_number,
                     'otp': user.otp,
                     'status': True,
                     'is_existing_user': True,

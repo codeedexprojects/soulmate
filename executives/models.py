@@ -160,3 +160,4 @@ class ExecutiveProfilePicture(models.Model):
     def reject(self):
         self.status = 'rejected'
         self.save()
+

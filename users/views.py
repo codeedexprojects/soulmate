@@ -112,6 +112,7 @@ class RegisterOrLoginView(APIView):
                     'status': True,
                     'is_existing_user': False,
                     'user_id': user.id,
+                    'mobile_number':user.mobile_number,
                     'otp': user.otp,
                     'coin_balance': user.coin_balance,
                     'user_main_id': user.user_id,

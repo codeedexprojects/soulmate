@@ -259,30 +259,26 @@ class ExecutiveLoginView(APIView):
             return Response({"error": "Executive not found"}, status=status.HTTP_404_NOT_FOUND)
         
 class ExecutiveLogoutView(APIView):
-    def post(self, request):
-        if 'executive_id' not in request.session:
-            return Response({'error': 'Not logged in'}, status=status.HTTP_400_BAD_REQUEST)
-
+    def post(self, request, executive_id):
         try:
-            executive = Executives.objects.get(id=request.session['executive_id'])
-            
+            executive = Executives.objects.get(id=executive_id)
+
             # Update executive status
             executive.online = False
             executive.is_logged_out = True
             executive.current_session_key = None
-            executive.save()
+            executive.save(update_fields=['online', 'is_logged_out', 'current_session_key'])
 
-            # Delete session
+            # Clear session if exists
             if request.session.session_key:
                 try:
                     Session.objects.get(session_key=request.session.session_key).delete()
                 except Session.DoesNotExist:
                     pass
+                request.session.flush()
 
-            request.session.flush()
-            
             return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
-            
+
         except Executives.DoesNotExist:
             return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 

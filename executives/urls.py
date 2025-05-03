@@ -7,7 +7,7 @@ urlpatterns = [
     path('login-executive/', ExecutiveLoginView.as_view(), name='login_executive'),
     path('executive/register-login/', ExeRegisterOrLoginView.as_view(), name='executive-register-login'),
     path('executive/verify-otp/', ExeVerifyOTPView.as_view(), name='executive-verify-otp'),
-    path('executive-logout/', ExecutiveLogoutView.as_view(), name='executive-logout'),
+    path('logout-executive/<int:executive_id>/', ExecutiveLogoutView.as_view(), name='logout-executive'),
 
     path('all-executives/', ListExecutivesView.as_view(), name='list_executives'),
     path('single-executives/<int:pk>/', ExecutiveDetailView.as_view(), name='executive-detail'),

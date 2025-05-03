@@ -6,6 +6,7 @@ from django.utils import timezone
 from users.models import *
 from django.utils.timezone import now
 from analytics.models import Admins
+from datetime import timedelta
 
 class ExecutiveManager(BaseUserManager):
     def create_user(self, mobile_number, name, email_id, password=None, **extra_fields):

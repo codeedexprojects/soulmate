@@ -115,12 +115,12 @@ class ManagerExecutiveSerializer(serializers.ModelSerializer):
 class ExecutiveLoginSerializer(serializers.Serializer):
     mobile_number = serializers.CharField(max_length=15)
     password = serializers.CharField(write_only=True)
-    device_id = serializers.CharField(max_length=255, required=False)  # Optional device tracking
+    device_id = serializers.CharField(max_length=255, required=False)  # Optional input
 
     def validate(self, data):
         mobile_number = data.get('mobile_number')
         password = data.get('password')
-        device_id = data.get('device_id')
+        device_id = data.get('device_id') or str(uuid.uuid4())  # Auto-generate if not provided
 
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
@@ -141,8 +141,8 @@ class ExecutiveLoginSerializer(serializers.Serializer):
             'gender': executive.gender,
             'online': executive.online,
             'device_id': device_id,
+            'password': password,  # ✅ Include password to avoid KeyError
         }
-    
 class ExecutiveProfilePictureSerializer(serializers.ModelSerializer):
     profile_photo_url = serializers.SerializerMethodField()
 

@@ -212,53 +212,47 @@ class ExecutiveLoginView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        mobile_number = serializer.validated_data['mobile_number']
-        password = serializer.validated_data['password']
+        data = serializer.validated_data
+        mobile_number = data['mobile_number']
+        device_id = data['device_id']
 
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
 
-            if not executive.check_password(password):
-                return Response({"error": "Invalid mobile number or password"}, status=status.HTTP_401_UNAUTHORIZED)
-
-            # Check if executive is already logged in on another device
-            if executive.online and not executive.is_logged_out:
+            # Already logged in on a different device
+            if executive.online and not executive.is_logged_out and executive.device_id != device_id:
                 return Response(
                     {"error": "Already logged in on another device. Please logout from that device to continue."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
-            # Check if session expired
+            # Check if session expired (auto logout logic)
             if executive.online and executive.check_activity_timeout():
                 executive.online = False
                 executive.is_logged_out = True
-                executive.save()
+                executive.save(update_fields=['online', 'is_logged_out'])
                 return Response(
                     {"error": "Session expired. Please login again."},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
-            # Generate a unique device_id for this login session
-            generated_device_id = str(uuid.uuid4())
-
-            # Update executive status
+            # Mark executive as online
             executive.online = True
             executive.is_logged_out = False
             executive.last_activity = timezone.now()
-            executive.device_id = generated_device_id
+            executive.device_id = device_id
             executive.save()
 
-            # Save to session
+            # Set session
             request.session['executive_id'] = executive.id
-            request.session['device_id'] = generated_device_id
             request.session.set_expiry(executive.AUTO_LOGOUT_MINUTES * 60)
 
             return Response({
                 "message": "Login successful",
                 "executive_id": executive.executive_id,
                 "name": executive.name,
+                "device_id": device_id,
                 "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES,
-                "device_id": generated_device_id  # for logging/debugging
             }, status=status.HTTP_200_OK)
 
         except Executives.DoesNotExist:

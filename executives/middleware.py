@@ -1,4 +1,3 @@
-# middleware.py
 from django.utils import timezone
 from django.contrib.sessions.models import Session
 from .models import Executives

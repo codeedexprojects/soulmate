@@ -82,22 +82,22 @@ REST_FRAMEWORK = {
 }
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Or your broker URL
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Or your broker URL
+# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = 'UTC'
 
-CELERY_BEAT_SCHEDULE = {
-    'check-inactive-sessions': {
-        'task': 'executives.tasks.check_inactive_sessions',
-        'schedule': 300,  
-    },
-}
+# CELERY_BEAT_SCHEDULE = {
+#     'check-inactive-sessions': {
+#         'task': 'executives.tasks.check_inactive_sessions',
+#         'schedule': 300,  
+#     },
+# }
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 1800  
+# SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+# SESSION_COOKIE_AGE = 1800  
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=150),  

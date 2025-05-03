@@ -60,6 +60,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'executives.middleware.UpdateLastActivityMiddleware',
+
 ]
 
 # AUTH_USER_MODEL = 'analytics.Admins'
@@ -79,6 +81,23 @@ REST_FRAMEWORK = {
     ),
 }
 
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Or your broker URL
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+CELERY_BEAT_SCHEDULE = {
+    'check-inactive-sessions': {
+        'task': 'executives.tasks.check_inactive_sessions',
+        'schedule': 300,  
+    },
+}
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE = 1800  
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=150),  
@@ -136,7 +155,7 @@ DATABASES = {
 }
 TWO_FACTOR_API_KEY = '15b274f8-8600-11ef-8b17-0200cd936042'
 AGORA_APP_ID = '9626e8b5f847e6961cb9a996e1ae93'
-AGORA_APP_CERTIFICATE = 'ab41eb854807425faa1b44481ff97fe3'
+AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
 RAZORPAY_KEY_ID = 'your_key_id'
 RAZORPAY_KEY_SECRET = 'your_key_secret'
 

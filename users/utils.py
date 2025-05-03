@@ -21,7 +21,7 @@ import time
 from agora_token_builder import RtcTokenBuilder
 
 AGORA_APP_ID = '9626e8b5f847e6961cb9a996e1ae93'
-AGORA_APP_CERTIFICATE = 'ab41eb854807425faa1b44481ff97fe3'
+AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
 AGORA_TTL = 3600 
 
 def generate_agora_token(channel_name, uid, role="publisher"):

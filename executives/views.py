@@ -218,57 +218,75 @@ class ExecutiveLoginView(APIView):
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
             
-            # If already logged in from another device/session
-            if executive.online and executive.current_session_key:
-                try:
-                    # Force logout previous session
-                    Session.objects.get(session_key=executive.current_session_key).delete()
-                except Session.DoesNotExist:
-                    pass
+            if executive.online and not executive.is_logged_out:
+                if executive.device_id != device_id:
+                    return Response(
+                        {'error': 'Already logged in on another device'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
                 
-                
-            executive.online = True
-            executive.last_login = timezone.now()
-            executive.current_session_key = request.session.session_key
-            if device_id:
-                executive.device_id = device_id
-            executive.save()
-            
-            request.session['executive_id'] = executive.id
-            request.session.save()
-            
-            response_data = serializer.validated_data
-            response_data.pop('device_id', None)  
-            
-            return Response(response_data, status=status.HTTP_200_OK)
-            
-        except Executives.DoesNotExist:
-            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-class ExecutiveLogoutView(APIView):
-    def post(self, request):
-        mobile_number = request.data.get('mobile_number')
-        
-        try:
-            executive = Executives.objects.get(mobile_number=mobile_number)
-            
-            # Clear session if exists
+                executive.last_activity = timezone.now()
+                executive.save()
+                return Response({'message': 'Session renewed'}, status=status.HTTP_200_OK)
+
+            if executive.last_activity:
+                inactive_period = timezone.now() - executive.last_activity
+                if inactive_period.total_seconds() < executive.AUTO_LOGOUT_MINUTES * 60:
+                    return Response(
+                        {'error': 'Session still active in another device'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+
             if executive.current_session_key:
                 try:
                     Session.objects.get(session_key=executive.current_session_key).delete()
                 except Session.DoesNotExist:
                     pass
+
+            executive.online = True
+            executive.is_logged_out = False
+            executive.last_login = timezone.now()
+            executive.last_activity = timezone.now()
+            executive.current_session_key = request.session.session_key
+            executive.device_id = device_id
+            executive.save()
+
+            request.session['executive_id'] = executive.id
+            request.session.set_expiry(executive.AUTO_LOGOUT_MINUTES * 60)
+            request.session.save()
+
+            return Response({
+                'message': 'Login successful',
+                'auto_logout_minutes': executive.AUTO_LOGOUT_MINUTES
+            }, status=status.HTTP_200_OK)
+
+        except Executives.DoesNotExist:
+            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+class ExecutiveLogoutView(APIView):
+    def post(self, request):
+        if 'executive_id' not in request.session:
+            return Response({'error': 'Not logged in'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            executive = Executives.objects.get(id=request.session['executive_id'])
             
             # Update executive status
             executive.online = False
+            executive.is_logged_out = True
             executive.current_session_key = None
             executive.save()
+
+            # Delete session
+            if request.session.session_key:
+                try:
+                    Session.objects.get(session_key=request.session.session_key).delete()
+                except Session.DoesNotExist:
+                    pass
+
+            request.session.flush()
             
-            # Clear current session if logging out self
-            if request.session.get('executive_id') == executive.id:
-                request.session.flush()
-            
-            return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+            return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
             
         except Executives.DoesNotExist:
             return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -594,6 +612,7 @@ class ExecutiveProfilePictureUploadView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 
 class ExecutiveProfilePictureApprovalView(APIView):
     def patch(self, request, executive_id):

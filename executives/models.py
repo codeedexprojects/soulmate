@@ -76,9 +76,16 @@ class Executives(AbstractBaseUser):
     is_verified = models.BooleanField(default=False)
     last_login = models.DateTimeField(null=True, blank=True)
     current_session_key = models.CharField(max_length=40, blank=True, null=True) 
+    is_logged_out = models.BooleanField(default=True)
+    last_activity = models.DateTimeField(null=True, blank=True)
+    AUTO_LOGOUT_MINUTES = 3600
     
     USERNAME_FIELD = 'mobile_number' 
     REQUIRED_FIELDS = ['name', 'email_id']  
+
+    class Meta:
+        verbose_name = "Executive"
+        verbose_name_plural = "Executives"
 
     def __str__(self):
         return self.name
@@ -132,6 +139,12 @@ class Executives(AbstractBaseUser):
             self.duty_start_time = timezone.now()  
 
         super().save(*args, **kwargs)
+
+    def check_activity_timeout(self):
+        if not self.last_activity:
+            return False
+        inactive_period = timezone.now() - self.last_activity
+        return inactive_period.total_seconds() > (self.AUTO_LOGOUT_MINUTES * 60)
 
 class BlockedDevices(models.Model):
     device_id = models.CharField(max_length=255, unique=True)

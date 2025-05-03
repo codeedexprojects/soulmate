@@ -15,17 +15,18 @@ from rest_framework import generics, viewsets,status
 from django.shortcuts import get_object_or_404
 
 
-AGORA_APP_ID = '9626e8b8b5f847e6961cb9a996e1ae93'
-AGORA_APP_CERTIFICATE = 'ab41eb854807425faa1b44481ff97fe3'
+AGORA_APP_ID = '9019fa33fc6d4654848121f4b88b346c'
+AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
 
-
+# 9626e8b8b5f847e6961cb9a996e1ae93
+# ab41eb854807425faa1b44481ff97fe3
     
 class CreateChannelView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        app_id = "9626e8b8b5f847e6961cb9a996e1ae93"
-        app_certificate = "ab41eb854807425faa1b44481ff97fe3"
+        app_id = "9019fa33fc6d4654848121f4b88b346c"
+        app_certificate = "e2f0a6a085d34973ad08c7cfa785796d"
         channel_name = request.data.get("channel_name")
         executive_id = request.data.get("executive_id")
         user_id = request.data.get("user_id")

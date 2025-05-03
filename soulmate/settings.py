@@ -56,11 +56,12 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'executives.middleware.update_last_activity.UpdateLastActivityMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # 'executives.middleware.UpdateLastActivityMiddleware',
+    
 
 ]
 
@@ -96,8 +97,10 @@ REST_FRAMEWORK = {
 #     },
 # }
 
-# SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-# SESSION_COOKIE_AGE = 1800  
+SESSION_COOKIE_AGE = 1800  # 30 mins = 1800 seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_SAVE_EVERY_REQUEST = True  # To refresh expiry on activity
+SESSION_COOKIE_SECURE = True 
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=150),  

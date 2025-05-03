@@ -143,8 +143,8 @@ class Executives(AbstractBaseUser):
     def check_activity_timeout(self):
         if not self.last_activity:
             return False
-        inactive_period = timezone.now() - self.last_activity
-        return inactive_period.total_seconds() > (self.AUTO_LOGOUT_MINUTES * 60)
+        timeout_duration = timedelta(minutes=self.AUTO_LOGOUT_MINUTES)
+        return timezone.now() - self.last_activity > timeout_duration
 
 class BlockedDevices(models.Model):
     device_id = models.CharField(max_length=255, unique=True)
@@ -174,3 +174,11 @@ class ExecutiveProfilePicture(models.Model):
         self.status = 'rejected'
         self.save()
 
+
+
+class LoginActivity(models.Model):
+    executive = models.ForeignKey(Executives, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    device_id = models.CharField(max_length=255)
+    ip_address = models.GenericIPAddressField()
+    user_agent = models.TextField()

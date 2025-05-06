@@ -253,7 +253,7 @@ class ExecutiveLoginView(APIView):
                 "executive_id": executive.executive_id,
                 "name": executive.name,
                 "gender":executive.gender,
-                "onile":executive.online,
+                "online":executive.online,
                 "mobile":executive.mobile_number,
                 "device_id": device_id,
                 "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES,

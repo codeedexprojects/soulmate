@@ -245,7 +245,7 @@ class ExecutiveLoginView(APIView):
 
             # Set session
             request.session['executive_id'] = executive.id
-            request.session.set_expiry(executive.AUTO_LOGOUT_MINUTES * 60)
+            request.session.set_expiry(executive.AUTO_LOGOUT_MINUTES * 1)
 
             return Response({
                 "message": "Login successful",

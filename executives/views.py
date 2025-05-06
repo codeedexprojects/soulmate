@@ -222,7 +222,7 @@ class ExecutiveLoginView(APIView):
             # Already logged in on a different device
             if executive.online and not executive.is_logged_out and executive.device_id != device_id:
                 return Response(
-                    {"error": "Already logged in on another device. Please logout from that device to continue."},
+                    {"message": "Already logged in on another device. Please logout from that device to continue."},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -232,7 +232,7 @@ class ExecutiveLoginView(APIView):
                 executive.is_logged_out = True
                 executive.save(update_fields=['online', 'is_logged_out'])
                 return Response(
-                    {"error": "Session expired. Please login again."},
+                    {"message": "Session expired. Please login again."},
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
@@ -260,7 +260,7 @@ class ExecutiveLoginView(APIView):
             }, status=status.HTTP_200_OK)
 
         except Executives.DoesNotExist:
-            return Response({"error": "Executive not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Executive not found"}, status=status.HTTP_404_NOT_FOUND)
         
 class ExecutiveLogoutView(APIView):
     def post(self, request, executive_id):

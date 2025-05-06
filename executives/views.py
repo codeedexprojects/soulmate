@@ -249,8 +249,12 @@ class ExecutiveLoginView(APIView):
 
             return Response({
                 "message": "Login successful",
+                "id":executive.id,
                 "executive_id": executive.executive_id,
                 "name": executive.name,
+                "gender":executive.gender,
+                "onile":executive.online,
+                "mobile":executive.mobile_number,
                 "device_id": device_id,
                 "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES,
             }, status=status.HTTP_200_OK)

@@ -35,6 +35,8 @@ class Sale(models.Model):
     amount = models.IntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+
+
 class PurchaseHistory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     recharge_plan = models.ForeignKey(RechargePlan, on_delete=models.CASCADE)

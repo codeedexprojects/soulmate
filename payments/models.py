@@ -54,3 +54,20 @@ class CoinConversion(models.Model):
 
     def __str__(self):
         return f"{self.coins_earned} coins = ₹{self.rupees}"
+    
+class PaymentTransaction(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    order_id = models.CharField(max_length=100, unique=True)
+    cf_order_id = models.CharField(max_length=100, null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+    transaction_id = models.CharField(max_length=100, null=True)
+    payment_mode = models.CharField(max_length=50, null=True)
+    signature = models.CharField(max_length=256, null=True)

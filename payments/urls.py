@@ -18,7 +18,8 @@ urlpatterns = [
     path('user-statistics/', UserStatisticsAPIView.as_view(), name='user-statistics'),
     path('user-statistics/<int:user_id>/', UserStatisticsDetailAPIView.as_view(), name='user-statistics'),
     path('coin-conversions/', CoinConversionListCreateView.as_view(), name='coin-conversion-list-create'),
-    
+    path('initiate-payment/<int:user_id>/<int:plan_id>/',PaymentInitiateView.as_view(), name='initiate-payment'),
+    path('cashfree-webhook/', CashfreeWebhookView.as_view(), name='cashfree-webhook'),
 ]
 
 

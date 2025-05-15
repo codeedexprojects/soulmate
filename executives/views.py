@@ -572,6 +572,7 @@ class CoinRedemptionRequestView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+
 class RedemptionRequestListView(generics.ListAPIView):
     queryset = CoinRedemptionRequest.objects.all()
     serializer_class = CoinRedemptionRequestSerializer

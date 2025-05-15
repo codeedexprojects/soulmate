@@ -530,7 +530,10 @@ class ExecutiveCoinBalanceView(APIView):
 
 class CoinRedemptionRequestView(APIView):
 
-    def post(self, request, executive_id, coin_conversion_id):
+    def post(self, request, *args, **kwargs):
+        executive_id = kwargs.get('executive_id')
+        coin_conversion_id = kwargs.get('coin_conversion_id')
+
         executive = get_object_or_404(Executives, id=executive_id)
         coin_conversion = get_object_or_404(CoinConversion, id=coin_conversion_id)
 
@@ -556,7 +559,9 @@ class CoinRedemptionRequestView(APIView):
             'status': redemption_request.status
         }, status=status.HTTP_201_CREATED)
 
-    def get(self, request, executive_id=None):
+    def get(self, request, *args, **kwargs):
+        executive_id = kwargs.get('executive_id')
+
         if executive_id:
             executive = get_object_or_404(Executives, id=executive_id)
             redemption_requests = CoinRedemptionRequest.objects.filter(executive=executive)
@@ -565,6 +570,8 @@ class CoinRedemptionRequestView(APIView):
 
         serializer = CoinRedemptionRequestSerializer(redemption_requests, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 
 class RedemptionRequestListView(generics.ListAPIView):
     queryset = CoinRedemptionRequest.objects.all()

@@ -543,13 +543,17 @@ class CoinRedemptionRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        upi_id = request.data.get('upi_id')
+        if not upi_id:
+            return Response({'error': 'UPI ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
         executive.coins_balance -= coin_conversion.coins_earned
         executive.save()
 
         redemption_request = CoinRedemptionRequest.objects.create(
             executive=executive,
-            coin_conversion=coin_conversion,
             amount_requested=coin_conversion.rupees,
+            upi_id=upi_id
         )
 
         return Response({

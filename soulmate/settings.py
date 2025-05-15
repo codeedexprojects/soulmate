@@ -82,20 +82,12 @@ REST_FRAMEWORK = {
     ),
 }
 
-# Celery Configuration
-# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Or your broker URL
-# CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-# CELERY_ACCEPT_CONTENT = ['json']
-# CELERY_TASK_SERIALIZER = 'json'
-# CELERY_RESULT_SERIALIZER = 'json'
-# CELERY_TIMEZONE = 'UTC'
-
-# CELERY_BEAT_SCHEDULE = {
-#     'check-inactive-sessions': {
-#         'task': 'executives.tasks.check_inactive_sessions',
-#         'schedule': 300,  
-#     },
-# }
+# settings.py
+CASHFREE = {
+    "WEBHOOK_VERSION": "2022-09-01",  # Must match dashboard selection
+    "WEBHOOK_SECRET": "your_secret_here",  # From Cashfree dashboard
+    "WEBHOOK_URL": "https://api.koottuapp.in/api/cashfree-webhook/"
+}
 
 SESSION_COOKIE_AGE = 1800  # 30 mins = 1800 seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

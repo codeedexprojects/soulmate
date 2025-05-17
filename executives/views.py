@@ -559,7 +559,7 @@ class CoinRedemptionRequestView(APIView):
         return Response({
             'message': 'Redemption request created successfully',
             'request_id': redemption_request.id,
-            'amount_requested': float(redemption_request.amount_requested),
+            'amount_requested': int(redemption_request.amount_requested),
             'status': redemption_request.status
         }, status=status.HTTP_201_CREATED)
 

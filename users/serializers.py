@@ -84,11 +84,15 @@ class FavouriteSerializer(serializers.ModelSerializer):
         return True
     
     def get_executive_profile_photo(self, obj):
-        executive = obj.executive
-        if hasattr(executive, 'profile_picture') and executive.profile_picture.profile_photo:
-            return executive.profile_picture.profile_photo.url
-        return None
-
+        try:
+            picture = ExecutiveProfilePicture.objects.get(executive=obj.executive, status='approved')
+            if picture.profile_photo:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(picture.profile_photo.url)
+                return picture.profile_photo.url
+        except ExecutiveProfilePicture.DoesNotExist:
+            return None
     
 class RatingSerializer(serializers.ModelSerializer):
     executive = serializers.PrimaryKeyRelatedField(queryset=Executives.objects.all())
@@ -106,7 +110,7 @@ class ExecutiveSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Executives
-        fields = ['id', 'name', 'is_favorited','executive_profile_photo', ]
+        fields = ['id', 'name', 'is_favorited','executive_profile_photo']
 
     def get_is_favorited(self, executive):
         user_id = self.context.get('user_id')

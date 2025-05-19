@@ -85,7 +85,7 @@ class FavouriteSerializer(serializers.ModelSerializer):
     
     def get_executive_profile_photo(self, obj):
         try:
-            picture = ExecutiveProfilePicture.objects.get(executive=obj.executive, status='approved')
+            picture = ExecutiveProfilePicture.objects.get(executive=obj, status='approved')
             if picture.profile_photo:
                 request = self.context.get('request')
                 if request:
@@ -93,6 +93,7 @@ class FavouriteSerializer(serializers.ModelSerializer):
                 return picture.profile_photo.url
         except ExecutiveProfilePicture.DoesNotExist:
             return None
+
     
 class RatingSerializer(serializers.ModelSerializer):
     executive = serializers.PrimaryKeyRelatedField(queryset=Executives.objects.all())

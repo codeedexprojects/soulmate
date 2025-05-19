@@ -51,7 +51,7 @@ class PurchaseHistory(models.Model):
     ], default='PENDING')
     order_id = models.CharField(max_length=100, unique=True)
     payment_link = models.URLField(blank=True, null=True)
-    created_at = models.DateTimeField(default=timezone.now)
+    # created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f'{self.user} - {self.recharge_plan} - {self.coins_purchased} coins'

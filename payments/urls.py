@@ -13,14 +13,14 @@ urlpatterns = [
     path('recharge-admin/<int:user_id>/plan/<int:plan_id>/', RechargeCoinsByPlanView.as_view(), name='recharge-by-plan'),
     path('categories-with-plans/', CategoryWithPlansListView.as_view(), name='categories-with-plans'),
     path('categories-with-plans/<int:category_id>/', RechargePlanListByCategoryView.as_view(), name='categories-with-plans-id'),
-    path('purchase-history/<int:user_id>/', UserPurchaseHistoryView.as_view(), name='purchase-history'),
+    path('purchase-history/<int:user_id>/', UserPurchaseHistoriesView.as_view(), name='purchase-history'),
     path('statistics/', StatisticsAPIView.as_view(), name='statistics'),
     path('user-statistics/', UserStatisticsAPIView.as_view(), name='user-statistics'),
     path('user-statistics/<int:user_id>/', UserStatisticsDetailAPIView.as_view(), name='user-statistics'),
     path('coin-conversions/', CoinConversionListCreateView.as_view(), name='coin-conversion-list-create'),
     path('cashfree/<int:user_id>/<int:plan_id>/', CreatePaymentLinkView.as_view(), name='create-payment-link'),
     path('cashfree/webhook/<str:order_id>/', cashfree_webhook, name='cashfree-webhook'),
-    
+
     
     ]
 

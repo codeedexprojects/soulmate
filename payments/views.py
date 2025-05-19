@@ -197,7 +197,7 @@ class RechargeCoinsByPlanView(APIView):
 
         user.add_coins(plan.coin_package)
 
-        PurchaseHistory.objects.create(
+        PurchaseHistories.objects.create(
             user=user,
             recharge_plan=plan,
             coins_purchased=plan.coin_package,
@@ -233,11 +233,11 @@ class RechargeCoinsByPlanView(APIView):
             'new_coin_balance': user.coin_balance
         }, status=status.HTTP_200_OK)
     
-class UserPurchaseHistoryView(APIView):
+class UserPurchaseHistoriesView(APIView):
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
-        purchase_history = PurchaseHistory.objects.filter(user=user)
-        serializer = PurchaseHistorySerializer(purchase_history, many=True)
+        purchase_history = PurchaseHistories.objects.filter(user=user)
+        serializer = PurchaseHistoriesSerializer(purchase_history, many=True)
 
         return Response({
             'user_id': user_id,
@@ -288,7 +288,7 @@ class UserStatisticsAPIView(APIView):
         # Get user data with aggregated statistics
         user_data = User.objects.annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('purchasehistory'),
+            total_purchases=Count('PurchaseHistories'),
             total_talktime=Sum('caller__duration')
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_online', 
@@ -350,7 +350,7 @@ class UserStatisticsDetailAPIView(APIView):
 
         user_data = User.objects.filter(id=user.id).annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('purchasehistory'),
+            total_purchases=Count('PurchaseHistories'),
             total_talktime=Sum('caller__duration')
         ).values('id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended', 
                  'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases', 'total_talktime').first()
@@ -462,7 +462,7 @@ class CreatePaymentLinkView(APIView):
         if response.status_code == 200:
             payment_data = response.json()
 
-            PurchaseHistory.objects.create(
+            PurchaseHistories.objects.create(
                 user=user,
                 recharge_plan=plan,
                 coins_purchased=plan.coin_package,
@@ -487,8 +487,8 @@ def cashfree_webhook(request, order_id):
     txn_status = request.data.get('transaction_status')
 
     try:
-        purchase = PurchaseHistory.objects.get(order_id=order_id)
-    except PurchaseHistory.DoesNotExist:
+        purchase = PurchaseHistories.objects.get(order_id=order_id)
+    except PurchaseHistories.DoesNotExist:
         return Response({'error': 'Order not found'}, status=404)
 
     if txn_status == 'SUCCESS' and purchase.payment_status != 'SUCCESS':

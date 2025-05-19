@@ -38,7 +38,7 @@ class Sale(models.Model):
 
 
     
-class PurchaseHistory(models.Model):
+class PurchaseHistories(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     recharge_plan = models.ForeignKey(RechargePlan, on_delete=models.CASCADE)
     coins_purchased = models.IntegerField()

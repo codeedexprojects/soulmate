@@ -12,7 +12,7 @@ from .serializers import *
 from executives.models import Executives
 from users.models import User,Rating
 from calls.models import AgoraCallHistory,TalkTime,CallRating
-from payments.models import PurchaseHistory
+from payments.models import PurchaseHistories
 from django.utils.timezone import now
 from django.utils import timezone
 from rest_framework.decorators import api_view
@@ -82,10 +82,10 @@ class PlatformAnalyticsView(APIView):
         )['total'] or 0
 
         # Today's purchases
-        todays_revenue = PurchaseHistory.objects.filter(
+        todays_revenue = PurchaseHistories.objects.filter(
             purchase_date__date=today
         ).aggregate(total=Sum('purchased_price'))['total'] or 0
-        todays_coin_sales = PurchaseHistory.objects.filter(
+        todays_coin_sales = PurchaseHistories.objects.filter(
             purchase_date__date=today
         ).aggregate(total=Sum('coins_purchased'))['total'] or 0
 

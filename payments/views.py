@@ -462,6 +462,16 @@ class CreatePaymentLinkView(APIView):
         if response.status_code == 200:
             payment_data = response.json()
 
+            session_id = payment_data.get('payment_session_id')
+            if not session_id:
+                return Response(
+                    {"error": "Missing payment_session_id in Cashfree response", "details": payment_data},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            payment_link = f"https://www.cashfree.com/checkout/post/{session_id}"
+
+            # Save purchase history
             PurchaseHistories.objects.create(
                 user=user,
                 recharge_plan=plan,
@@ -469,16 +479,22 @@ class CreatePaymentLinkView(APIView):
                 purchased_price=plan_price,
                 payment_status='PENDING',
                 order_id=order_id,
-                payment_link=payment_data['payment_session_id']
+                payment_link=payment_link
             )
 
             return Response({
                 "order_id": order_id,
-                "payment_link": payment_data['payment_link']
+                "payment_link": payment_link
             }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({"error": "Failed to initiate payment"}, status=response.status_code)
 
+        else:
+            return Response(
+                {
+                    "error": "Failed to initiate payment",
+                    "cashfree_response": response.json()
+                },
+                status=response.status_code
+            )
 from rest_framework.decorators import api_view
 
 @csrf_exempt

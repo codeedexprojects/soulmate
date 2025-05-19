@@ -531,3 +531,22 @@ def cashfree_webhook(request, order_id):
         purchase.save()
 
     return Response({'status': 'received'}, status=200)
+
+class GetPaymentDetailsView(APIView):
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        
+        # Get the latest purchase by user (you can order by created_at if available)
+        try:
+            latest_purchase = PurchaseHistories.objects.filter(user=user).latest('id')  # or 'created_at' if you track time
+        except PurchaseHistories.DoesNotExist:
+            return Response(
+                {"error": "No purchase history found for this user."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        return Response({
+            "order_id": latest_purchase.order_id,
+            "payment_status": latest_purchase.payment_status,
+            "payment_link": latest_purchase.payment_link,
+        }, status=status.HTTP_200_OK)

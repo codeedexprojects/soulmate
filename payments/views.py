@@ -437,8 +437,8 @@ class CreatePaymentLinkView(APIView):
         payload = {
             "customer_details": {
                 "customer_id": str(user.id),
-                "customer_email": user.email,
-                "customer_phone": user.phone_number,
+                "customer_name": user.name,
+                "customer_phone": user.mobile_number,
             },
             "order_id": order_id,
             "order_amount": float(plan_price),

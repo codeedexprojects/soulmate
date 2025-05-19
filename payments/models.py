@@ -1,6 +1,7 @@
 from django.db import models
 from decimal import Decimal
 from users.models import User
+from django.utils import timezone
 
 class RechargePlanCato(models.Model):
     name = models.CharField(max_length=100)
@@ -43,10 +44,14 @@ class PurchaseHistory(models.Model):
     coins_purchased = models.IntegerField()
     purchased_price = models.DecimalField(max_digits=10, decimal_places=2)
     purchase_date = models.DateTimeField(auto_now_add=True)
-    payment_status = models.CharField(max_length=20, default='PENDING')  # PENDING, SUCCESS, FAILED
+    ppayment_status = models.CharField(max_length=20, choices=[
+        ('PENDING', 'Pending'),
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed')
+    ], default='PENDING')
     order_id = models.CharField(max_length=100, unique=True)
     payment_link = models.URLField(blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f'{self.user} - {self.recharge_plan} - {self.coins_purchased} coins'

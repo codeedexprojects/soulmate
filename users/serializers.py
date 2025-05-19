@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import *
-from executives.models import Executives
+from executives.models import Executives, ExecutiveProfilePicture
 import random
 from .utils import send_otp_2factor
 from django.conf import settings
@@ -44,7 +44,7 @@ class FavouriteSerializer(serializers.ModelSerializer):
     executive_total_missed_calls = serializers.IntegerField(source='executive.total_missed_calls', read_only=True)
     executive_is_banned = serializers.BooleanField(source='executive.is_banned', read_only=True)
     executive_is_suspended = serializers.BooleanField(source='executive.is_suspended', read_only=True)
-
+    executive_profile_photo = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
 
     class Meta:
@@ -76,11 +76,23 @@ class FavouriteSerializer(serializers.ModelSerializer):
             'executive_is_banned',
             'executive_is_suspended',
             'created_at',
+            'executive_profile_photo', 
             'is_favorited'
         ]
 
     def get_is_favorited(self, obj):
         return True
+    
+    def get_executive_profile_photo(self, obj):
+        try:
+            picture = ExecutiveProfilePicture.objects.get(executive=obj.executive, status='approved')
+            if picture.profile_photo:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(picture.profile_photo.url)
+                return picture.profile_photo.url
+        except ExecutiveProfilePicture.DoesNotExist:
+            return None
     
 class RatingSerializer(serializers.ModelSerializer):
     executive = serializers.PrimaryKeyRelatedField(queryset=Executives.objects.all())

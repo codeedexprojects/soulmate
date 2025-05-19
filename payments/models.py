@@ -44,7 +44,7 @@ class PurchaseHistory(models.Model):
     coins_purchased = models.IntegerField()
     purchased_price = models.DecimalField(max_digits=10, decimal_places=2)
     purchase_date = models.DateTimeField(auto_now_add=True)
-    ppayment_status = models.CharField(max_length=20, choices=[
+    payment_status = models.CharField(max_length=20, choices=[
         ('PENDING', 'Pending'),
         ('SUCCESS', 'Success'),
         ('FAILED', 'Failed')

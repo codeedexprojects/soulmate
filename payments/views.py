@@ -415,158 +415,103 @@ class CoinConversionListCreateView(generics.ListCreateAPIView):
     queryset = CoinConversion.objects.all()
     serializer_class = CoinConversionSerializer
 
-class PaymentInitiateView(APIView):
-    def post(self, request, user_id, plan_id):
-        user = get_object_or_404(User, id=user_id)
-        plan = get_object_or_404(RechargePlan, id=plan_id)
-        
-        order_id = f"ORDER-{uuid.uuid4().hex[:10]}"
-        amount = float(plan.calculate_final_price())
-
-        # Create transaction record
-        transaction = PaymentTransaction.objects.create(
-            user=user,
-            order_id=order_id,
-            amount=amount,
-            status='PENDING'
-        )
-
-        headers = {
-            "x-client-id": settings.CASHFREE_APP_ID,
-            "x-client-secret": settings.CASHFREE_SECRET_KEY,
-            "x-api-version": "2022-09-01"
-        }
-
-        payload = {
-            "order_id": order_id,
-            "order_amount": amount,
-            "order_currency": "INR",
-            "customer_details": {
-                "customer_id": str(user.id),
-                "customer_email": user.email,
-                "customer_phone": user.phone_number
-            },
-            "order_meta": {
-                "return_url": settings.CASHFREE_RETURN_URL
-            }
-        }
-
-        try:
-            response = requests.post(
-                f"{settings.CASHFREE_API_BASE_URL}/orders",
-                json=payload,
-                headers=headers
-            )
-            response.raise_for_status()
-            
-            payment_data = response.json()
-            transaction.cf_order_id = payment_data['cf_order_id']
-            transaction.save()
-
-            return Response({
-                "payment_link": payment_data['payment_link'],
-                "order_id": order_id
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            transaction.status = 'FAILED'
-            transaction.save()
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 
 
       
-logger = logging.getLogger(__name__)
+    
+#CASHFREE_IMPLEMENTATION
+import uuid
+import requests
+from django.conf import settings
 
-@method_decorator(csrf_exempt, name='dispatch')
-class CashfreeWebhookView(View):
-    def post(self, request, *args, **kwargs):
-        try:
-            # 1. Verify request contains required headers and data
-            received_signature = request.headers.get('x-webhook-signature')
-            if not received_signature:
-                logger.warning("Missing signature header in webhook")
-                return HttpResponse("Missing signature header", status=400)
-            
-            # 2. Parse and validate webhook data
-            try:
-                webhook_data = json.loads(request.body)
-                logger.debug(f"Received webhook data: {webhook_data}")
-            except json.JSONDecodeError as e:
-                logger.error(f"Invalid JSON payload: {str(e)}")
-                return HttpResponse("Invalid JSON payload", status=400)
-            
-            # 3. Verify signature
-            generated_signature = hashlib.sha256(
-                (request.body.decode() + settings.CASHFREE_WEBHOOK_SECRET).encode()
-            ).hexdigest()
+class CreatePaymentLinkView(APIView):
+    def post(self, request, user_id, plan_id):
+        user = get_object_or_404(User, id=user_id)
+        plan = get_object_or_404(RechargePlan, id=plan_id)
+        plan_price = plan.calculate_final_price()
 
-            if not hashlib.compare_digest(received_signature, generated_signature):
-                logger.warning(f"Signature mismatch. Received: {received_signature}, Generated: {generated_signature}")
-                return HttpResponse("Invalid signature", status=403)
+        order_id = f'ORDER_{uuid.uuid4().hex[:10]}'
 
-            # 4. Process webhook data
-            return self.process_webhook(webhook_data)
+        payload = {
+            "customer_details": {
+                "customer_id": str(user.id),
+                "customer_email": user.email,
+                "customer_phone": user.phone_number,
+            },
+            "order_id": order_id,
+            "order_amount": float(plan_price),
+            "order_currency": "INR",
+            "order_note": "Coin Recharge",
+        }
 
-        except Exception as e:
-            logger.exception("Unexpected error in webhook processing")
-            return HttpResponse("Server error", status=500)
+        headers = {
+            "Content-Type": "application/json",
+            "x-api-version": "2022-09-01",
+            "x-client-id": settings.CASHFREE_APP_ID,
+            "x-client-secret": settings.CASHFREE_SECRET_KEY
+        }
 
-    @transaction.atomic
-    def process_webhook(self, webhook_data):
-        # Extract order details
-        order_data = webhook_data.get('order', {})
-        order_id = order_data.get('order_id')
-        if not order_id:
-            logger.warning("Missing order ID in webhook data")
-            return HttpResponse("Missing order ID", status=400)
+        response = requests.post(
+            f"{settings.CASHFREE_BASE_URL}/orders",
+            json=payload,
+            headers=headers
+        )
 
-        # Get transaction record
-        try:
-            transaction = PaymentTransaction.objects.select_related('user', 'recharge_plan').get(order_id=order_id)
-            logger.info(f"Processing transaction {order_id}, current status: {transaction.status}")
-        except PaymentTransaction.DoesNotExist:
-            logger.error(f"Transaction not found for order ID: {order_id}")
-            return HttpResponse("Transaction not found", status=404)
+        if response.status_code == 200:
+            payment_data = response.json()
 
-        # Handle based on payment status
-        order_status = order_data.get('status')
-        if order_status == 'PAID':
-            return self.handle_successful_payment(transaction, webhook_data)
-        else:
-            return self.handle_failed_payment(transaction, webhook_data)
-
-    def handle_successful_payment(self, transaction, webhook_data):
-        # Update transaction
-        transaction.status = 'SUCCESS'
-        transaction.transaction_id = webhook_data.get('transaction', {}).get('transaction_id', '')
-        transaction.payment_mode = webhook_data.get('payment', {}).get('payment_method', '')
-        transaction.save()
-
-        # Process user coins if RechargePlan exists
-        if transaction.recharge_plan:
-            user = transaction.user
-            user.coins += transaction.recharge_plan.coin_package
-            user.save()
-
-            # Create purchase history
             PurchaseHistory.objects.create(
                 user=user,
-                recharge_plan=transaction.recharge_plan,
-                coins_purchased=transaction.recharge_plan.coin_package,
-                purchased_price=transaction.amount
+                recharge_plan=plan,
+                coins_purchased=plan.coin_package,
+                purchased_price=plan_price,
+                payment_status='PENDING',
+                order_id=order_id,
+                payment_link=payment_data['payment_session_id']
             )
-            
-            logger.info(f"Successfully processed payment for user {user.id}, added {transaction.recharge_plan.coin_package} coins")
+
+            return Response({
+                "order_id": order_id,
+                "payment_link": payment_data['payment_link']
+            }, status=status.HTTP_201_CREATED)
         else:
-            logger.warning(f"Transaction {transaction.order_id} has no associated RechargePlan")
+            return Response({"error": "Failed to initiate payment"}, status=response.status_code)
 
-        return HttpResponse(status=200)
+from rest_framework.decorators import api_view
 
-    def handle_failed_payment(self, transaction, webhook_data):
-        transaction.status = 'FAILED'
-        transaction.transaction_id = webhook_data.get('transaction', {}).get('transaction_id', '')
-        transaction.save()
-        logger.info(f"Marked transaction {transaction.order_id} as failed")
-        return HttpResponse(status=200)
+@csrf_exempt
+@api_view(['POST'])
+def cashfree_webhook(request, order_id):
+    txn_status = request.data.get('transaction_status')
+
+    try:
+        purchase = PurchaseHistory.objects.get(order_id=order_id)
+    except PurchaseHistory.DoesNotExist:
+        return Response({'error': 'Order not found'}, status=404)
+
+    if txn_status == 'SUCCESS' and purchase.payment_status != 'SUCCESS':
+        user = purchase.user
+        user.add_coins(purchase.coins_purchased)
+        user.save()
+
+        purchase.payment_status = 'SUCCESS'
+        purchase.save()
+
+        # Referral logic
+        if hasattr(user, 'referred_by'):
+            referral_history = user.referred_by
+            if not referral_history.recharged:
+                referral_history.recharged = True
+                referral_history.save()
+
+                referrer = referral_history.referrer
+                referrer.add_coins(300)
+                referrer.save()
+
+    elif txn_status == 'FAILED':
+        purchase.payment_status = 'FAILED'
+        purchase.save()
+
+    return Response({'status': 'received'}, status=200)

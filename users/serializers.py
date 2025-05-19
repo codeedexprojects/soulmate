@@ -119,7 +119,7 @@ class ExecutiveSerializer(serializers.ModelSerializer):
         return False
     def get_executive_profile_photo(self, obj):
         try:
-            picture = ExecutiveProfilePicture.objects.get(executive=obj.executive, status='approved')
+            picture = ExecutiveProfilePicture.objects.get(Executives=obj.executive, status='approved')
             if picture.profile_photo:
                 request = self.context.get('request')
                 if request:

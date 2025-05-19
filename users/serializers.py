@@ -84,15 +84,10 @@ class FavouriteSerializer(serializers.ModelSerializer):
         return True
     
     def get_executive_profile_photo(self, obj):
-        try:
-            picture = ExecutiveProfilePicture.objects.get(executive=obj, status='approved')
-            if picture.profile_photo:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(picture.profile_photo.url)
-                return picture.profile_photo.url
-        except ExecutiveProfilePicture.DoesNotExist:
-            return None
+        executive = obj.executive
+        if hasattr(executive, 'profile_picture') and executive.profile_picture.profile_photo:
+            return executive.profile_picture.profile_photo.url
+        return None
 
     
 class RatingSerializer(serializers.ModelSerializer):

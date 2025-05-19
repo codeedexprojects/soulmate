@@ -118,16 +118,16 @@ class ExecutiveSerializer(serializers.ModelSerializer):
             return Favourite.objects.filter(user_id=user_id, executive=executive).exists()
         return False
     
-    def get_executive_profile_photo(self, obj):
-        try:
-            picture = ExecutiveProfilePicture.objects.get(executive=obj.executive, status='approved')
-            if picture.profile_photo:
-                request = self.context.get('request')
-                if request:
-                    return request.build_absolute_uri(picture.profile_photo.url)
-                return picture.profile_photo.url
-        except ExecutiveProfilePicture.DoesNotExist:
-            return None
+    # def get_executive_profile_photo(self, obj):
+    #     try:
+    #         picture = ExecutiveProfilePicture.objects.get(executive=obj.executive, status='approved')
+    #         if picture.profile_photo:
+    #             request = self.context.get('request')
+    #             if request:
+    #                 return request.build_absolute_uri(picture.profile_photo.url)
+    #             return picture.profile_photo.url
+    #     except ExecutiveProfilePicture.DoesNotExist:
+    #         return None
     
 class UserProfileSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='user.name', read_only=True)

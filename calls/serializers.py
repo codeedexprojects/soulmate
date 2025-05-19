@@ -3,8 +3,9 @@ from .models import *
 from users.serializers import UserSerializer,ExecutiveSerializer
 from django.utils.timezone import localtime
 from payments.models import CoinConversion
+from executives.models import ExecutiveProfilePicture
 
-class   CallHistorySerializer(serializers.ModelSerializer):
+class CallHistorySerializer(serializers.ModelSerializer):
     user = UserSerializer()
     executive = ExecutiveSerializer()
     formatted_duration = serializers.SerializerMethodField()
@@ -14,6 +15,7 @@ class   CallHistorySerializer(serializers.ModelSerializer):
     duration_seconds = serializers.SerializerMethodField() 
     duration_minutes_seconds = serializers.SerializerMethodField()  
     duration_hours_minutes_seconds = serializers.SerializerMethodField() 
+    executive_profile_photo = serializers.SerializerMethodField()
 
     class Meta:
         model = AgoraCallHistory
@@ -32,6 +34,7 @@ class   CallHistorySerializer(serializers.ModelSerializer):
             'duration_seconds',
             'duration_minutes_seconds',
             'duration_hours_minutes_seconds',
+            'executive_profile_photo', 
         ]
 
     def get_formatted_duration(self, obj):
@@ -95,6 +98,17 @@ class   CallHistorySerializer(serializers.ModelSerializer):
 
     def get_executive_gender(self, obj):
         return obj.executive.gender
+    
+    def get_executive_profile_photo(self, obj):
+        try:
+            picture = ExecutiveProfilePicture.objects.get(executive=obj.executive, status='approved')
+            if picture.profile_photo:
+                request = self.context.get('request')
+                if request:
+                    return request.build_absolute_uri(picture.profile_photo.url)
+                return picture.profile_photo.url
+        except ExecutiveProfilePicture.DoesNotExist:
+            return None
     
 class ExeCallHistorySerializer(serializers.ModelSerializer):
     call_date = serializers.SerializerMethodField()

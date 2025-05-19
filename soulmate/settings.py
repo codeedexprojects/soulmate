@@ -82,12 +82,9 @@ REST_FRAMEWORK = {
     ),
 }
 
-# settings.py
-CASHFREE = {
-    "WEBHOOK_VERSION": "2022-09-01",  # Must match dashboard selection
-    "WEBHOOK_SECRET": "your_secret_here",  # From Cashfree dashboard
-    "WEBHOOK_URL": "https://api.koottuapp.in/api/cashfree-webhook/"
-}
+CASHFREE_APP_ID = '9638103d97006aa13820ab6a3d018369'
+CASHFREE_SECRET_KEY = 'cfsk_ma_prod_bebc0c9b1cb962bfdc0f081b0e7ad024_5cbd0dac'
+CASHFREE_BASE_URL = 'https://api.cashfree.com/pg' 
 
 SESSION_COOKIE_AGE = 1800  # 30 mins = 1800 seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

@@ -484,7 +484,8 @@ class CreatePaymentLinkView(APIView):
 
             return Response({
                 "order_id": order_id,
-                "payment_link": payment_link
+                "payment_link": payment_link,
+                "session_id": session_id
             }, status=status.HTTP_201_CREATED)
 
         else:

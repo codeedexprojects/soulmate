@@ -82,9 +82,16 @@ REST_FRAMEWORK = {
     ),
 }
 
-CASHFREE_APP_ID = '9638103d97006aa13820ab6a3d018369'
-CASHFREE_SECRET_KEY = 'cfsk_ma_prod_bebc0c9b1cb962bfdc0f081b0e7ad024_5cbd0dac'
-CASHFREE_BASE_URL = 'https://api.cashfree.com/pg' 
+# CASHFREE_APP_ID = '9638103d97006aa13820ab6a3d018369'
+# CASHFREE_SECRET_KEY = 'cfsk_ma_prod_bebc0c9b1cb962bfdc0f081b0e7ad024_5cbd0dac'
+# CASHFREE_BASE_URL = 'https://api.cashfree.com/pg' 
+
+CASHFREE_SANDBOX_BASE_URL = "https://sandbox.cashfree.com/pg/orders"
+CASHFREE_SANDBOX_APP_ID = "TEST10597528e1035e741a06ff78bdfe82579501"
+CASHFREE_SANDBOX_SECRET_KEY = "cfsk_ma_test_1b78f9dd5f8ba20839eae81fa63f33f8_15951b9a"
+
+# Optional toggle to switch environments
+USE_CASHFREE_SANDBOX = True
 
 SESSION_COOKIE_AGE = 1800  # 30 mins = 1800 seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

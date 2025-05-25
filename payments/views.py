@@ -426,6 +426,79 @@ import uuid
 import requests
 from django.conf import settings
 
+#production
+# class CreatePaymentLinkView(APIView):
+#     def post(self, request, user_id, plan_id):
+#         user = get_object_or_404(User, id=user_id)
+#         plan = get_object_or_404(RechargePlan, id=plan_id)
+#         plan_price = plan.calculate_final_price()
+
+#         order_id = f'ORDER_{uuid.uuid4().hex[:10]}'
+
+#         payload = {
+#             "customer_details": {
+#                 "customer_id": str(user.id),
+#                 "customer_name": user.name,
+#                 "customer_phone": user.mobile_number,
+#             },
+#             "order_id": order_id,
+#             "order_amount": float(plan_price),
+#             "order_currency": "INR",
+#             "order_note": "Coin Recharge",
+#         }
+
+#         headers = {
+#             "Content-Type": "application/json",
+#             "x-api-version": "2022-09-01",
+#             "x-client-id": settings.CASHFREE_APP_ID,
+#             "x-client-secret": settings.CASHFREE_SECRET_KEY
+#         }
+
+#         response = requests.post(
+#             f"{settings.CASHFREE_BASE_URL}/orders",
+#             json=payload,
+#             headers=headers
+#         )
+
+#         if response.status_code == 200:
+#             payment_data = response.json()
+
+#             session_id = payment_data.get('payment_session_id')
+#             if not session_id:
+#                 return Response(
+#                     {"error": "Missing payment_session_id in Cashfree response", "details": payment_data},
+#                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#                 )
+
+#             payment_link = f"https://www.cashfree.com/checkout/post/{session_id}"
+
+#             # Save purchase history
+#             PurchaseHistories.objects.create(
+#                 user=user,
+#                 recharge_plan=plan,
+#                 coins_purchased=plan.coin_package,
+#                 purchased_price=plan_price,
+#                 payment_status='PENDING',
+#                 order_id=order_id,
+#                 payment_link=payment_link
+#             )
+
+#             return Response({
+#                 "order_id": order_id,
+#                 "payment_link": payment_link,
+#                 "session_id": session_id
+#             }, status=status.HTTP_201_CREATED)
+
+#         else:
+#             return Response(
+#                 {
+#                     "error": "Failed to initiate payment",
+#                     "cashfree_response": response.json()
+#                 },
+#                 status=response.status_code
+#             )
+
+#test
 class CreatePaymentLinkView(APIView):
     def post(self, request, user_id, plan_id):
         user = get_object_or_404(User, id=user_id)
@@ -446,15 +519,24 @@ class CreatePaymentLinkView(APIView):
             "order_note": "Coin Recharge",
         }
 
+        if settings.USE_CASHFREE_SANDBOX:
+            base_url = "https://sandbox.cashfree.com/pg"
+            app_id = settings.CASHFREE_SANDBOX_APP_ID
+            secret_key = settings.CASHFREE_SANDBOX_SECRET_KEY
+        else:
+            base_url = settings.CASHFREE_BASE_URL
+            app_id = settings.CASHFREE_APP_ID
+            secret_key = settings.CASHFREE_SECRET_KEY
+
         headers = {
             "Content-Type": "application/json",
             "x-api-version": "2022-09-01",
-            "x-client-id": settings.CASHFREE_APP_ID,
-            "x-client-secret": settings.CASHFREE_SECRET_KEY
+            "x-client-id": app_id,
+            "x-client-secret": secret_key
         }
 
         response = requests.post(
-            f"{settings.CASHFREE_BASE_URL}/orders",
+            f"{base_url}/orders",
             json=payload,
             headers=headers
         )
@@ -471,7 +553,6 @@ class CreatePaymentLinkView(APIView):
 
             payment_link = f"https://www.cashfree.com/checkout/post/{session_id}"
 
-            # Save purchase history
             PurchaseHistories.objects.create(
                 user=user,
                 recharge_plan=plan,
@@ -496,6 +577,7 @@ class CreatePaymentLinkView(APIView):
                 },
                 status=response.status_code
             )
+
 from rest_framework.decorators import api_view
 
 @csrf_exempt

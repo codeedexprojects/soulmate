@@ -87,7 +87,6 @@ REST_FRAMEWORK = {
 # CASHFREE_SECRET_KEY = 'cfsk_ma_prod_bebc0c9b1cb962bfdc0f081b0e7ad024_5cbd0dac'
 # CASHFREE_BASE_URL = 'https://api.cashfree.com/pg' 
 
-
 USE_CASHFREE_SANDBOX = config("USE_CASHFREE_SANDBOX", default=True, cast=bool)
 CASHFREE_SANDBOX_BASE_URL = config("CASHFREE_SANDBOX_BASE_URL")
 CASHFREE_SANDBOX_APP_ID = config("CASHFREE_SANDBOX_APP_ID")

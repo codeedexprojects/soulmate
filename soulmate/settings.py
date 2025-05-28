@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -86,9 +87,11 @@ REST_FRAMEWORK = {
 # CASHFREE_SECRET_KEY = 'cfsk_ma_prod_bebc0c9b1cb962bfdc0f081b0e7ad024_5cbd0dac'
 # CASHFREE_BASE_URL = 'https://api.cashfree.com/pg' 
 
-CASHFREE_SANDBOX_BASE_URL = "https://sandbox.cashfree.com/pg/orders"
-CASHFREE_SANDBOX_APP_ID = "TEST10597528e1035e741a06ff78bdfe82579501"
-CASHFREE_SANDBOX_SECRET_KEY = "cfsk_ma_test_1b78f9dd5f8ba20839eae81fa63f33f8_15951b9a"
+
+USE_CASHFREE_SANDBOX = config("USE_CASHFREE_SANDBOX", default=True, cast=bool)
+CASHFREE_SANDBOX_BASE_URL = config("CASHFREE_SANDBOX_BASE_URL")
+CASHFREE_SANDBOX_APP_ID = config("CASHFREE_SANDBOX_APP_ID")
+CASHFREE_SANDBOX_SECRET_KEY = config("CASHFREE_SANDBOX_SECRET_KEY")
 
 # Optional toggle to switch environments
 USE_CASHFREE_SANDBOX = True

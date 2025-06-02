@@ -9,6 +9,8 @@ urlpatterns = [
     path('recharge-plans/', ListRechargePlansView.as_view(), name='list_recharge_plans'),
     path('recharge-plans/<int:id>/', RechargePlanDetailView.as_view(), name='recharge-plan-detail'),
     path('recharge/<int:user_id>/plan/<int:plan_id>/', CreateRazorpayOrderView.as_view(), name='create-razorpay-order'),
+    path('razorpay/latest-order/<int:user_id>/', GetLatestRazorpayOrderView.as_view(), name='latest-razorpay-order'),
+
     path('payment/success/<str:razorpay_order_id>/', HandlePaymentSuccessView.as_view(), name='handle-payment-success'),
     path('recharge-admin/<int:user_id>/plan/<int:plan_id>/', RechargeCoinsByPlanView.as_view(), name='recharge-by-plan'),
     path('categories-with-plans/', CategoryWithPlansListView.as_view(), name='categories-with-plans'),

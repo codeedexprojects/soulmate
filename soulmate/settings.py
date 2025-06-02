@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -141,8 +142,8 @@ DATABASES = {
 TWO_FACTOR_API_KEY = '15b274f8-8600-11ef-8b17-0200cd936042'
 AGORA_APP_ID = '9626e8b5f847e6961cb9a996e1ae93'
 AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
-RAZORPAY_KEY_ID = 'your_key_id'
-RAZORPAY_KEY_SECRET = 'your_key_secret'
+RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID")
+RAZORPAY_SECRET_KEY = config("RAZORPAY_SECRET_KEY")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

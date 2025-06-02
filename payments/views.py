@@ -213,58 +213,32 @@ class GetLatestRazorpayOrderView(APIView):
 
 class HandlePaymentSuccessView(APIView):
     def post(self, request, razorpay_order_id):
-        razorpay_payment_id = request.data.get('razorpay_payment_id')
-        razorpay_signature = request.data.get('razorpay_signature')
-        user_id = request.data.get('user_id')
-        plan_id = request.data.get('plan_id')
-
-        if not all([razorpay_payment_id, razorpay_signature, user_id, plan_id]):
-            return Response({'message': 'Missing payment verification parameters.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        params_dict = {
-            'razorpay_order_id': razorpay_order_id,
-            'razorpay_payment_id': razorpay_payment_id,
-            'razorpay_signature': razorpay_signature
-        }
-
-        logger.info(f"Verifying Razorpay payment signature with params: {params_dict}")
-
         try:
-            # Step 1: Verify signature
-            razorpay_client.utility.verify_payment_signature(params_dict)
+            # Get the payment ID linked to the order
+            payments = razorpay_client.order.payments(razorpay_order_id)
+            if not payments['items']:
+                return Response({'message': 'No payment found for this order.'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Step 2: Update purchase history
+            payment_id = payments['items'][0]['id']
+            amount = payments['items'][0]['amount']
+
+            # Capture payment
+            captured = razorpay_client.payment.capture(payment_id, amount)
+
+            # Update status in DB (optional)
             history = get_object_or_404(PurchaseHistories, razorpay_order_id=razorpay_order_id)
-            
-            # Extra validation: check if user_id and plan_id match purchase record
-            if history.user.id != int(user_id) or history.recharge_plan.id != int(plan_id):
-                logger.warning(f"User or plan mismatch on payment success for order {razorpay_order_id}")
-                return Response({'message': 'User or plan mismatch.'}, status=status.HTTP_400_BAD_REQUEST)
-
-            history.razorpay_payment_id = razorpay_payment_id
+            history.razorpay_payment_id = payment_id
             history.payment_status = 'SUCCESS'
             history.save()
 
-            # Step 3: Add coins to user profile
-            user_profile = get_object_or_404(UserProfile, user_id=user_id)
-            plan = get_object_or_404(RechargePlan, id=plan_id)
-            user_profile.add_coins(plan.coin_package)
-
-            logger.info(f"Payment successful for order {razorpay_order_id}, user {user_id}, added {plan.coin_package} coins.")
-
             return Response({
-                'message': 'Payment successful.',
-                'coin_package': plan.coin_package,
-                'new_coin_balance': user_profile.coin_balance
+                'message': 'Payment captured successfully.',
+                'razorpay_payment_id': payment_id,
+                'amount': amount
             }, status=status.HTTP_200_OK)
 
-        except razorpay.errors.SignatureVerificationError:
-            logger.warning(f"Invalid Razorpay signature for order {razorpay_order_id}")
-            return Response({'message': 'Invalid Razorpay signature.'}, status=status.HTTP_400_BAD_REQUEST)
-
         except Exception as e:
-            logger.error(f"Error handling payment success: {e}")
-            return Response({'message': 'Failed to process payment success.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'message': f'Capture failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 #withoutrazorpay
 class RechargeCoinsByPlanView(APIView):

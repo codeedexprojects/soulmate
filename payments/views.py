@@ -135,13 +135,25 @@ class RechargePlanCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
         category = self.get_object()
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+
+# somewhere like utils.py or views.py
+import razorpay
+from django.conf import settings
+
+razorpay_client = razorpay.Client(
+    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY)
+)
+
+
+# views.py
 
 class CreateRazorpayOrderView(APIView):
     def post(self, request, user_id, plan_id):
+        user = get_object_or_404(User, id=user_id)
         plan = get_object_or_404(RechargePlan, id=plan_id)
 
-        plan_serializer = RechargePlanSerializer(plan)
-        final_amount = plan.calculate_final_price() * 100
+        final_amount = plan.calculate_final_price() * 100  # in paisa
 
         order_data = {
             'amount': int(final_amount),
@@ -151,40 +163,80 @@ class CreateRazorpayOrderView(APIView):
 
         razorpay_order = razorpay_client.order.create(order_data)
 
+        # Save order with PENDING status
+        PurchaseHistories.objects.create(
+            user=user,
+            recharge_plan=plan,
+            coins_purchased=plan.coin_package,
+            purchased_price=plan.calculate_final_price(),
+            razorpay_order_id=razorpay_order['id'],
+            payment_status='PENDING'
+        )
+
         return Response({
             'razorpay_order_id': razorpay_order['id'],
             'amount': razorpay_order['amount'],
             'currency': razorpay_order['currency'],
-            'plan_details': plan_serializer.data
+            'key_id': settings.RAZORPAY_KEY_ID,
+            'plan': RechargePlanSerializer(plan).data
         }, status=status.HTTP_201_CREATED)
+
 
 class HandlePaymentSuccessView(APIView):
     def post(self, request, razorpay_order_id):
         razorpay_payment_id = request.data.get('razorpay_payment_id')
         razorpay_signature = request.data.get('razorpay_signature')
-        plan_id = request.data.get('plan_id')
         user_id = request.data.get('user_id')
+        plan_id = request.data.get('plan_id')
 
         try:
+            # Step 1: Verify signature
             params_dict = {
                 'razorpay_order_id': razorpay_order_id,
                 'razorpay_payment_id': razorpay_payment_id,
                 'razorpay_signature': razorpay_signature
             }
-
             razorpay_client.utility.verify_payment_signature(params_dict)
+
+            # Step 2: Update purchase history
+            history = get_object_or_404(PurchaseHistories, razorpay_order_id=razorpay_order_id)
+            history.razorpay_payment_id = razorpay_payment_id
+            history.payment_status = 'SUCCESS'
+            history.save()
+
+            # Step 3: Add coins
+            user_profile = get_object_or_404(UserProfile, user_id=user_id)
+            plan = get_object_or_404(RechargePlan, id=plan_id)
+            user_profile.add_coins(plan.coin_package)
+
+            return Response({
+                'message': 'Payment successful.',
+                'coin_package': plan.coin_package,
+                'new_coin_balance': user_profile.coin_balance
+            })
+
         except razorpay.errors.SignatureVerificationError:
-            return Response({'message': 'Payment verification failed.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Invalid Razorpay signature.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        plan = get_object_or_404(RechargePlan, id=plan_id)
-        user_profile = get_object_or_404(UserProfile, user_id=user_id)
+class GetLatestRazorpayOrderView(APIView):
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
 
-        user_profile.add_coins(plan.coin_package)
+        latest_order = PurchaseHistories.objects.filter(
+            user=user,
+            razorpay_order_id__isnull=False
+        ).order_by('-created_at').first()
+
+        if not latest_order:
+            return Response({"message": "No Razorpay order found for this user."}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({
-            'message': 'Payment successful, coins added to your account.',
-            'coin_package': plan.coin_package,
-            'new_coin_balance': user_profile.coin_balance
+            "user_id": user.id,
+            "razorpay_order_id": latest_order.razorpay_order_id,
+            "payment_status": latest_order.payment_status,
+            "amount": latest_order.purchased_price,
+            "coins_purchased": latest_order.coins_purchased,
+            "created_at": latest_order.created_at
         }, status=status.HTTP_200_OK)
     
 #withoutrazorpay

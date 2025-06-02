@@ -146,20 +146,28 @@ razorpay_client = razorpay.Client(
 
 # views.py
 
+logger = logging.getLogger(__name__)
+
+razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
+
+
 class CreateRazorpayOrderView(APIView):
     def post(self, request, user_id, plan_id):
         user = get_object_or_404(User, id=user_id)
         plan = get_object_or_404(RechargePlan, id=plan_id)
 
-        final_amount = plan.calculate_final_price() * 100  # in paisa
-
+        final_amount = plan.calculate_final_price() * 100  # convert to paisa (integer)
         order_data = {
             'amount': int(final_amount),
             'currency': 'INR',
             'payment_capture': 1
         }
 
-        razorpay_order = razorpay_client.order.create(order_data)
+        try:
+            razorpay_order = razorpay_client.order.create(order_data)
+        except Exception as e:
+            logger.error(f"Razorpay order creation failed: {e}")
+            return Response({'error': 'Failed to create Razorpay order.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Save order with PENDING status
         PurchaseHistories.objects.create(
@@ -187,13 +195,19 @@ class HandlePaymentSuccessView(APIView):
         user_id = request.data.get('user_id')
         plan_id = request.data.get('plan_id')
 
+        if not all([razorpay_payment_id, razorpay_signature, user_id, plan_id]):
+            return Response({'message': 'Missing payment verification parameters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        params_dict = {
+            'razorpay_order_id': razorpay_order_id,
+            'razorpay_payment_id': razorpay_payment_id,
+            'razorpay_signature': razorpay_signature
+        }
+
+        logger.info(f"Verifying Razorpay payment signature with params: {params_dict}")
+
         try:
             # Step 1: Verify signature
-            params_dict = {
-                'razorpay_order_id': razorpay_order_id,
-                'razorpay_payment_id': razorpay_payment_id,
-                'razorpay_signature': razorpay_signature
-            }
             razorpay_client.utility.verify_payment_signature(params_dict)
 
             # Step 2: Update purchase history
@@ -202,19 +216,26 @@ class HandlePaymentSuccessView(APIView):
             history.payment_status = 'SUCCESS'
             history.save()
 
-            # Step 3: Add coins
+            # Step 3: Add coins to user profile
             user_profile = get_object_or_404(UserProfile, user_id=user_id)
             plan = get_object_or_404(RechargePlan, id=plan_id)
             user_profile.add_coins(plan.coin_package)
+
+            logger.info(f"Payment successful for order {razorpay_order_id}, user {user_id}, added {plan.coin_package} coins.")
 
             return Response({
                 'message': 'Payment successful.',
                 'coin_package': plan.coin_package,
                 'new_coin_balance': user_profile.coin_balance
-            })
+            }, status=status.HTTP_200_OK)
 
         except razorpay.errors.SignatureVerificationError:
+            logger.warning(f"Invalid Razorpay signature for order {razorpay_order_id}")
             return Response({'message': 'Invalid Razorpay signature.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Error handling payment success: {e}")
+            return Response({'message': 'Failed to process payment success.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class GetLatestRazorpayOrderView(APIView):
     def get(self, request, user_id):

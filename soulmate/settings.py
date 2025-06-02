@@ -83,17 +83,7 @@ REST_FRAMEWORK = {
     ),
 }
 
-# CASHFREE_APP_ID = '9638103d97006aa13820ab6a3d018369'
-# CASHFREE_SECRET_KEY = 'cfsk_ma_prod_bebc0c9b1cb962bfdc0f081b0e7ad024_5cbd0dac'
-# CASHFREE_BASE_URL = 'https://api.cashfree.com/pg' 
 
-USE_CASHFREE_SANDBOX = config("USE_CASHFREE_SANDBOX", default=True, cast=bool)
-CASHFREE_SANDBOX_BASE_URL = config("CASHFREE_SANDBOX_BASE_URL")
-CASHFREE_SANDBOX_APP_ID = config("CASHFREE_SANDBOX_APP_ID")
-CASHFREE_SANDBOX_SECRET_KEY = config("CASHFREE_SANDBOX_SECRET_KEY")
-
-# Optional toggle to switch environments
-USE_CASHFREE_SANDBOX = True
 
 SESSION_COOKIE_AGE = 1800  # 30 mins = 1800 seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
@@ -157,8 +147,8 @@ DATABASES = {
 TWO_FACTOR_API_KEY = '15b274f8-8600-11ef-8b17-0200cd936042'
 AGORA_APP_ID = '9626e8b5f847e6961cb9a996e1ae93'
 AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
-RAZORPAY_KEY_ID = 'your_key_id'
-RAZORPAY_KEY_SECRET = 'your_key_secret'
+RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID")
+RAZORPAY_SECRET_KEY = config("RAZORPAY_SECRET_KEY")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

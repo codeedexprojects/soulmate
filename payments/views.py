@@ -148,6 +148,7 @@ razorpay_client = razorpay.Client(
 
 logger = logging.getLogger(__name__)
 
+# Initialize Razorpay client
 razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_SECRET_KEY))
 
 
@@ -156,7 +157,7 @@ class CreateRazorpayOrderView(APIView):
         user = get_object_or_404(User, id=user_id)
         plan = get_object_or_404(RechargePlan, id=plan_id)
 
-        final_amount = plan.calculate_final_price() * 100  # convert to paisa (integer)
+        final_amount = plan.calculate_final_price() * 100  # convert to paisa (int)
         order_data = {
             'amount': int(final_amount),
             'currency': 'INR',
@@ -169,7 +170,7 @@ class CreateRazorpayOrderView(APIView):
             logger.error(f"Razorpay order creation failed: {e}")
             return Response({'error': 'Failed to create Razorpay order.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Save order with PENDING status
+        # Save purchase history with PENDING status
         PurchaseHistories.objects.create(
             user=user,
             recharge_plan=plan,
@@ -186,6 +187,28 @@ class CreateRazorpayOrderView(APIView):
             'key_id': settings.RAZORPAY_KEY_ID,
             'plan': RechargePlanSerializer(plan).data
         }, status=status.HTTP_201_CREATED)
+
+
+class GetLatestRazorpayOrderView(APIView):
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+
+        latest_order = PurchaseHistories.objects.filter(
+            user=user,
+            razorpay_order_id__isnull=False
+        ).order_by('-created_at').first()
+
+        if not latest_order:
+            return Response({"message": "No Razorpay order found for this user."}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({
+            "user_id": user.id,
+            "razorpay_order_id": latest_order.razorpay_order_id,
+            "payment_status": latest_order.payment_status,
+            "amount": latest_order.purchased_price,
+            "coins_purchased": latest_order.coins_purchased,
+            "created_at": latest_order.created_at
+        }, status=status.HTTP_200_OK)
 
 
 class HandlePaymentSuccessView(APIView):
@@ -212,6 +235,12 @@ class HandlePaymentSuccessView(APIView):
 
             # Step 2: Update purchase history
             history = get_object_or_404(PurchaseHistories, razorpay_order_id=razorpay_order_id)
+            
+            # Extra validation: check if user_id and plan_id match purchase record
+            if history.user.id != int(user_id) or history.recharge_plan.id != int(plan_id):
+                logger.warning(f"User or plan mismatch on payment success for order {razorpay_order_id}")
+                return Response({'message': 'User or plan mismatch.'}, status=status.HTTP_400_BAD_REQUEST)
+
             history.razorpay_payment_id = razorpay_payment_id
             history.payment_status = 'SUCCESS'
             history.save()
@@ -236,27 +265,6 @@ class HandlePaymentSuccessView(APIView):
         except Exception as e:
             logger.error(f"Error handling payment success: {e}")
             return Response({'message': 'Failed to process payment success.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class GetLatestRazorpayOrderView(APIView):
-    def get(self, request, user_id):
-        user = get_object_or_404(User, id=user_id)
-
-        latest_order = PurchaseHistories.objects.filter(
-            user=user,
-            razorpay_order_id__isnull=False
-        ).order_by('-created_at').first()
-
-        if not latest_order:
-            return Response({"message": "No Razorpay order found for this user."}, status=status.HTTP_404_NOT_FOUND)
-
-        return Response({
-            "user_id": user.id,
-            "razorpay_order_id": latest_order.razorpay_order_id,
-            "payment_status": latest_order.payment_status,
-            "amount": latest_order.purchased_price,
-            "coins_purchased": latest_order.coins_purchased,
-            "created_at": latest_order.created_at
-        }, status=status.HTTP_200_OK)
     
 #withoutrazorpay
 class RechargeCoinsByPlanView(APIView):

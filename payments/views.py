@@ -157,36 +157,39 @@ class CreateRazorpayOrderView(APIView):
         user = get_object_or_404(User, id=user_id)
         plan = get_object_or_404(RechargePlan, id=plan_id)
 
-        final_amount = plan.calculate_final_price() * 100  # convert to paisa (int)
-        order_data = {
-            'amount': int(final_amount),
-            'currency': 'INR',
-            'payment_capture': 1
-        }
+        # Calculate amount
+        amount = Decimal(plan.calculate_final_price())
+        amount_in_paise = int(amount * 100)
 
+        # Create Razorpay order
         try:
-            razorpay_order = razorpay_client.order.create(order_data)
+            razorpay_order = razorpay_client.order.create({
+                "amount": amount_in_paise,
+                "currency": "INR",
+                "receipt": f"recharge_rcpt_{user.id}_{plan.id}",
+            })
         except Exception as e:
-            logger.error(f"Razorpay order creation failed: {e}")
-            return Response({'error': 'Failed to create Razorpay order.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        # Save purchase history with PENDING status
+        # Save locally
         PurchaseHistories.objects.create(
             user=user,
             recharge_plan=plan,
             coins_purchased=plan.coin_package,
-            purchased_price=plan.calculate_final_price(),
+            purchased_price=amount,
             razorpay_order_id=razorpay_order['id'],
             payment_status='PENDING'
         )
 
         return Response({
-            'razorpay_order_id': razorpay_order['id'],
-            'amount': razorpay_order['amount'],
-            'currency': razorpay_order['currency'],
-            'key_id': settings.RAZORPAY_KEY_ID,
-            'plan': RechargePlanSerializer(plan).data
+            "message": "Order created. Proceed with payment.",
+            "razorpay_order_id": razorpay_order['id'],
+            "amount": float(amount),
+            "currency": "INR",
+            "key_id": settings.RAZORPAY_KEY_ID,
+            "plan": RechargePlanSerializer(plan).data
         }, status=status.HTTP_201_CREATED)
+
 
 
 class GetLatestRazorpayOrderView(APIView):
@@ -205,40 +208,50 @@ class GetLatestRazorpayOrderView(APIView):
             "user_id": user.id,
             "razorpay_order_id": latest_order.razorpay_order_id,
             "payment_status": latest_order.payment_status,
-            "amount": latest_order.purchased_price,
+            "amount": float(latest_order.purchased_price),
             "coins_purchased": latest_order.coins_purchased,
             "created_at": latest_order.created_at
         }, status=status.HTTP_200_OK)
 
 
+
 class HandlePaymentSuccessView(APIView):
     def post(self, request, razorpay_order_id):
         try:
-            # Get the payment ID linked to the order
+            # Get associated payment using Razorpay order ID
             payments = razorpay_client.order.payments(razorpay_order_id)
             if not payments['items']:
-                return Response({'message': 'No payment found for this order.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'error': 'No payment linked to this order.'}, status=status.HTTP_404_NOT_FOUND)
 
-            payment_id = payments['items'][0]['id']
-            amount = payments['items'][0]['amount']
+            payment = payments['items'][0]
+            payment_id = payment['id']
+            amount = payment['amount']
 
             # Capture payment
-            captured = razorpay_client.payment.capture(payment_id, amount)
+            razorpay_client.payment.capture(payment_id, amount)
 
-            # Update status in DB (optional)
+            # Update DB
             history = get_object_or_404(PurchaseHistories, razorpay_order_id=razorpay_order_id)
+            if history.payment_status == 'SUCCESS':
+                return Response({"message": "Payment already completed."})
+
             history.razorpay_payment_id = payment_id
             history.payment_status = 'SUCCESS'
             history.save()
 
+            # Add coins to user profile
+            user_profile = get_object_or_404(UserProfile, user_id=history.user.id)
+            user_profile.add_coins(history.coins_purchased)
+
             return Response({
-                'message': 'Payment captured successfully.',
-                'razorpay_payment_id': payment_id,
-                'amount': amount
+                "message": "Payment successful and coins added.",
+                "coins_added": history.coins_purchased,
+                "current_balance": user_profile.coin_balance
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response({'message': f'Capture failed: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({"error": f"Payment verification failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
     
 #withoutrazorpay
 class RechargeCoinsByPlanView(APIView):

@@ -85,7 +85,10 @@ REST_FRAMEWORK = {
 
 
 
-
+from decouple import Config, RepositoryEnv
+import os
+env_path = os.path.join(BASE_DIR, '.env')
+config = Config(RepositoryEnv(env_path))
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=150),  

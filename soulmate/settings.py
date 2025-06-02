@@ -83,12 +83,15 @@ REST_FRAMEWORK = {
     ),
 }
 
+<<<<<<< HEAD
 
 
 SESSION_COOKIE_AGE = 1800  # 30 mins = 1800 seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True  # To refresh expiry on activity
 SESSION_COOKIE_SECURE = True 
+=======
+>>>>>>> 31b41f616c80d735baaef3191f8cf16fdd845802
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=150),  

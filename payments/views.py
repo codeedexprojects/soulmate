@@ -24,8 +24,6 @@ from django.views import View
 from django.db import transaction
 import requests
 
-razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
 class CreateRechargePlanView(APIView):
     def post(self, request):

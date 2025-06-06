@@ -354,7 +354,7 @@ class UserStatisticsAPIView(APIView):
         # Get user data with aggregated statistics
         user_data = User.objects.annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('PurchaseHistories'),
+            total_purchases=Count('purchasehistories'),
             total_talktime=Sum('caller__duration')
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_online', 

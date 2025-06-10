@@ -252,6 +252,29 @@ class HandlePaymentSuccessView(APIView):
         except Exception as e:
             return Response({"error": f"Payment verification failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
+#verify
+class VerifyPaymentView(APIView):
+    def get(self, request, order_id):
+        try:
+            payments = razorpay_client.order.payments(order_id)
+            if not payments["items"]:
+                return Response({"status": "PENDING", "message": "No payment found"}, status=200)
+
+            payment = payments["items"][0]
+            if payment["status"] == "captured":
+                # Update DB (same as HandlePaymentSuccessView)
+                history = PurchaseHistories.objects.get(razorpay_order_id=order_id)
+                if history.payment_status != "SUCCESS":
+                    history.payment_status = "SUCCESS"
+                    history.razorpay_payment_id = payment["id"]
+                    history.save()
+                    user_profile = UserProfile.objects.get(user_id=history.user.id)
+                    user_profile.add_coins(history.coins_purchased)
+                return Response({"status": "SUCCESS", "message": "Payment verified and updated"})
+            else:
+                return Response({"status": "PENDING", "message": "Payment not yet captured"})
+        except Exception as e:
+            return Response({"error": str(e)}, status=400)
     
 #withoutrazorpay
 class RechargeCoinsByPlanView(APIView):

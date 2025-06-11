@@ -45,7 +45,7 @@ class Executives(AbstractBaseUser):
 
     name = models.CharField(max_length=100)
     mobile_number = models.CharField(max_length=15, unique=True, db_index=True)
-    email_id = models.EmailField(max_length=255, unique=True)
+    email_id = models.EmailField(unique=True, null=True, blank=True)
     password = models.CharField(max_length=128)
     age = models.PositiveIntegerField()
     # created_by = models.ForeignKey('analytics.Admins', on_delete=models.SET_NULL, null=True, blank=True)

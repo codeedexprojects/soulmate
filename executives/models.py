@@ -50,7 +50,7 @@ class Executives(AbstractBaseUser):
     age = models.PositiveIntegerField()
     # created_by = models.ForeignKey('analytics.Admins', on_delete=models.SET_NULL, null=True, blank=True)
     online = models.BooleanField(default=False)
-    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='male')
+    gender = models.CharField(max_length=20, choices=GENDER_CHOICES, default='male')
     coins_per_second = models.FloatField(default=3)
     education_qualification = models.CharField(max_length=255, null=True, blank=True)
     profession = models.CharField(max_length=255, null=True, blank=True)

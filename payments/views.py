@@ -218,7 +218,7 @@ class GetLatestRazorpayOrderView(APIView):
 class HandlePaymentSuccessView(APIView):
     def post(self, request, razorpay_order_id):
         try:
-            # Get associated payment using Razorpay order ID
+            # Step 1: Get payment from Razorpay
             payments = razorpay_client.order.payments(razorpay_order_id)
             if not payments['items']:
                 return Response({'error': 'No payment linked to this order.'}, status=status.HTTP_404_NOT_FOUND)
@@ -227,10 +227,10 @@ class HandlePaymentSuccessView(APIView):
             payment_id = payment['id']
             amount = payment['amount']
 
-            # Capture payment
+            # Step 2: Capture payment
             razorpay_client.payment.capture(payment_id, amount)
 
-            # Update DB
+            # Step 3: Update history record
             history = get_object_or_404(PurchaseHistories, razorpay_order_id=razorpay_order_id)
             if history.payment_status == 'SUCCESS':
                 return Response({"message": "Payment already completed."})
@@ -239,18 +239,20 @@ class HandlePaymentSuccessView(APIView):
             history.payment_status = 'SUCCESS'
             history.save()
 
-            # Add coins to user profile
-            user_profile = get_object_or_404(UserProfile, user_id=history.user.id)
+            # Step 4: Recharge user coins (reuse working logic)
+            user = history.user
+            user_profile, _ = UserProfile.objects.get_or_create(user=user)
             user_profile.add_coins(history.coins_purchased)
 
             return Response({
                 "message": "Payment successful and coins added.",
                 "coins_added": history.coins_purchased,
-                "current_balance": user_profile.coin_balance
+                "current_balance": user.coin_balance,  # or user_profile.coin_balance
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
             return Response({"error": f"Payment verification failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 #verify
 class VerifyPaymentView(APIView):

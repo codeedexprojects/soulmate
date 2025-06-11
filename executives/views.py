@@ -22,6 +22,7 @@ from django.http import Http404
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth.hashers import make_password
 from django.contrib.sessions.models import Session
+from django.contrib.auth.hashers import make_password, check_password
 
 #OTPAUTH
 class ExeRegisterOrLoginView(APIView):
@@ -58,48 +59,58 @@ class ExeRegisterOrLoginView(APIView):
                     "status": False
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        executive, created = Executives.objects.get_or_create(
-            mobile_number=mobile_number,
-            defaults={
-                "name": request.data.get("name", "Guest"),
-                "age": request.data.get("age", 18),
-                "email_id": request.data.get("email_id", ""),
-                "gender": request.data.get("gender", "unspecified"),
-                "profession": request.data.get("profession", "Not Provided"),
-                "skills": request.data.get("skills", ""),
-                "place": request.data.get("place", ""),
-                "status": "active",
-                "set_coin": request.data.get("set_coin", 0.0),
-                "total_on_duty_seconds": 0,
-                "total_talk_seconds_today": 0,
-                "total_picked_calls": 0,
-                "total_missed_calls": 0,
-                "is_suspended": False,
-                "is_banned": False,
-                "created_at": timezone.now(),
-                "device_id": device_id,
-                "manager_executive": manager_executive,
-                # "password": make_password(password),  # 🔒 Store hashed password
-            }
-        )
+        try:
+            executive = Executives.objects.get(mobile_number=mobile_number)
+            # ✅ Validate password
+            if not check_password(password, executive.password):
+                return Response({
+                    "message": "Invalid password.",
+                    "status": False
+                }, status=status.HTTP_401_UNAUTHORIZED)
 
-        if created and not executive.executive_id:
-            last_executive = Executives.objects.order_by('-id').first()
-            if last_executive and last_executive.executive_id and last_executive.executive_id.startswith('BTEX'):
-                last_number = int(last_executive.executive_id[4:])
-                executive.executive_id = f'BTEX{last_number + 1}'
-            else:
-                executive.executive_id = 'BTEX1000'
-            executive.save()
-
-        if not created:
+            # ✅ Update device_id and manager
             executive.device_id = device_id
             executive.manager_executive = manager_executive
-            # Optional: update password only if provided and different
-            if password:
-                executive.password = make_password(password)
             executive.save()
+            created = False
 
+        except Executives.DoesNotExist:
+            # ✅ Register new executive
+            executive = Executives.objects.create(
+                mobile_number=mobile_number,
+                name=request.data.get("name", "Guest"),
+                age=request.data.get("age", 18),
+                email_id=request.data.get("email_id", ""),
+                gender=request.data.get("gender", "unspecified"),
+                profession=request.data.get("profession", "Not Provided"),
+                skills=request.data.get("skills", ""),
+                place=request.data.get("place", ""),
+                status="active",
+                set_coin=request.data.get("set_coin", 0.0),
+                total_on_duty_seconds=0,
+                total_talk_seconds_today=0,
+                total_picked_calls=0,
+                total_missed_calls=0,
+                is_suspended=False,
+                is_banned=False,
+                created_at=timezone.now(),
+                device_id=device_id,
+                manager_executive=manager_executive,
+                password=make_password(password)  # 🔒 Hash password
+            )
+            created = True
+
+            # Generate executive_id
+            if not executive.executive_id:
+                last_executive = Executives.objects.order_by('-id').first()
+                if last_executive and last_executive.executive_id and last_executive.executive_id.startswith('BTEX'):
+                    last_number = int(last_executive.executive_id[4:])
+                    executive.executive_id = f'BTEX{last_number + 1}'
+                else:
+                    executive.executive_id = 'BTEX1000'
+                executive.save()
+
+        # ✅ Send OTP
         if send_otp(mobile_number, otp):
             executive.otp = otp
             executive.save()
@@ -112,7 +123,10 @@ class ExeRegisterOrLoginView(APIView):
                 "is_banned": executive.is_banned
             }, status=status.HTTP_200_OK)
 
-        return Response({"message": "Failed to send OTP."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({
+            "message": "Failed to send OTP.",
+            "status": False
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             
 class ExeVerifyOTPView(APIView):

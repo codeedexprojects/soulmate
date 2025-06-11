@@ -282,9 +282,13 @@ class RechargeCoinsByPlanView(APIView):
         plan = get_object_or_404(RechargePlan, id=plan_id)
         user = get_object_or_404(User, id=user_id)
 
+        # Ensure user has a profile
+        user_profile, created = UserProfile.objects.get_or_create(user=user)
+
         plan_price = plan.calculate_final_price()
 
-        user.add_coins(plan.coin_package)
+        # Add coins to profile and user
+        user_profile.add_coins(plan.coin_package)
 
         PurchaseHistories.objects.create(
             user=user,
@@ -303,7 +307,8 @@ class RechargeCoinsByPlanView(APIView):
                 referral_history.save()
 
                 referrer = referral_history.referrer
-                referrer.add_coins(300)
+                referrer_profile, _ = UserProfile.objects.get_or_create(user=referrer)
+                referrer_profile.add_coins(300)
                 referral_bonus_given = True
             else:
                 referral_bonus_skipped = True
@@ -319,7 +324,7 @@ class RechargeCoinsByPlanView(APIView):
         return Response({
             'message': response_message,
             'plan_details': plan_serializer.data,
-            'new_coin_balance': user.coin_balance
+            'new_coin_balance': user_profile.coin_balance
         }, status=status.HTTP_200_OK)
     
 class UserPurchaseHistoriesView(APIView):

@@ -46,7 +46,7 @@ class RegisterOrLoginView(APIView):
                 send_otp_2factor(mobile_number, otp)
             except Exception as e:
                 return Response(
-                    {'message': 'Failed to send OTP. Please try again later.', 'error': str(e)},
+                    {'message': 'Failed to send OTP. Please try again later.', 'message': str(e)},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
@@ -85,7 +85,7 @@ class RegisterOrLoginView(APIView):
                 send_otp_2factor(mobile_number, otp)
             except Exception as e:
                 return Response(
-                    {'message': 'Failed to send OTP. Please try again later.', 'error': str(e)},
+                    {'message': 'Failed to send OTP. Please try again later.', 'message': str(e)},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
@@ -293,10 +293,10 @@ class RateExecutiveView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except ValueError as ve:
-            return Response({'error': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': str(ve)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            return Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'message': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
 
@@ -334,7 +334,7 @@ class CarouselImageDetailView(APIView):
             serializer = CarouselImageSerializer(image)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except CarouselImage.DoesNotExist:
-            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
 
     def put(self, request, image_id):
         try:
@@ -345,7 +345,7 @@ class CarouselImageDetailView(APIView):
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except CarouselImage.DoesNotExist:
-            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
 
     def delete(self, request, image_id):
         try:
@@ -353,7 +353,7 @@ class CarouselImageDetailView(APIView):
             image.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except CarouselImage.DoesNotExist:
-            return Response({'error': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class CareerListCreateView(generics.ListCreateAPIView):
@@ -485,9 +485,9 @@ class BlockUserAPIView(APIView):
         reason = request.data.get('reason')
 
         if not user_id or not executive_id:
-            return Response({'error': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
         if not reason:
-            return Response({'error': 'Reason is required to block the user.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Reason is required to block the user.'}, status=status.HTTP_400_BAD_REQUEST)
 
         block_entry, created = UserBlock.objects.update_or_create(
             user_id=user_id,
@@ -507,7 +507,7 @@ class UnblockUserAPIView(APIView):
         executive_id = request.data.get('executive_id')
 
         if not user_id or not executive_id:
-            return Response({'error': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'User ID and Executive ID are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
         block_entry, created = UserBlock.objects.update_or_create(
             user_id=user_id,

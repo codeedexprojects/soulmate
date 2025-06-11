@@ -134,16 +134,18 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'voicydatabse', 
-        'USER': 'admin',       
-        'PASSWORD': 'admin123',
-        'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
+        'NAME': 'soulmate_db',
+        'USER': 'soulmate',
+        'PASSWORD': 'admin123',  
+        'HOST': 'soulmate.cp86aus24g28.ap-south-1.rds.amazonaws.com',
         'PORT': '3306',
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
         },
     }
 }
+
+
 TWO_FACTOR_API_KEY = '15b274f8-8600-11ef-8b17-0200cd936042'
 AGORA_APP_ID = '9626e8b5f847e6961cb9a996e1ae93'
 AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'

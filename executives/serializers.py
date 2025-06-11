@@ -128,7 +128,7 @@ class ExecutiveLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError({'mobile_number': 'Mobile number not found.'})
 
         if executive.is_banned:
-            raise serializers.ValidationError({'error': 'This executive has been banned.'})
+            raise serializers.ValidationError({'message': 'This executive has been banned.'})
 
         if not check_password(password, executive.password):
             raise serializers.ValidationError({'password': 'Incorrect password.'})

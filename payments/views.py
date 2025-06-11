@@ -23,7 +23,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.db import transaction
 import requests
-
+from users.models import UserProfile
 
 class CreateRechargePlanView(APIView):
     def post(self, request):

@@ -61,21 +61,18 @@ class ExeRegisterOrLoginView(APIView):
 
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
-            # ✅ Validate password
             if not check_password(password, executive.password):
                 return Response({
                     "message": "Invalid password.",
                     "status": False
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
-            # ✅ Update device_id and manager
             executive.device_id = device_id
             executive.manager_executive = manager_executive
             executive.save()
             created = False
 
         except Executives.DoesNotExist:
-            # ✅ Register new executive
             executive = Executives.objects.create(
                 mobile_number=mobile_number,
                 name=request.data.get("name", "Guest"),
@@ -96,11 +93,10 @@ class ExeRegisterOrLoginView(APIView):
                 created_at=timezone.now(),
                 device_id=device_id,
                 manager_executive=manager_executive,
-                password=make_password(password)  # 🔒 Hash password
+                password=make_password(password)  
             )
             created = True
 
-            # Generate executive_id
             if not executive.executive_id:
                 last_executive = Executives.objects.order_by('-id').first()
                 if last_executive and last_executive.executive_id and last_executive.executive_id.startswith('BTEX'):
@@ -110,7 +106,6 @@ class ExeRegisterOrLoginView(APIView):
                     executive.executive_id = 'BTEX1000'
                 executive.save()
 
-        # ✅ Send OTP
         if send_otp(mobile_number, otp):
             executive.otp = otp
             executive.save()

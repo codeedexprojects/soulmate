@@ -74,8 +74,15 @@ class User(AbstractBaseUser):
         super().save(*args, **kwargs)
 
     def add_coins(self, coins):
-        self.coin_balance += coins
-        self.save()
+        with transaction.atomic():
+            profile = UserProfile.objects.select_for_update().get(pk=self.pk)
+            profile.coin_balance += coins
+            profile.save()
+
+            user = profile.user
+            user.coin_balance += coins
+            user.save()
+
 
     def mark_as_dormant(self):
         if self.last_login:
@@ -107,10 +114,14 @@ class UserProfile(models.Model):
 
     def add_coins(self, coins):
         with transaction.atomic():
-            # Lock the row for update
             profile = UserProfile.objects.select_for_update().get(pk=self.pk)
             profile.coin_balance += coins
             profile.save()
+
+            user = profile.user
+            user.coin_balance += coins
+            user.save()
+
 class Favourite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     executive = models.ForeignKey(Executives, on_delete=models.CASCADE)

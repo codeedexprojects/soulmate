@@ -134,7 +134,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'voicydatabse', 
+        'NAME': 'voicydatabase', 
         'USER': 'admin',       
         'PASSWORD': 'admin123',
         'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',

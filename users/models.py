@@ -12,6 +12,7 @@ import uuid
 from executives.models import Executives
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.utils.timezone import now
+from django.db import transaction
 
 
 class CustomUserManager(BaseUserManager):
@@ -99,15 +100,17 @@ class User(AbstractBaseUser):
 
     def __str__(self):
         return self.name or self.mobile_number
-    
+        
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     coin_balance = models.PositiveIntegerField(default=0)
 
     def add_coins(self, coins):
-        self.coin_balance += coins
-        self.save()
-
+        with transaction.atomic():
+            # Lock the row for update
+            profile = UserProfile.objects.select_for_update().get(pk=self.pk)
+            profile.coin_balance += coins
+            profile.save()
 class Favourite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     executive = models.ForeignKey(Executives, on_delete=models.CASCADE)

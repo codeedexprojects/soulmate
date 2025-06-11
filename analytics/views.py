@@ -288,7 +288,7 @@ def call_history(request, user_id):
     try:
         user = User.objects.get(id=user_id)
     except User.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
     call_history = AgoraCallHistory.objects.filter(user=user).order_by('-start_time')
 
@@ -485,7 +485,7 @@ class ExecutiveStatusView(APIView):
             }, status=status.HTTP_200_OK)
 
         except Executives.DoesNotExist:
-            return Response({'error': 'Executive not found.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Executive not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 
 class CreateAdminView(generics.CreateAPIView):
@@ -669,7 +669,7 @@ class ExecutiveStatsView(viewsets.ViewSet):
         try:
             executive = Executives.objects.get(pk=pk)
         except Executives.DoesNotExist:
-            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.serializer_class(executive)
         response_data = serializer.data
@@ -683,7 +683,7 @@ class ExecutiveStatsView(viewsets.ViewSet):
         try:
             executive = Executives.objects.get(pk=pk)
         except Executives.DoesNotExist:
-            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.serializer_class(executive, data=request.data, partial=True)
         if serializer.is_valid():
@@ -703,7 +703,7 @@ class ExecutiveStatsView(viewsets.ViewSet):
         try:
             executive = Executives.objects.get(pk=pk)
         except Executives.DoesNotExist:
-            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # Get filtering parameters
         period = request.query_params.get('period', None)  # 'today', 'week', 'month'
@@ -727,7 +727,7 @@ class ExecutiveStatsView(viewsets.ViewSet):
         elif period == 'month':
             start_date = today - timedelta(days=30)
         else:
-            return Response({'error': 'Invalid period. Use "today", "week", or "month".'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Invalid period. Use "today", "week", or "month".'}, status=status.HTTP_400_BAD_REQUEST)
 
         # ✅ Filter call history for the given period
         filtered_calls = AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date)

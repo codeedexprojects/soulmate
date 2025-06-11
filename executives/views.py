@@ -292,7 +292,7 @@ class ExecutiveLogoutView(APIView):
             return Response({'message': 'Logout successful'}, status=status.HTTP_200_OK)
 
         except Executives.DoesNotExist:
-            return Response({'error': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class ListExecutivesView(generics.ListAPIView):
     queryset = Executives.objects.all()
@@ -547,13 +547,13 @@ class CoinRedemptionRequestView(APIView):
 
         if executive.coins_balance < coin_conversion.coins_earned:
             return Response(
-                {'error': 'Insufficient coin balance to withdraw'},
+                {'message': 'Insufficient coin balance to withdraw'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         upi_id = request.data.get('upi_id')
         if not upi_id:
-            return Response({'error': 'UPI ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'UPI ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
         executive.coins_balance -= coin_conversion.coins_earned
         executive.save()

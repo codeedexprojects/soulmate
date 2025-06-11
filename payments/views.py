@@ -221,7 +221,7 @@ class HandlePaymentSuccessView(APIView):
             # Step 1: Get payment from Razorpay
             payments = razorpay_client.order.payments(razorpay_order_id)
             if not payments['items']:
-                return Response({'error': 'No payment linked to this order.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'message': 'No payment linked to this order.'}, status=status.HTTP_404_NOT_FOUND)
 
             payment = payments['items'][0]
             payment_id = payment['id']
@@ -686,7 +686,7 @@ def cashfree_webhook(request, order_id):
     try:
         purchase = PurchaseHistories.objects.get(order_id=order_id)
     except PurchaseHistories.DoesNotExist:
-        return Response({'error': 'Order not found'}, status=404)
+        return Response({'message': 'Order not found'}, status=404)
 
     if txn_status == 'SUCCESS' and purchase.payment_status != 'SUCCESS':
         user = purchase.user

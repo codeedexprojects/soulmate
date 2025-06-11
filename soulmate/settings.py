@@ -134,13 +134,13 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'soulmate_db',
-        'USER': 'soulmate',
-        'PASSWORD': 'admin123',  
-        'HOST': 'soulmate.cp86aus24g28.ap-south-1.rds.amazonaws.com',
+        'NAME': 'voicydatabase', 
+        'USER': 'admin',       
+        'PASSWORD': 'admin123',
+        'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
         'PORT': '3306',
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }

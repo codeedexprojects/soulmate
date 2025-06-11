@@ -59,8 +59,11 @@ class ExeRegisterOrLoginView(APIView):
                     "status": False
                 }, status=status.HTTP_400_BAD_REQUEST)
 
+        email = request.data.get("email_id") or None 
+
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
+
             if not check_password(password, executive.password):
                 return Response({
                     "message": "Invalid password.",
@@ -77,7 +80,7 @@ class ExeRegisterOrLoginView(APIView):
                 mobile_number=mobile_number,
                 name=request.data.get("name", "Guest"),
                 age=request.data.get("age", 18),
-                email_id=request.data.get("email_id", ""),
+                email_id=email, 
                 gender=request.data.get("gender", "unspecified"),
                 profession=request.data.get("profession", "Not Provided"),
                 skills=request.data.get("skills", ""),
@@ -93,7 +96,7 @@ class ExeRegisterOrLoginView(APIView):
                 created_at=timezone.now(),
                 device_id=device_id,
                 manager_executive=manager_executive,
-                password=make_password(password)  
+                password=make_password(password)
             )
             created = True
 

@@ -118,13 +118,21 @@ class ExeVerifyOTPView(APIView):
         executive = Executives.objects.filter(mobile_number=mobile_number, otp=otp).first()
 
         if not executive:
-            return Response({"message": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "Invalid OTP.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
         executive.is_verified = True
-        executive.otp = None  # Clear OTP instead of deleting the record
+        executive.otp = None  # Clear OTP
         executive.save()
 
-        return Response({"message": "OTP verified successfully.", "executive_id": executive.id}, status=status.HTTP_200_OK)
+        return Response({
+            "message": "OTP verified successfully.",
+            "executive_id": executive.id,
+            "device_id": executive.device_id,
+            "status": True,
+            "is_suspended": executive.is_suspended,
+            "is_banned": executive.is_banned
+        }, status=status.HTTP_200_OK)
+
 
     
 #Authentication

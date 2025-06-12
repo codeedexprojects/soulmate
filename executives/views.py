@@ -116,6 +116,7 @@ class ExeRegisterOrLoginView(APIView):
                 "message": "OTP sent to your mobile number.",
                 "id": executive.id,
                 "executive_id":executive.executive_id,
+                "name":executive.name,
                 "device_id": device_id,
                 "status": True,
                 "is_suspended": executive.is_suspended,
@@ -134,25 +135,49 @@ class ExeVerifyOTPView(APIView):
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get("mobile_number")
         otp = request.data.get("otp")
+        device_id = request.data.get("device_id")  
 
-        executive = Executives.objects.filter(mobile_number=mobile_number, otp=otp).first()
+        try:
+            executive = Executives.objects.get(mobile_number=mobile_number, otp=otp)
+            
+            if executive.online and not executive.is_logged_out and executive.device_id != device_id:
+                return Response(
+                    {"message": "Already logged in on another device. Please logout from that device to continue."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            if executive.online and executive.check_activity_timeout():
+                executive.online = False
+                executive.is_logged_out = True
+                executive.save(update_fields=['online', 'is_logged_out'])
+                return Response(
+                    {"message": "Session expired. Please login again."},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
 
-        if not executive:
+            executive.is_verified = True
+            executive.otp = None 
+            executive.online = True
+            executive.is_logged_out = False
+            executive.last_activity = timezone.now()
+            executive.device_id = device_id
+            executive.save()
+
+            return Response({
+                "message": "OTP verified successfully.",
+                "id": executive.id,
+                "executive_id": executive.executive_id,
+                "name": executive.name,
+                "device_id": executive.device_id,
+                "status": True,
+                "is_suspended": executive.is_suspended,
+                "is_banned": executive.is_banned,
+                "online": executive.online,
+                "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES
+            }, status=status.HTTP_200_OK)
+
+        except Executives.DoesNotExist:
             return Response({"message": "Invalid OTP.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
-
-        executive.is_verified = True
-        executive.otp = None  # Clear OTP
-        executive.save()
-
-        return Response({
-            "message": "OTP verified successfully.",
-            "id": executive.id,
-            "executive_id":executive.executive_id,
-            "device_id": executive.device_id,
-            "status": True,
-            "is_suspended": executive.is_suspended,
-            "is_banned": executive.is_banned
-        }, status=status.HTTP_200_OK)
 
 
     

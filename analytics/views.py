@@ -28,6 +28,7 @@ from django.db.models import Sum, DurationField
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Count
+from users.utils import send_otp_2factor
 
 
 class PlatformAnalyticsView(APIView):
@@ -495,7 +496,64 @@ class CreateAdminView(generics.CreateAPIView):
 class AdminDetailUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
-    
+
+class SendPasswordResetOTPView(APIView):
+    def post(self, request):
+        serializer = SendOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        mobile_number = serializer.validated_data['mobile_number']
+
+        try:
+            admin = Admins.objects.get(mobile_number=mobile_number)
+        except Admins.DoesNotExist:
+            return Response({'message': 'Admin with this mobile number does not exist.'},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+
+        # Save OTP
+        admin.otp = otp
+        admin.otp_created_at = timezone.now()
+        admin.otp_attempts = 0
+        admin.save()
+
+        # Send OTP via 2factor
+        try:
+            send_otp_2factor(mobile_number, otp)
+        except Exception as e:
+            return Response({'message': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(
+            {
+                'message': 'OTP sent successfully',
+                'expires_in': '5 minutes'
+            },
+            status=status.HTTP_200_OK
+        )
+
+class VerifyOTPResetPasswordView(APIView):
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        admin = serializer.validated_data['admin']
+        new_password = serializer.validated_data['new_password']
+
+        # Update password and clear OTP
+        admin.set_password(new_password)
+        admin.otp = None
+        admin.otp_created_at = None
+        admin.otp_attempts = 0
+        admin.save()
+
+        return Response(
+            {'message': 'Password reset successfully'},
+            status=status.HTTP_200_OK
+        )
+
+
 
 class ListAdminView(generics.ListAPIView):
     queryset = Admins.objects.all()

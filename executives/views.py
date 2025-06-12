@@ -114,7 +114,8 @@ class ExeRegisterOrLoginView(APIView):
             executive.save()
             return Response({
                 "message": "OTP sent to your mobile number.",
-                "executive_id": executive.id,
+                "id": executive.id,
+                "executive_id":executive.executive_id,
                 "device_id": device_id,
                 "status": True,
                 "is_suspended": executive.is_suspended,
@@ -145,7 +146,8 @@ class ExeVerifyOTPView(APIView):
 
         return Response({
             "message": "OTP verified successfully.",
-            "executive_id": executive.id,
+            "id": executive.id,
+            "executive_id":executive.executive_id,
             "device_id": executive.device_id,
             "status": True,
             "is_suspended": executive.is_suspended,

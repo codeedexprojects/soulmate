@@ -333,7 +333,7 @@ class PurchaseHistoryListView(generics.ListAPIView):
     serializer_class = PurchaseHistoriesSerializer
 
     def get_queryset(self):
-        return PurchaseHistories.objects.filter(user=self.request.user).order_by('-purchase_date')
+        return PurchaseHistories.objects.all().order_by('-purchase_date')
 
 class UserPurchaseHistoriesView(APIView):
     def get(self, request, user_id):

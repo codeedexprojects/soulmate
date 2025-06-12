@@ -9,6 +9,9 @@ urlpatterns = [
     path('executive/verify-otp/', ExeVerifyOTPView.as_view(), name='executive-verify-otp'),
     path('logout-executive/<int:executive_id>/', ExecutiveLogoutView.as_view(), name='logout-executive'),
 
+    path('executive/fixed-login/', FixedCredentialLoginView.as_view(), name='executive-fixed-login'),
+    path('executive/fixed-verify-otp/', FixedCredentialVerifyOTPView.as_view(), name='executive-fixed-verify-otp'),
+
     path('all-executives/', ListExecutivesView.as_view(), name='list_executives'),
     path('single-executives/<int:pk>/', ExecutiveDetailView.as_view(), name='executive-detail'),
     path('executives-byuser/<int:user_id>/', ListExecutivesByUserView.as_view(), name='executives-by-user'),

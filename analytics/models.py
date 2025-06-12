@@ -26,7 +26,9 @@ class Admins(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
     mobile_number = models.CharField(max_length=15, unique=True,null=True)
-    
+    otp = models.CharField(max_length=6, null=True, blank=True)
+    otp_created_at = models.DateTimeField(null=True, blank=True)
+    otp_attempts = models.PositiveSmallIntegerField(default=0)
     is_staff = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)

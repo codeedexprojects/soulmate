@@ -158,20 +158,100 @@ class ExeVerifyOTPView(APIView):
 
     
 #Authentication
+# class RegisterExecutiveView(generics.CreateAPIView):
+#     queryset = Executives.objects.all()
+#     serializer_class = ExecutivesSerializer
+
+#     def create(self, request, *args, **kwargs):
+#         mobile_number = request.data.get("mobile_number")
+
+#         if not mobile_number:
+#             return Response({"message": "Mobile number is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Auto-generate device_id if not provided
+#         device_id = request.data.get("device_id") or str(uuid.uuid4())
+
+#         # Get the manager executive
+#         manager_executive_id = request.data.get("manager_executive")
+#         manager_executive = None
+#         if manager_executive_id:
+#             try:
+#                 manager_executive = Admins.objects.get(id=manager_executive_id)
+#             except Admins.DoesNotExist:
+#                 return Response({"message": "Manager executive not found.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
+
+#         # Ensure password is hashed
+#         raw_password = request.data.get("password")
+#         if not raw_password:
+#             return Response({"message": "Password is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
+#         hashed_password = make_password(raw_password)
+
+#         # Create or update the executive
+#         executive, created = Executives.objects.get_or_create(
+#             mobile_number=mobile_number,
+#             defaults={
+#                 "name": request.data.get("name", "Guest"),
+#                 "age": request.data.get("age", 18),
+#                 "email_id": request.data.get("email_id") or None,
+#                 "gender": request.data.get("gender", "unspecified"),
+#                 "profession": request.data.get("profession", "Not Provided"),
+#                 "skills": request.data.get("skills", ""),
+#                 "place": request.data.get("place", ""),
+#                 "status": "active",
+#                 "set_coin": request.data.get("set_coin", 0.0),
+#                 "total_on_duty_seconds": 0,
+#                 "total_talk_seconds_today": 0,
+#                 "total_picked_calls": 0,
+#                 "total_missed_calls": 0,
+#                 "is_suspended": False,
+#                 "is_banned": False,
+#                 "created_at": timezone.now(),
+#                 "device_id": device_id,
+#                 "manager_executive": manager_executive,
+#                 "password": hashed_password,  # Storing hashed password
+#             }
+#         )
+
+#         # Auto-generate executive_id if not already assigned
+#         if created and not executive.executive_id:
+#             last_executive = Executives.objects.order_by('-id').first()
+#             if last_executive and last_executive.executive_id.startswith('BTEX'):
+#                 last_number = int(last_executive.executive_id[4:])
+#                 executive.executive_id = f'BTEX{last_number + 1}'
+#             else:
+#                 executive.executive_id = 'BTEX1000'
+#             executive.save()
+
+#         # Update existing executive with device_id, manager, and password if necessary
+#         if not created:
+#             executive.device_id = device_id
+#             executive.manager_executive = manager_executive
+
+#             # Update password if provided (for existing executive)
+#             if raw_password:
+#                 executive.password = hashed_password
+
+#             executive.save()
+
+#         serializer = self.get_serializer(executive)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 class RegisterExecutiveView(generics.CreateAPIView):
     queryset = Executives.objects.all()
     serializer_class = ExecutivesSerializer
 
     def create(self, request, *args, **kwargs):
         mobile_number = request.data.get("mobile_number")
-
         if not mobile_number:
             return Response({"message": "Mobile number is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Auto-generate device_id if not provided
         device_id = request.data.get("device_id") or str(uuid.uuid4())
+        raw_password = request.data.get("password")
+        if not raw_password:
+            return Response({"message": "Password is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Get the manager executive
+        hashed_password = make_password(raw_password)
+
         manager_executive_id = request.data.get("manager_executive")
         manager_executive = None
         if manager_executive_id:
@@ -180,61 +260,61 @@ class RegisterExecutiveView(generics.CreateAPIView):
             except Admins.DoesNotExist:
                 return Response({"message": "Manager executive not found.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Ensure password is hashed
-        raw_password = request.data.get("password")
-        if not raw_password:
-            return Response({"message": "Password is required.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
-        hashed_password = make_password(raw_password)
+        try:
+            executive = Executives.objects.get(mobile_number=mobile_number)
+            serializer = self.get_serializer(executive)
+            return Response(
+                {
+                    "message": "Executive already registered.",
+                    "status": False,
+                    "executive": serializer.data
+                },
+                status=status.HTTP_200_OK
+            )
+        except Executives.DoesNotExist:
+            pass
 
-        # Create or update the executive
-        executive, created = Executives.objects.get_or_create(
+        # Create new executive
+        executive = Executives.objects.create(
             mobile_number=mobile_number,
-            defaults={
-                "name": request.data.get("name", "Guest"),
-                "age": request.data.get("age", 18),
-                "email_id": request.data.get("email_id") or None,
-                "gender": request.data.get("gender", "unspecified"),
-                "profession": request.data.get("profession", "Not Provided"),
-                "skills": request.data.get("skills", ""),
-                "place": request.data.get("place", ""),
-                "status": "active",
-                "set_coin": request.data.get("set_coin", 0.0),
-                "total_on_duty_seconds": 0,
-                "total_talk_seconds_today": 0,
-                "total_picked_calls": 0,
-                "total_missed_calls": 0,
-                "is_suspended": False,
-                "is_banned": False,
-                "created_at": timezone.now(),
-                "device_id": device_id,
-                "manager_executive": manager_executive,
-                "password": hashed_password,  # Storing hashed password
-            }
+            name=request.data.get("name", "Guest"),
+            age=request.data.get("age", 18),
+            email_id=request.data.get("email_id") or None,
+            gender=request.data.get("gender", "unspecified"),
+            profession=request.data.get("profession", "Not Provided"),
+            skills=request.data.get("skills", ""),
+            place=request.data.get("place", ""),
+            status="active",
+            set_coin=request.data.get("set_coin", 0.0),
+            total_on_duty_seconds=0,
+            total_talk_seconds_today=0,
+            total_picked_calls=0,
+            total_missed_calls=0,
+            is_suspended=False,
+            is_banned=False,
+            created_at=timezone.now(),
+            device_id=device_id,
+            manager_executive=manager_executive,
+            password=hashed_password
         )
 
-        # Auto-generate executive_id if not already assigned
-        if created and not executive.executive_id:
-            last_executive = Executives.objects.order_by('-id').first()
-            if last_executive and last_executive.executive_id.startswith('BTEX'):
-                last_number = int(last_executive.executive_id[4:])
-                executive.executive_id = f'BTEX{last_number + 1}'
-            else:
-                executive.executive_id = 'BTEX1000'
-            executive.save()
-
-        # Update existing executive with device_id, manager, and password if necessary
-        if not created:
-            executive.device_id = device_id
-            executive.manager_executive = manager_executive
-
-            # Update password if provided (for existing executive)
-            if raw_password:
-                executive.password = hashed_password
-
-            executive.save()
+        last_executive = Executives.objects.order_by('-id').first()
+        if last_executive and last_executive.executive_id and last_executive.executive_id.startswith('BTEX'):
+            last_number = int(last_executive.executive_id[4:])
+            executive.executive_id = f'BTEX{last_number + 1}'
+        else:
+            executive.executive_id = 'BTEX1000'
+        executive.save()
 
         serializer = self.get_serializer(executive)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "message": "Executive registered successfully.",
+                "status": True,
+                "executive": serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 class ExecutiveLoginView(APIView):
     def post(self, request):

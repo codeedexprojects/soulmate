@@ -43,32 +43,46 @@ class AdminSerializer(serializers.ModelSerializer):
         return str(refresh)
 
 
-class PasswordResetSerializer(serializers.Serializer):
+class SendOTPSerializer(serializers.Serializer):
+    mobile_number = serializers.CharField(max_length=15)
+
+    def validate_mobile_number(self, value):
+        if not Admins.objects.filter(mobile_number=value).exists():
+            raise serializers.ValidationError("No admin found with this mobile number")
+        return value
+
+
+class VerifyOTPSerializer(serializers.Serializer):
     mobile_number = serializers.CharField(max_length=15)
     otp = serializers.CharField(max_length=6)
-    new_password = serializers.CharField(write_only=True, min_length=8)
+    new_password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        style={'input_type': 'password'}
+    )
 
     def validate(self, attrs):
-        mobile_number = attrs.get('mobile_number')
-        otp = attrs.get('otp')
-        
+        mobile_number = attrs['mobile_number']
+        otp = attrs['otp']
+
         try:
             admin = Admins.objects.get(mobile_number=mobile_number)
         except Admins.DoesNotExist:
-            raise serializers.ValidationError("No admin found with this mobile number")
-        
-        # Here you would verify the OTP (implementation depends on your OTP service)
-        if not self.verify_otp(mobile_number, otp):
-            raise serializers.ValidationError("Invalid OTP")
-            
+            raise serializers.ValidationError(
+                {"mobile_number": "No admin found with this mobile number"}
+            )
+
+        # OTP verification logic
+        if not admin.otp or admin.otp != otp:
+            admin.otp_attempts += 1
+            admin.save()
+            raise serializers.ValidationError({"otp": "Invalid OTP"})
+
+        if admin.otp_created_at and (timezone.now() > admin.otp_created_at + timedelta(minutes=5)):
+            raise serializers.ValidationError({"otp": "OTP has expired"})
+
         attrs['admin'] = admin
         return attrs
-    
-    def verify_otp(self, mobile_number, otp):
-        # Implement your OTP verification logic here
-        # This could check against a stored OTP in the database
-        # or verify with your OTP service provider
-        return True  # Replace with actual verification
 
 
 class AdminLoginSerializer(serializers.Serializer):

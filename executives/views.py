@@ -211,7 +211,7 @@ class FixedCredentialLoginView(APIView):
 
 class FixedCredentialVerifyOTPView(APIView):
     permission_classes = [AllowAny]
-    FIXED_OTP = "4321"
+    FIXED_OTP = "999999"
 
     def post(self, request, *args, **kwargs):
         mobile_number = request.data.get("mobile_number")

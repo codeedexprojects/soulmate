@@ -64,6 +64,21 @@ class ExeRegisterOrLoginView(APIView):
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
 
+            if executive.online and not executive.is_logged_out and executive.device_id != device_id:
+                return Response(
+                    {"message": "Already logged in on another device. Please logout from that device to continue."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            if executive.online and executive.check_activity_timeout():
+                executive.online = False
+                executive.is_logged_out = True
+                executive.save(update_fields=['online', 'is_logged_out'])
+                return Response(
+                    {"message": "Session expired. Please login again."},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
             if not check_password(password, executive.password):
                 return Response({
                     "message": "Invalid password.",
@@ -72,6 +87,8 @@ class ExeRegisterOrLoginView(APIView):
 
             executive.device_id = device_id
             executive.manager_executive = manager_executive
+            executive.online = False  
+            executive.is_logged_out = True
             executive.save()
             created = False
 
@@ -96,7 +113,9 @@ class ExeRegisterOrLoginView(APIView):
                 created_at=timezone.now(),
                 device_id=device_id,
                 manager_executive=manager_executive,
-                password=make_password(password)
+                password=make_password(password),
+                online=False,
+                is_logged_out=True
             )
             created = True
 
@@ -115,12 +134,14 @@ class ExeRegisterOrLoginView(APIView):
             return Response({
                 "message": "OTP sent to your mobile number.",
                 "id": executive.id,
-                "executive_id":executive.executive_id,
-                "name":executive.name,
+                "executive_id": executive.executive_id,
+                "name": executive.name,
                 "device_id": device_id,
                 "status": True,
                 "is_suspended": executive.is_suspended,
-                "is_banned": executive.is_banned
+                "is_banned": executive.is_banned,
+                "online": executive.online,
+                "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES if hasattr(executive, 'AUTO_LOGOUT_MINUTES') else None
             }, status=status.HTTP_200_OK)
 
         return Response({

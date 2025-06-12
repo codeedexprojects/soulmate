@@ -328,7 +328,13 @@ class RechargeCoinsByPlanView(APIView):
             'plan_details': plan_serializer.data,
             'new_coin_balance': user_profile.coin_balance
         }, status=status.HTTP_200_OK)
-    
+
+class PurchaseHistoryListView(generics.ListAPIView):
+    serializer_class = PurchaseHistoriesSerializer
+
+    def get_queryset(self):
+        return PurchaseHistories.objects.filter(user=self.request.user).order_by('-purchase_date')
+
 class UserPurchaseHistoriesView(APIView):
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)

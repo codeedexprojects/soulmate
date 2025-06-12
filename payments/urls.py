@@ -18,6 +18,7 @@ urlpatterns = [
     path('categories-with-plans/', CategoryWithPlansListView.as_view(), name='categories-with-plans'),
     path('categories-with-plans/<int:category_id>/', RechargePlanListByCategoryView.as_view(), name='categories-with-plans-id'),
     path('purchase-history/<int:user_id>/', UserPurchaseHistoriesView.as_view(), name='purchase-history'),
+    path('user/purchase-history/', PurchaseHistoryListView.as_view(), name='purchase-history'),
     path('statistics/', StatisticsAPIView.as_view(), name='statistics'),
     path('user-statistics/', UserStatisticsAPIView.as_view(), name='user-statistics'),
     path('user-statistics/<int:user_id>/', UserStatisticsDetailAPIView.as_view(), name='user-statistics'),

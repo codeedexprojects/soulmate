@@ -29,6 +29,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Count
 from users.utils import send_otp_2factor
+import random
 
 
 class PlatformAnalyticsView(APIView):

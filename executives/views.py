@@ -192,7 +192,7 @@ class RegisterExecutiveView(generics.CreateAPIView):
             defaults={
                 "name": request.data.get("name", "Guest"),
                 "age": request.data.get("age", 18),
-                "email_id": request.data.get("email_id", ""),
+                "email_id": request.data.get("email_id") or None,
                 "gender": request.data.get("gender", "unspecified"),
                 "profession": request.data.get("profession", "Not Provided"),
                 "skills": request.data.get("skills", ""),

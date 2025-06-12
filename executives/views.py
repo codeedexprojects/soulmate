@@ -396,7 +396,7 @@ class ExecutiveLogoutView(APIView):
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
 class ListExecutivesView(generics.ListAPIView):
-    queryset = Executives.objects.all()
+    queryset = Executives.objects.all().order_by('-created_at')
     serializer_class = ExecutivesSerializer
 
 class ListExecutivesByUserView(generics.ListAPIView):

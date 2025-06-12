@@ -43,6 +43,34 @@ class AdminSerializer(serializers.ModelSerializer):
         return str(refresh)
 
 
+class PasswordResetSerializer(serializers.Serializer):
+    mobile_number = serializers.CharField(max_length=15)
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, attrs):
+        mobile_number = attrs.get('mobile_number')
+        otp = attrs.get('otp')
+        
+        try:
+            admin = Admins.objects.get(mobile_number=mobile_number)
+        except Admins.DoesNotExist:
+            raise serializers.ValidationError("No admin found with this mobile number")
+        
+        # Here you would verify the OTP (implementation depends on your OTP service)
+        if not self.verify_otp(mobile_number, otp):
+            raise serializers.ValidationError("Invalid OTP")
+            
+        attrs['admin'] = admin
+        return attrs
+    
+    def verify_otp(self, mobile_number, otp):
+        # Implement your OTP verification logic here
+        # This could check against a stored OTP in the database
+        # or verify with your OTP service provider
+        return True  # Replace with actual verification
+
+
 class AdminLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)

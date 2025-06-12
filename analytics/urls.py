@@ -16,6 +16,7 @@ urlpatterns = [
 
     path('create-admin/', CreateAdminView.as_view(), name='create-admin'),
     path('admin-login/', SuperuserLoginView.as_view(), name='admin-login'),
+    path('admin/update/<int:pk>/',AdminDetailUpdate.as_view(), name='update-admin'),
     path('admin-logout/', AdminLogoutView.as_view(), name='admin_logout'),
     path('admins/', ListAdminView.as_view(), name='list-admins'),
     path('executives/under-manager/<int:manager_id>/', ExecutivesUnderManagerView.as_view(), name="executives-under-manager"),

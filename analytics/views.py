@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from datetime import  timedelta
+
 from .models import *
 from .serializers import *
 from executives.models import Executives
@@ -15,6 +16,7 @@ from calls.models import AgoraCallHistory,TalkTime,CallRating
 from payments.models import PurchaseHistories
 from django.utils.timezone import now
 from django.utils import timezone
+from datetime import timedelta
 from rest_framework.decorators import api_view
 from calls.serializers import TalkTimeHistorySerializer,TalkTimeHistoryMinimalSerializer,CallHistorySerializer,CallRatingSerializer,ExecutiveOnCallSerializer
 from rest_framework.exceptions import NotFound

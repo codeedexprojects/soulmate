@@ -8,6 +8,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
 from executives.models import Executives
 from datetime import timedelta
+from django.utils import timezone
 
 
 

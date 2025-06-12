@@ -175,10 +175,9 @@ class FixedCredentialLoginView(APIView):
             defaults={
                 "name": "Fixed Executive",
                 "age": 30,
-                "gender": "Male",
-                "address": "Test Address",
+                "gender": "Male",  # Ensure 'gender' exists in model
                 "executive_id": f"EXEC-{uuid.uuid4().hex[:8].upper()}",
-                "password": make_password("admin@123"),  # fixed password hashed
+                "password": make_password("admin@123"),
                 "is_verified": False,
                 "is_logged_out": True,
                 "online": False,
@@ -188,7 +187,6 @@ class FixedCredentialLoginView(APIView):
             }
         )
 
-        # Check if password matches (only if already exists)
         if not created and not check_password(password, executive.password):
             return Response({
                 "message": "Invalid password.",
@@ -208,7 +206,7 @@ class FixedCredentialLoginView(APIView):
             "name": executive.name,
             "device_id": executive.device_id,
             "status": True,
-            "otp": otp  # for testing, you might not return this in production
+            "otp": otp  # For testing; remove in production
         }, status=status.HTTP_200_OK)
 
 class FixedCredentialVerifyOTPView(APIView):

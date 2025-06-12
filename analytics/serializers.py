@@ -18,7 +18,7 @@ class AdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Admins
-        fields = ['id', 'email', 'name', 'password', 'is_staff', 'is_active', 'is_superuser', 'role', 'access_token', 'refresh_token']
+        fields = ['id', 'email', 'name', 'password', 'is_staff','mobile_number', 'is_active', 'is_superuser', 'role', 'access_token', 'refresh_token']
 
     def create(self, validated_data):
         admin = Admins.objects.create(

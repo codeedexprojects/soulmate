@@ -25,6 +25,7 @@ class Admins(AbstractBaseUser, PermissionsMixin):
   
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
+    mobile_number = models.CharField(max_length=15, unique=True,null=True)
     
     is_staff = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)

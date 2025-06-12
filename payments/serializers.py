@@ -84,10 +84,10 @@ class PurchaseHistoriesSerializer(serializers.ModelSerializer):
     base_price = serializers.CharField(source='recharge_plan.base_price', read_only=True)
     final_amount = serializers.SerializerMethodField()
     purchase_date = serializers.SerializerMethodField()
-
+    user_id = serializers.CharField(source='user.user_id',read_only=True)
     class Meta:
         model = PurchaseHistories
-        fields = ['id', 'recharge_plan', 'coins_purchased', 'purchased_price', 'base_price', 'final_amount', 'purchase_date']
+        fields = ['id', 'recharge_plan', 'user_id','coins_purchased', 'purchased_price', 'base_price', 'final_amount', 'purchase_date']
 
     def get_final_amount(self, obj):
         return obj.recharge_plan.calculate_final_price()

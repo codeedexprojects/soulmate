@@ -48,19 +48,6 @@ class ExeRegisterOrLoginView(APIView):
 
         otp = generate_otp()
 
-        manager_executive_id = request.data.get("manager_executive")
-        manager_executive = None
-        if manager_executive_id:
-            try:
-                manager_executive = Admins.objects.get(id=manager_executive_id)
-            except Admins.DoesNotExist:
-                return Response({
-                    "message": "Manager executive not found.",
-                    "status": False
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-        email = request.data.get("email_id") or None 
-
         try:
             executive = Executives.objects.get(mobile_number=mobile_number)
 
@@ -86,68 +73,36 @@ class ExeRegisterOrLoginView(APIView):
                 }, status=status.HTTP_401_UNAUTHORIZED)
 
             executive.device_id = device_id
-            executive.manager_executive = manager_executive
             executive.online = False  
             executive.is_logged_out = True
             executive.save()
-            created = False
+
+            if send_otp(mobile_number, otp):
+                executive.otp = otp
+                executive.save()
+                return Response({
+                    "message": "OTP sent to your mobile number.",
+                    "id": executive.id,
+                    "executive_id": executive.executive_id,
+                    "name": executive.name,
+                    "device_id": device_id,
+                    "status": True,
+                    "is_suspended": executive.is_suspended,
+                    "is_banned": executive.is_banned,
+                    "online": executive.online,
+                    "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES if hasattr(executive, 'AUTO_LOGOUT_MINUTES') else None
+                }, status=status.HTTP_200_OK)
+
+            return Response({
+                "message": "Failed to send OTP.",
+                "status": False
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         except Executives.DoesNotExist:
-            executive = Executives.objects.create(
-                mobile_number=mobile_number,
-                name=request.data.get("name", "Guest"),
-                age=request.data.get("age", 18),
-                email_id=email, 
-                gender=request.data.get("gender", "unspecified"),
-                profession=request.data.get("profession", "Not Provided"),
-                skills=request.data.get("skills", ""),
-                place=request.data.get("place", ""),
-                status="active",
-                set_coin=request.data.get("set_coin", 0.0),
-                total_on_duty_seconds=0,
-                total_talk_seconds_today=0,
-                total_picked_calls=0,
-                total_missed_calls=0,
-                is_suspended=False,
-                is_banned=False,
-                created_at=timezone.now(),
-                device_id=device_id,
-                manager_executive=manager_executive,
-                password=make_password(password),
-                online=False,
-                is_logged_out=True
-            )
-            created = True
-
-            if not executive.executive_id:
-                last_executive = Executives.objects.order_by('-id').first()
-                if last_executive and last_executive.executive_id and last_executive.executive_id.startswith('BTEX'):
-                    last_number = int(last_executive.executive_id[4:])
-                    executive.executive_id = f'BTEX{last_number + 1}'
-                else:
-                    executive.executive_id = 'BTEX1000'
-                executive.save()
-
-        if send_otp(mobile_number, otp):
-            executive.otp = otp
-            executive.save()
             return Response({
-                "message": "OTP sent to your mobile number.",
-                "id": executive.id,
-                "executive_id": executive.executive_id,
-                "name": executive.name,
-                "device_id": device_id,
-                "status": True,
-                "is_suspended": executive.is_suspended,
-                "is_banned": executive.is_banned,
-                "online": executive.online,
-                "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES if hasattr(executive, 'AUTO_LOGOUT_MINUTES') else None
-            }, status=status.HTTP_200_OK)
-
-        return Response({
-            "message": "Failed to send OTP.",
-            "status": False
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                "message": "Executive not found. Please register first.",
+                "status": False
+            }, status=status.HTTP_404_NOT_FOUND)
 
             
 class ExeVerifyOTPView(APIView):

@@ -156,6 +156,100 @@ class ExeVerifyOTPView(APIView):
             return Response({"message": "Invalid OTP.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
+class FixedCredentialLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    FIXED_MOBILE = "9876543210"
+    FIXED_PASSWORD = "admin@123"
+    FIXED_OTP = "4321"
+
+    def post(self, request, *args, **kwargs):
+        mobile_number = request.data.get("mobile_number")
+        password = request.data.get("password")
+        device_id = request.data.get("device_id") or str(uuid.uuid4())
+
+        if not mobile_number or not password:
+            return Response({
+                "message": "Mobile number and password are required.",
+                "status": False
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if mobile_number != self.FIXED_MOBILE or password != self.FIXED_PASSWORD:
+            return Response({
+                "message": "Invalid credentials.",
+                "status": False
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        if BlockedDevices.objects.filter(device_id=device_id, is_banned=True).exists():
+            return Response({
+                "message": "Your device is banned.",
+                "status": False
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        executive, created = Executives.objects.get_or_create(mobile_number=mobile_number)
+        executive.device_id = device_id
+        executive.otp = self.FIXED_OTP
+        executive.online = False
+        executive.is_logged_out = True
+        executive.save()
+
+        return Response({
+            "message": f"OTP sent to your mobile number. (Fixed OTP: {self.FIXED_OTP})",
+            "id": executive.id,
+            "executive_id": executive.executive_id,
+            "name": executive.name,
+            "device_id": device_id,
+            "status": True,
+            "is_suspended": executive.is_suspended,
+            "is_banned": executive.is_banned,
+            "online": executive.online
+        }, status=status.HTTP_200_OK)
+
+class FixedCredentialVerifyOTPView(APIView):
+    permission_classes = [AllowAny]
+    FIXED_OTP = "4321"
+
+    def post(self, request, *args, **kwargs):
+        mobile_number = request.data.get("mobile_number")
+        otp = request.data.get("otp")
+        device_id = request.data.get("device_id")
+
+        if not mobile_number or not otp or not device_id:
+            return Response({
+                "message": "Mobile number, OTP, and device ID are required.",
+                "status": False
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            executive = Executives.objects.get(mobile_number=mobile_number)
+
+            if otp != self.FIXED_OTP:
+                return Response({"message": "Invalid OTP.", "status": False}, status=status.HTTP_400_BAD_REQUEST)
+
+            executive.is_verified = True
+            executive.otp = None
+            executive.online = True
+            executive.is_logged_out = False
+            executive.last_activity = timezone.now()
+            executive.device_id = device_id
+            executive.save()
+
+            return Response({
+                "message": "OTP verified successfully.",
+                "id": executive.id,
+                "executive_id": executive.executive_id,
+                "name": executive.name,
+                "device_id": executive.device_id,
+                "status": True,
+                "is_suspended": executive.is_suspended,
+                "is_banned": executive.is_banned,
+                "online": executive.online,
+                "auto_logout_minutes": executive.AUTO_LOGOUT_MINUTES
+            }, status=status.HTTP_200_OK)
+
+        except Executives.DoesNotExist:
+            return Response({"message": "Executive not found.", "status": False}, status=status.HTTP_404_NOT_FOUND)
+
     
 #Authentication
 # class RegisterExecutiveView(generics.CreateAPIView):

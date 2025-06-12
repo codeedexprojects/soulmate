@@ -267,9 +267,8 @@ class RegisterExecutiveView(generics.CreateAPIView):
                 {
                     "message": "Executive already registered.",
                     "status": False,
-                    "executive": serializer.data
                 },
-                status=status.HTTP_200_OK
+                status=status.HTTP_400_BAD_REQUEST
             )
         except Executives.DoesNotExist:
             pass

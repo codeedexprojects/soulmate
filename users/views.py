@@ -542,3 +542,23 @@ class UpdateDPImageView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ReferralDetailsView(APIView):
+    permission_classes = []
+
+    def get(self, request):
+        user = request.user
+
+        try:
+            referral_code = ReferralCode.objects.get(user=user)
+            referral_code_data = ReferralCodeSerializer(referral_code).data
+        except ReferralCode.DoesNotExist:
+            referral_code_data = None
+
+        referral_history = ReferralHistory.objects.filter(referrer=user)
+        referral_history_data = ReferralHistorySerializer(referral_history, many=True).data
+
+        return Response({
+            "referral_code": referral_code_data,
+            "referral_history": referral_history_data
+        })

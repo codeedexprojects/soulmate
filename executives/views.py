@@ -87,6 +87,7 @@ class ExeRegisterOrLoginView(APIView):
                     "name": executive.name,
                     "device_id": device_id,
                     "status": True,
+                    "otp": otp,
                     "is_suspended": executive.is_suspended,
                     "is_banned": executive.is_banned,
                     "online": executive.online,

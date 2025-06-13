@@ -218,40 +218,41 @@ class GetLatestRazorpayOrderView(APIView):
 class HandlePaymentSuccessView(APIView):
     def post(self, request, razorpay_order_id):
         try:
-            # Step 1: Get payment from Razorpay
             payments = razorpay_client.order.payments(razorpay_order_id)
             if not payments['items']:
-                return Response({'message': 'No payment linked to this order.'}, status=status.HTTP_404_NOT_FOUND)
+                return Response({'message': 'No payment linked to this order.'}, status=404)
 
             payment = payments['items'][0]
             payment_id = payment['id']
+            status_razor = payment.get('status')
             amount = payment['amount']
 
-            # Step 2: Capture payment
-            razorpay_client.payment.capture(payment_id, amount)
+            with transaction.atomic():
+                history = PurchaseHistories.objects.select_for_update().get(razorpay_order_id=razorpay_order_id)
 
-            # Step 3: Update history record
-            history = get_object_or_404(PurchaseHistories, razorpay_order_id=razorpay_order_id)
-            if history.payment_status == 'SUCCESS':
-                return Response({"message": "Payment already completed."})
+                if history.payment_status == 'SUCCESS':
+                    return Response({"message": "Payment already completed. Coins already added."}, status=200)
 
-            history.razorpay_payment_id = payment_id
-            history.payment_status = 'SUCCESS'
-            history.save()
+                if status_razor != 'captured':
+                    razorpay_client.payment.capture(payment_id, amount)
 
-            # Step 4: Recharge user coins (reuse working logic)
-            user = history.user
-            user_profile, _ = UserProfile.objects.get_or_create(user=user)
-            user_profile.add_coins(history.coins_purchased)
+                history.razorpay_payment_id = payment_id
+                history.payment_status = 'SUCCESS'
+                history.save()
+
+                user_profile, _ = UserProfile.objects.get_or_create(user=history.user)
+                user_profile.add_coins(history.coins_purchased)
 
             return Response({
                 "message": "Payment successful and coins added.",
                 "coins_added": history.coins_purchased,
-                "current_balance": user.coin_balance,  # or user_profile.coin_balance
-            }, status=status.HTTP_200_OK)
+                "current_balance": history.user.coin_balance,
+            }, status=200)
 
         except Exception as e:
-            return Response({"error": f"Payment verification failed: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error(f"Payment verification failed for {razorpay_order_id}: {e}")
+            return Response({"error": f"Payment verification failed: {str(e)}"}, status=400)
+
 
 
 #verify

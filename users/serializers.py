@@ -256,3 +256,16 @@ class UserDPImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['dp_image']
+
+
+class ReferredUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
+class ReferralHistorySerializer(serializers.ModelSerializer):
+    referred_user = ReferredUserSerializer()
+
+    class Meta:
+        model = ReferralHistory
+        fields = ['referred_user', 'recharged']

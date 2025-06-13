@@ -235,14 +235,10 @@ class TalkTimeHistoryMinimalSerializer(serializers.ModelSerializer):
         return f"{minutes:02}:{seconds:02}"
     
 class CoinConversionSerializer(serializers.ModelSerializer):
-    rupees = serializers.SerializerMethodField()
-
     class Meta:
         model = CoinConversion
         fields = ['id', 'coins_earned', 'rupees']
 
-    def get_rupees(self, obj):
-        return float(obj.rupees)
 
 
 class CallRatingSerializer(serializers.ModelSerializer):

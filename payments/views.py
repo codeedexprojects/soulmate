@@ -516,9 +516,17 @@ class RechargePlanListByCategoryView(generics.ListAPIView):
         return Response(response_data)
     
 class CoinConversionListCreateView(generics.ListCreateAPIView):
-
     queryset = CoinConversion.objects.all()
     serializer_class = CoinConversionSerializer
+
+    def perform_create(self, serializer):
+        coins = self.request.data.get('coins_earned')
+        rupees = self.calculate_rupees(coins)
+        serializer.save(rupees=rupees)
+
+    def calculate_rupees(self, coins):
+        # Replace this with your actual conversion logic
+        return float(coins) * 0.5  # Example: 1 coin = 0.5 rupee
 
 
 

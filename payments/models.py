@@ -54,7 +54,7 @@ class PurchaseHistories(models.Model):
     
 class CoinConversion(models.Model):
     coins_earned = models.PositiveBigIntegerField()
-    rupees = models.DecimalField(max_digits=10, decimal_places=2)
+    rupees = models.FloatField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.coins_earned} coins = ₹{self.rupees}"

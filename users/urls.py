@@ -43,7 +43,7 @@ urlpatterns = [
     path('blocked-users/<int:executive_id>/', BlockedUsersListAPIView.as_view(), name='blocked-users-list'),
     path('referral-code/<int:user_id>/', ReferralCodeByUserView.as_view(), name='referral-code-by-user'),
     
-    path('user/referral/', ReferralDetailsView.as_view(), name='user-referral-details'),
+    path('user/referral/<int:user_id>/', ReferralDetailsView.as_view(), name='user-referral-details'),
 
 
 

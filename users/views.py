@@ -397,6 +397,10 @@ class UnbanUserView(APIView):
         except User.DoesNotExist:
             return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+class BannedUserListView(generics.ListAPIView):
+    queryset = User.objects.filter(is_banned=True)
+    serializer_class = BannedUserSerializer
+
 class SuspendUserView(APIView):
 
     def post(self, request, user_id):

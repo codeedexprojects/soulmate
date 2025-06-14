@@ -47,7 +47,7 @@ class PurchaseHistories(models.Model):
     razorpay_payment_id = models.CharField(max_length=100, blank=True, null=True)
     payment_status = models.CharField(max_length=20, choices=[('PENDING', 'Pending'), ('SUCCESS', 'Success')])
     created_at = models.DateTimeField(auto_now_add=True)
-
+    is_admin = models.BooleanField(default=False)
     def __str__(self):
         return f'{self.user} - {self.recharge_plan} - {self.coins_purchased} coins'
 

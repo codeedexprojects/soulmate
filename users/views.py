@@ -559,7 +559,7 @@ class ReferralDetailsView(APIView):
 
         return Response({
             "user_id": user.id,
-            "username": user.username,
+            "username": user.name,
             "referral_code": referral_code_data,
             "referral_history": referral_history_data
         }, status=status.HTTP_200_OK)

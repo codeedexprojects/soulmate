@@ -34,6 +34,7 @@ urlpatterns = [
 
     path('ban-user/<int:user_id>/', BanUserAPIView.as_view(), name='ban_user'),
     path('user-unban/<int:user_id>/', UnbanUserView.as_view(), name='unban_user'),
+    path('users/banned/', BannedUserListView.as_view(), name='banned-users'),
 
     path('user-suspend/<int:user_id>/', SuspendUserView.as_view(), name='suspend_user'),
     path('user-unsuspend/<int:user_id>/', UnsuspendUserView.as_view(), name='unsuspend_user'),
@@ -46,9 +47,6 @@ urlpatterns = [
     path('referral-code/<int:user_id>/', ReferralCodeByUserView.as_view(), name='referral-code-by-user'),
     
     path('user/referral/<int:user_id>/', ReferralDetailsView.as_view(), name='user-referral-details'),
-    path('users/banned/', BannedUserListView.as_view(), name='banned-users'),
-
-
 
 ]
 

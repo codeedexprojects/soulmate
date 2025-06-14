@@ -261,7 +261,7 @@ class UserDPImageSerializer(serializers.ModelSerializer):
 class ReferredUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'name', 'email']
 
 class ReferralHistorySerializer(serializers.ModelSerializer):
     referred_user = ReferredUserSerializer()

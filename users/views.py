@@ -527,6 +527,12 @@ class BlockedUsersListAPIView(APIView):
         serializer = UserBlockListSerializer(blocked_users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+class Blocked_UserListAPIView(APIView):
+    def get(self, request):
+        blocked_users = UserBlock.objects.filter(is_blocked=True)
+        serializer = UserBlockListSerializer(blocked_users, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 class UpdateDPImageView(APIView):
     permission_classes = [AllowAny]
 

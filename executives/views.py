@@ -23,6 +23,8 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth.hashers import make_password
 from django.contrib.sessions.models import Session
 from django.contrib.auth.hashers import make_password, check_password
+from django.db.models.functions import Cast, Substr
+from django.db.models import IntegerField
 
 #OTPAUTH
 class ExeRegisterOrLoginView(APIView):
@@ -372,37 +374,45 @@ class RegisterExecutiveView(generics.CreateAPIView):
         except Executives.DoesNotExist:
             pass
 
-        # Create new executive
-        executive = Executives.objects.create(
-            mobile_number=mobile_number,
-            name=request.data.get("name", "Guest"),
-            age=request.data.get("age", 18),
-            email_id=request.data.get("email_id") or None,
-            gender=request.data.get("gender", "unspecified"),
-            profession=request.data.get("profession", "Not Provided"),
-            skills=request.data.get("skills", ""),
-            place=request.data.get("place", ""),
-            status="active",
-            set_coin=request.data.get("set_coin", 0.0),
-            total_on_duty_seconds=0,
-            total_talk_seconds_today=0,
-            total_picked_calls=0,
-            total_missed_calls=0,
-            is_suspended=False,
-            is_banned=False,
-            created_at=timezone.now(),
-            device_id=device_id,
-            manager_executive=manager_executive,
-            password=hashed_password
-        )
+        # Safe executive_id generation using transaction
+        with transaction.atomic():
+            last_id_entry = (
+                Executives.objects
+                .filter(executive_id__startswith='BTEX')
+                .annotate(num_id=Cast(Substr('executive_id', 5), output_field=IntegerField()))
+                .order_by('-num_id')
+                .first()
+            )
 
-        last_executive = Executives.objects.order_by('-id').first()
-        if last_executive and last_executive.executive_id and last_executive.executive_id.startswith('BTEX'):
-            last_number = int(last_executive.executive_id[4:])
-            executive.executive_id = f'BTEX{last_number + 1}'
-        else:
-            executive.executive_id = 'BTEX1000'
-        executive.save()
+            if last_id_entry:
+                last_number = last_id_entry.num_id
+                new_executive_id = f'BTEX{last_number + 1}'
+            else:
+                new_executive_id = 'BTEX1000'
+
+            executive = Executives.objects.create(
+                mobile_number=mobile_number,
+                name=request.data.get("name", "Guest"),
+                age=request.data.get("age", 18),
+                email_id=request.data.get("email_id") or None,
+                gender=request.data.get("gender", "unspecified"),
+                profession=request.data.get("profession", "Not Provided"),
+                skills=request.data.get("skills", ""),
+                place=request.data.get("place", ""),
+                status="active",
+                set_coin=request.data.get("set_coin", 0.0),
+                total_on_duty_seconds=0,
+                total_talk_seconds_today=0,
+                total_picked_calls=0,
+                total_missed_calls=0,
+                is_suspended=False,
+                is_banned=False,
+                created_at=timezone.now(),
+                device_id=device_id,
+                manager_executive=manager_executive,
+                password=hashed_password,
+                executive_id=new_executive_id,
+            )
 
         serializer = self.get_serializer(executive)
         return Response(

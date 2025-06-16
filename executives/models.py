@@ -79,6 +79,8 @@ class Executives(AbstractBaseUser):
     current_session_key = models.CharField(max_length=40, blank=True, null=True) 
     is_logged_out = models.BooleanField(default=True)
     last_activity = models.DateTimeField(null=True, blank=True)
+    account_number = models.CharField(max_length=50,blank=True, null=True)
+    ifsc_code = models.CharField(max_length=20,blank=True, null=True)
     AUTO_LOGOUT_MINUTES = 5
     
     USERNAME_FIELD = 'mobile_number' 

@@ -109,5 +109,5 @@ class CoinRedemptionRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CoinRedemptionRequest
-        fields = ['id', 'executive','name', 'amount_requested', 'upi_id', 'request_time', 'status','created_at']
+        fields = ['id', 'executive','name', 'amount_requested', 'upi_id', 'request_time','account_number','ifsc_code', 'status','created_at']
         read_only_fields = ['executive', 'amount_requested', 'created_at', 'status','account_number','ifsc_code']

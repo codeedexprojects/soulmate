@@ -51,6 +51,7 @@ class User(AbstractBaseUser):
     is_online = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True) 
     is_staff = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = 'mobile_number'
     REQUIRED_FIELDS = ['name']  

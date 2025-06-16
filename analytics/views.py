@@ -37,6 +37,8 @@ import random
 class PlatformAnalyticsView(APIView):
     def get(self, request):
         today = now().date()
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
         ninety_days_ago = now() - timedelta(days=90)
 
         # Total counts
@@ -49,51 +51,63 @@ class PlatformAnalyticsView(APIView):
 
         # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
-        
-        # Calculate total talk time in seconds (for today)
-        today_duration_sum = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
-            total_duration=Sum('duration')
-        )['total_duration'] or timedelta(seconds=0)
-        
-        # Calculate lifetime talk time in seconds (for all users)
+
+        # Calculate talk time durations
+        today_duration_sum = AgoraCallHistory.objects.filter(
+            start_time__date=today
+        ).aggregate(total_duration=Sum('duration'))['total_duration'] or timedelta(seconds=0)
+
         lifetime_duration_sum = AgoraCallHistory.objects.aggregate(
-            total_duration=Sum('duration')
-        )['total_duration'] or timedelta(seconds=0)
-        
-        # Function to format duration
+            total_duration=Sum('duration'))['total_duration'] or timedelta(seconds=0)
+
+        # Format duration to minutes string
         def format_duration(duration_sum):
             if isinstance(duration_sum, timedelta):
                 total_seconds = duration_sum.total_seconds()
             else:
                 total_seconds = duration_sum or 0
-            
+
             talk_time_minutes = total_seconds / 60
-            
             if talk_time_minutes == int(talk_time_minutes):
                 return f"{int(talk_time_minutes)}"
             return f"{talk_time_minutes:.2f}".replace('.00', '')
 
-        # Format both durations
         formatted_today_talk_time = format_duration(today_duration_sum)
         formatted_total_talk_time = format_duration(lifetime_duration_sum)
 
-        # Coin metrics
+        # Coin metrics (calls)
         user_coin_spending = AgoraCallHistory.objects.aggregate(
-            total=Sum('coins_deducted')
-        )['total'] or 0
+            total=Sum('coins_deducted'))['total'] or 0
         executive_coin_earnings = AgoraCallHistory.objects.aggregate(
-            total=Sum('coins_added')
-        )['total'] or 0
+            total=Sum('coins_added'))['total'] or 0
 
-        # Today's purchases
-        todays_revenue = PurchaseHistories.objects.filter(
-            purchase_date__date=today
-        ).aggregate(total=Sum('purchased_price'))['total'] or 0
+        # Coin Sales Summary
+        all_time_coin_sales = PurchaseHistories.objects.aggregate(
+            total=Sum('coins_purchased'))['total'] or 0
         todays_coin_sales = PurchaseHistories.objects.filter(
-            purchase_date__date=today
-        ).aggregate(total=Sum('coins_purchased'))['total'] or 0
+            purchase_date__date=today).aggregate(
+            total=Sum('coins_purchased'))['total'] or 0
+        weekly_coin_sales = PurchaseHistories.objects.filter(
+            purchase_date__date__gte=week_ago).aggregate(
+            total=Sum('coins_purchased'))['total'] or 0
+        monthly_coin_sales = PurchaseHistories.objects.filter(
+            purchase_date__date__gte=month_ago).aggregate(
+            total=Sum('coins_purchased'))['total'] or 0
 
-        # Get all calls with details
+        # Revenue Summary
+        all_time_revenue = PurchaseHistories.objects.aggregate(
+            total=Sum('purchased_price'))['total'] or 0
+        todays_revenue = PurchaseHistories.objects.filter(
+            purchase_date__date=today).aggregate(
+            total=Sum('purchased_price'))['total'] or 0
+        weekly_revenue = PurchaseHistories.objects.filter(
+            purchase_date__date__gte=week_ago).aggregate(
+            total=Sum('purchased_price'))['total'] or 0
+        monthly_revenue = PurchaseHistories.objects.filter(
+            purchase_date__date__gte=month_ago).aggregate(
+            total=Sum('purchased_price'))['total'] or 0
+
+        # All call details
         all_calls = AgoraCallHistory.objects.all().order_by('-start_time')
         call_details = []
         for call in all_calls:
@@ -123,22 +137,38 @@ class PlatformAnalyticsView(APIView):
                 "user_name": call.user.name if call.user else "Unknown",
                 "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
-            } 
+            }
             for call in missed_calls
         ]
 
         return Response({
             "total_executives": total_executives,
             "total_users": total_users,
-            "todays_revenue": todays_revenue,
-            "todays_coin_sales": todays_coin_sales,
+
             "active_executives": active_executives,
             "active_users": active_users,
             "on_call": on_call,
+
             "today_talk_time": formatted_today_talk_time,
-            "total_talk_time": formatted_total_talk_time,  # Added total talk time
+            "total_talk_time": formatted_total_talk_time,
+
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
+
+            "coin_sales_summary": {
+                "all_time": all_time_coin_sales,
+                "today": todays_coin_sales,
+                "last_7_days": weekly_coin_sales,
+                "last_30_days": monthly_coin_sales
+            },
+
+            "revenue_summary": {
+                "all_time": all_time_revenue,
+                "today": todays_revenue,
+                "last_7_days": weekly_revenue,
+                "last_30_days": monthly_revenue
+            },
+
             "total_missed_calls": missed_call_count,
             "missed_call_details": missed_call_details,
             "all_call_details": call_details,

@@ -388,42 +388,28 @@ class UserStatisticsAPIView(APIView):
     def get(self, request):
         today = datetime.now().date()
 
-        # Get user data with aggregated statistics
+        # Get user data with related profile coin balance and aggregated statistics
         user_data = User.objects.annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('purchasehistories'),#changed
-
-            total_talktime=Sum('caller__duration')
-        ).values(
-            'id', 'user_id', 'mobile_number', 'is_banned', 'is_online', 
-            'is_suspended', 'is_dormant', 'total_coins_spent', 
-            'total_purchases', 'total_talktime'
+            total_purchases=Count('purchasehistories'),
+            total_talktime=Sum('caller__duration'),
+        ).select_related('userprofile').values(
+            'id', 'user_id', 'mobile_number', 'is_banned', 'is_online',
+            'is_suspended', 'is_dormant', 'total_coins_spent',
+            'total_purchases', 'total_talktime', 'coin_balance'
         )
 
-        # Calculate user counts
         total_users = User.objects.count()
         active_users_count = User.objects.filter(last_login__isnull=False).count()
         inactive_users_count = total_users - active_users_count
 
-        # Prepare response data with formatted talk time
         response_data = []
         for user in user_data:
-            # Handle timedelta conversion
             talktime = user['total_talktime']
-            if isinstance(talktime, timedelta):
-                total_seconds = talktime.total_seconds()
-            else:
-                total_seconds = talktime or 0
-            
-            # Convert seconds to minutes with 2 decimal places
+            total_seconds = talktime.total_seconds() if isinstance(talktime, timedelta) else (talktime or 0)
             talktime_minutes = total_seconds / 60
-            
-            # Format to remove trailing .00 if whole number
-            if talktime_minutes == int(talktime_minutes):
-                formatted_talktime = f"{int(talktime_minutes)} Mins"
-            else:
-                formatted_talktime = f"{talktime_minutes:.2f} Mins".replace('.00', '')
-            
+            formatted_talktime = f"{int(talktime_minutes)} Mins" if talktime_minutes == int(talktime_minutes) else f"{talktime_minutes:.2f} Mins".replace('.00', '')
+
             response_data.append({
                 'id': user['id'],
                 'User_ID': user['user_id'],
@@ -436,7 +422,8 @@ class UserStatisticsAPIView(APIView):
                 'Total_Coin_Spend': user['total_coins_spent'] or 0,
                 'Total_Purchases': user['total_purchases'] or 0,
                 'Total_Talktime': formatted_talktime,
-                'Total_Talktime_Seconds': total_seconds
+                'Total_Talktime_Seconds': total_seconds,
+                'Coin_Balance': user['coin_balance'] or 0,
             })
 
         return Response({
@@ -445,6 +432,7 @@ class UserStatisticsAPIView(APIView):
             'inactive_users': inactive_users_count,
             'user_data': response_data,
         })
+
 
 class UserStatisticsDetailAPIView(APIView):
     def get(self, request, user_id):

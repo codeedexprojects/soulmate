@@ -104,8 +104,10 @@ class RechargePlanCategorySerializer(serializers.ModelSerializer):
 
 class CoinRedemptionRequestSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='executive.name', read_only=True)
+    account_number = serializers.CharField(source='executive.account_number', read_only=True)
+    ifsc_code = serializers.CharField(source='executive.ifsc_code', read_only=True)
 
     class Meta:
         model = CoinRedemptionRequest
         fields = ['id', 'executive','name', 'amount_requested', 'upi_id', 'request_time', 'status','created_at']
-        read_only_fields = ['executive', 'amount_requested', 'created_at', 'status']
+        read_only_fields = ['executive', 'amount_requested', 'created_at', 'status','account_number','ifsc_code']

@@ -37,11 +37,18 @@ import random
 class PlatformAnalyticsView(APIView):
     def get(self, request):
         today = now().date()
+        start_of_week = today - timedelta(days=today.weekday())  # Monday
+        start_of_month = today.replace(day=1)
         ninety_days_ago = now() - timedelta(days=90)
 
         # Total counts
         total_executives = Executives.objects.count()
         total_users = User.objects.count()
+
+        # Time-based executive filters
+        executives_today = Executives.objects.filter(created_at__date=today).count()
+        executives_this_week = Executives.objects.filter(created_at__date__gte=start_of_week).count()
+        executives_this_month = Executives.objects.filter(created_at__date__gte=start_of_month).count()
 
         # Active users (last 90 days)
         active_executives = Executives.objects.filter(online=True).count()
@@ -49,26 +56,24 @@ class PlatformAnalyticsView(APIView):
 
         # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
-        
+
         # Calculate total talk time in seconds (for today)
         today_duration_sum = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
             total_duration=Sum('duration')
         )['total_duration'] or timedelta(seconds=0)
-        
+
         # Calculate lifetime talk time in seconds (for all users)
         lifetime_duration_sum = AgoraCallHistory.objects.aggregate(
             total_duration=Sum('duration')
         )['total_duration'] or timedelta(seconds=0)
-        
+
         # Function to format duration
         def format_duration(duration_sum):
             if isinstance(duration_sum, timedelta):
                 total_seconds = duration_sum.total_seconds()
             else:
                 total_seconds = duration_sum or 0
-            
             talk_time_minutes = total_seconds / 60
-            
             if talk_time_minutes == int(talk_time_minutes):
                 return f"{int(talk_time_minutes)}"
             return f"{talk_time_minutes:.2f}".replace('.00', '')
@@ -123,12 +128,16 @@ class PlatformAnalyticsView(APIView):
                 "user_name": call.user.name if call.user else "Unknown",
                 "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
-            } 
+            }
             for call in missed_calls
         ]
 
         return Response({
             "total_executives": total_executives,
+            "executives_all_time": total_executives,
+            "executives_today": executives_today,
+            "executives_this_week": executives_this_week,
+            "executives_this_month": executives_this_month,
             "total_users": total_users,
             "todays_revenue": todays_revenue,
             "todays_coin_sales": todays_coin_sales,
@@ -136,7 +145,7 @@ class PlatformAnalyticsView(APIView):
             "active_users": active_users,
             "on_call": on_call,
             "today_talk_time": formatted_today_talk_time,
-            "total_talk_time": formatted_total_talk_time,  # Added total talk time
+            "total_talk_time": formatted_total_talk_time,
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
             "total_missed_calls": missed_call_count,

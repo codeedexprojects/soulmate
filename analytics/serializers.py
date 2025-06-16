@@ -25,6 +25,7 @@ class AdminSerializer(serializers.ModelSerializer):
         admin = Admins.objects.create(
             email=validated_data['email'],
             name=validated_data['name'],
+            mobile_number = validated_data['mobile_number'] ,
             is_staff=validated_data.get('is_staff', False),
             is_active=validated_data.get('is_active', True),
             is_superuser=validated_data.get('is_superuser', False),

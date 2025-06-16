@@ -805,7 +805,29 @@ class RedemptionRequestListView(generics.ListAPIView):
         redemption_requests = self.get_queryset()
         serializer = self.get_serializer(redemption_requests, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
+class CoinRedemptionStatusUpdateView(APIView):
+    def patch(self, request, pk):
+        try:
+            redemption_request = CoinRedemptionRequest.objects.get(pk=pk)
+        except CoinRedemptionRequest.DoesNotExist:
+            return Response({"error": "Redemption request not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        new_status = request.data.get("status")
+
+        if new_status not in ["pending", "approved", "rejected"]:
+            return Response({"error": "Invalid status value."}, status=status.HTTP_400_BAD_REQUEST)
+
+        redemption_request.status = new_status
+        redemption_request.save()
+
+        return Response({
+            "message": "Status updated successfully.",
+            "id": redemption_request.id,
+            "executive": redemption_request.executive.name,
+            "new_status": redemption_request.status
+        }, status=status.HTTP_200_OK)
+
 class DeleteExecutiveAccountView(APIView):
     def delete(self, request, executive_id, *args, **kwargs):
         executive = get_object_or_404(Executives, id=executive_id)

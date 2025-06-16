@@ -815,7 +815,7 @@ class CoinRedemptionStatusUpdateView(APIView):
 
         new_status = request.data.get("status")
 
-        if new_status not in ["pending", "approved", "rejected"]:
+        if new_status not in ["pending", "processing ", "completed"]:
             return Response({"error": "Invalid status value."}, status=status.HTTP_400_BAD_REQUEST)
 
         redemption_request.status = new_status

@@ -98,9 +98,10 @@ class PlatformAnalyticsView(APIView):
         }
 
         # === MISSED CALL METRICS ===
-        missed_call_qs = get_filtered_qs(
-            AgoraCallHistory.objects.filter(status="missed"), 'start_time'
-        )
+        missed_call_qs = get_filtered_qs(AgoraCallHistory, 'start_time')
+        missed_call_qs = {
+            period: qs.filter(status="missed") for period, qs in missed_call_qs.items()
+        }
         missed_call_counts = {
             period: qs.count() for period, qs in missed_call_qs.items()
         }
@@ -116,6 +117,7 @@ class PlatformAnalyticsView(APIView):
             }
             for call in missed_call_qs["all_time"]
         ]
+
 
         # === ALL CALL DETAILS ===
         all_calls = AgoraCallHistory.objects.all().order_by('-start_time')

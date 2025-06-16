@@ -50,11 +50,6 @@ class PlatformAnalyticsView(APIView):
         executives_this_week = Executives.objects.filter(created_at__date__gte=start_of_week).count()
         executives_this_month = Executives.objects.filter(created_at__date__gte=start_of_month).count()
 
-        # Time-based user filters
-        users_today = User.objects.filter(date_joined__date=today).count()
-        users_this_week = User.objects.filter(date_joined__date__gte=start_of_week).count()
-        users_this_month = User.objects.filter(date_joined__date__gte=start_of_month).count()
-
         # Active users (last 90 days)
         active_executives = Executives.objects.filter(online=True).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
@@ -138,38 +133,21 @@ class PlatformAnalyticsView(APIView):
         ]
 
         return Response({
-            # Executive stats
             "total_executives": total_executives,
             "executives_all_time": total_executives,
             "executives_today": executives_today,
             "executives_this_week": executives_this_week,
             "executives_this_month": executives_this_month,
-
-            # User stats
             "total_users": total_users,
-            "users_all_time": total_users,
-            "users_today": users_today,
-            "users_this_week": users_this_week,
-            "users_this_month": users_this_month,
-
-            # Revenue & coins
             "todays_revenue": todays_revenue,
             "todays_coin_sales": todays_coin_sales,
-
-            # Activity
             "active_executives": active_executives,
             "active_users": active_users,
             "on_call": on_call,
-
-            # Talk time
             "today_talk_time": formatted_today_talk_time,
             "total_talk_time": formatted_total_talk_time,
-
-            # Coin usage
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
-
-            # Call stats
             "total_missed_calls": missed_call_count,
             "missed_call_details": missed_call_details,
             "all_call_details": call_details,

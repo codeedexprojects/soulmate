@@ -106,8 +106,9 @@ class CoinRedemptionRequestSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='executive.name', read_only=True)
     account_number = serializers.CharField(source='executive.account_number', read_only=True)
     ifsc_code = serializers.CharField(source='executive.ifsc_code', read_only=True)
+    executive_id = serializers.CharField(source='executive.executive_id', read_only=True)
 
     class Meta:
         model = CoinRedemptionRequest
-        fields = ['id', 'executive','name', 'amount_requested', 'upi_id', 'request_time','account_number','ifsc_code', 'status','created_at']
+        fields = ['id', 'executive','name', 'executive_id','amount_requested', 'upi_id', 'request_time','account_number','ifsc_code', 'status','created_at']
         read_only_fields = ['executive', 'amount_requested', 'created_at', 'status','account_number','ifsc_code']

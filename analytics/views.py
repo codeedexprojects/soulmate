@@ -934,17 +934,17 @@ class TotalCoinsDeductedView(APIView):
 
 class ExecutivesUnderManagerView(generics.ListAPIView):
     serializer_class = ExecutivesSerializer
-    permission_classes = [AllowAny]  # No authentication required
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
-        manager_id = self.kwargs.get("manager_id")  # Get manager ID from URL
-        return Executives.objects.filter(manager_executive=manager_id)
+        manager_id = self.kwargs.get("manager_id")
+        return Executives.objects.filter(manager_executive_id=manager_id)
 
     def list(self, request, *args, **kwargs):
         manager_id = self.kwargs.get("manager_id")
         
-        # Ensure the manager exists
-        manager = get_object_or_404(Executives, id=manager_id)
+        # Correct model for manager lookup
+        manager = get_object_or_404(Admins, id=manager_id)
 
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)

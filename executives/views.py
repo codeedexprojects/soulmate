@@ -412,6 +412,8 @@ class RegisterExecutiveView(generics.CreateAPIView):
                 manager_executive=manager_executive,
                 password=hashed_password,
                 executive_id=new_executive_id,
+                account_number=request.data.get("account_number"),
+                ifsc_code=request.data.get("ifsc_code"),  
             )
 
         serializer = self.get_serializer(executive)

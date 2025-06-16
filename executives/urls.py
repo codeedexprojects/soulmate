@@ -37,7 +37,8 @@ urlpatterns = [
     path('redeem/<int:executive_id>/', CoinRedemptionRequestView.as_view(), name='list-executive-redeem-requests'), 
     path('redeem-requests/', RedemptionRequestListView.as_view(), name='list_redeem_requests'),
     path('delete-executive/<int:executive_id>/', DeleteExecutiveAccountView.as_view(), name='delete-executive-account'),
-    
+    path('redemption-request/<int:pk>/update-status/', CoinRedemptionStatusUpdateView.as_view(), name='update-redemption-status'),
+
     path('manager/executives/create/', CreateExecutiveView.as_view(), name='create-executive'),
     path('manager/executives/', ExecutiveListView.as_view(), name='list-executives'),
     path('manager/executives/<int:pk>/', ExecutiveDetailsView.as_view(), name='executive-detail'),

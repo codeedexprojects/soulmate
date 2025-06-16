@@ -37,81 +37,83 @@ import random
 class PlatformAnalyticsView(APIView):
     def get(self, request):
         today = now().date()
-        week_ago = today - timedelta(days=7)
-        month_ago = today - timedelta(days=30)
-        ninety_days_ago = today - timedelta(days=90)
+        ninety_days_ago = now() - timedelta(days=90)
 
-        # Time-based queryset generator
-        def get_filtered_qs(model_class, date_field):
-            return {
-                "all_time": model_class.objects.all(),
-                "today": model_class.objects.filter(**{f"{date_field}__date": today}),
-                "last_7_days": model_class.objects.filter(**{f"{date_field}__date__gte": week_ago}),
-                "last_30_days": model_class.objects.filter(**{f"{date_field}__date__gte": month_ago}),
-            }
+        # Total counts
+        total_executives = Executives.objects.count()
+        total_users = User.objects.count()
 
-        # Format duration helper
+        # Active users (last 90 days)
+        active_executives = Executives.objects.filter(online=True).count()
+        active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
+
+        # Call metrics
+        on_call = AgoraCallHistory.objects.filter(status="joined").count()
+        
+        # Calculate total talk time in seconds (for today)
+        today_duration_sum = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
+            total_duration=Sum('duration')
+        )['total_duration'] or timedelta(seconds=0)
+        
+        # Calculate lifetime talk time in seconds (for all users)
+        lifetime_duration_sum = AgoraCallHistory.objects.aggregate(
+            total_duration=Sum('duration')
+        )['total_duration'] or timedelta(seconds=0)
+        
+        # Function to format duration
         def format_duration(duration_sum):
-            total_seconds = 0
             if isinstance(duration_sum, timedelta):
                 total_seconds = duration_sum.total_seconds()
-            elif duration_sum:
-                total_seconds = float(duration_sum)
+            else:
+                total_seconds = duration_sum or 0
+            
             talk_time_minutes = total_seconds / 60
-            return f"{talk_time_minutes:.2f}".rstrip("0").rstrip(".") if talk_time_minutes else "0"
+            
+            if talk_time_minutes == int(talk_time_minutes):
+                return f"{int(talk_time_minutes)}"
+            return f"{talk_time_minutes:.2f}".replace('.00', '')
 
-        # --- Users & Executives by time period ---
-        user_qs = get_filtered_qs(User, 'last_login')
-        executive_qs = get_filtered_qs(Executives, 'created_at')
+        # Format both durations
+        formatted_today_talk_time = format_duration(today_duration_sum)
+        formatted_total_talk_time = format_duration(lifetime_duration_sum)
 
-        user_data = {
-            period: {
-                "total": qs.count(),
-                "verified": qs.filter(is_verified=True).count(),
-                "banned": qs.filter(is_banned=True).count(),
-            }
-            for period, qs in user_qs.items()
-        }
+        # Coin metrics
+        user_coin_spending = AgoraCallHistory.objects.aggregate(
+            total=Sum('coins_deducted')
+        )['total'] or 0
+        executive_coin_earnings = AgoraCallHistory.objects.aggregate(
+            total=Sum('coins_added')
+        )['total'] or 0
 
-        executive_data = {
-            period: {
-                "total": qs.count(),
-                "verified": qs.filter(is_verified=True).count(),
-                "online": qs.filter(online=True).count(),
-                "banned": qs.filter(is_banned=True).count(),
-            }
-            for period, qs in executive_qs.items()
-        }
+        # Today's purchases
+        todays_revenue = PurchaseHistories.objects.filter(
+            purchase_date__date=today
+        ).aggregate(total=Sum('purchased_price'))['total'] or 0
+        todays_coin_sales = PurchaseHistories.objects.filter(
+            purchase_date__date=today
+        ).aggregate(total=Sum('coins_purchased'))['total'] or 0
 
-        # --- Call Data ---
-        call_qs = get_filtered_qs(AgoraCallHistory, 'start_time')
-        call_duration = {
-            period: format_duration(qs.aggregate(total=Sum('duration'))['total'] or timedelta(seconds=0))
-            for period, qs in call_qs.items()
-        }
-        call_stats = {
-            period: {
-                "total_calls": qs.count(),
-                "missed_calls": qs.filter(status="missed").count(),
-                "on_call": qs.filter(status="joined").count(),
-                "coins_spent": qs.aggregate(total=Sum('coins_deducted'))['total'] or 0,
-                "coins_earned": qs.aggregate(total=Sum('coins_added'))['total'] or 0,
-            }
-            for period, qs in call_qs.items()
-        }
+        # Get all calls with details
+        all_calls = AgoraCallHistory.objects.all().order_by('-start_time')
+        call_details = []
+        for call in all_calls:
+            call_details.append({
+                "call_id": call.id,
+                "executive_id": call.executive.id if call.executive else None,
+                "executive_name": call.executive.name if call.executive else "Unknown",
+                "user_id": call.user.id if call.user else None,
+                "user_name": call.user.name if call.user else "Unknown",
+                "status": call.status,
+                "start_time": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
+                "end_time": call.end_time.strftime("%Y-%m-%d %H:%M:%S") if call.end_time else None,
+                "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration,
+                "coins_deducted": call.coins_deducted,
+                "coins_added": call.coins_added
+            })
 
-        # --- Purchases / Revenue ---
-        purchase_qs = get_filtered_qs(PurchaseHistories, 'purchase_date')
-        coin_sales = {
-            period: qs.aggregate(total=Sum('coins_purchased'))['total'] or 0
-            for period, qs in purchase_qs.items()
-        }
-        revenues = {
-            period: qs.aggregate(total=Sum('purchased_price'))['total'] or 0
-            for period, qs in purchase_qs.items()
-        }
-
-        # --- Missed Call Details (All Time) ---
+        # Missed calls
+        missed_calls = AgoraCallHistory.objects.filter(status="missed")
+        missed_call_count = missed_calls.count()
         missed_call_details = [
             {
                 "call_id": call.id,
@@ -121,18 +123,26 @@ class PlatformAnalyticsView(APIView):
                 "user_name": call.user.name if call.user else "Unknown",
                 "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
-            }
-            for call in call_qs["all_time"].filter(status="missed")
+            } 
+            for call in missed_calls
         ]
 
         return Response({
-            "executive_data": executive_data,
-            "user_data": user_data,
-            "call_stats": call_stats,
-            "call_duration_minutes": call_duration,
-            "coin_sales": coin_sales,
-            "revenues": revenues,
+            "total_executives": total_executives,
+            "total_users": total_users,
+            "todays_revenue": todays_revenue,
+            "todays_coin_sales": todays_coin_sales,
+            "active_executives": active_executives,
+            "active_users": active_users,
+            "on_call": on_call,
+            "today_talk_time": formatted_today_talk_time,
+            "total_talk_time": formatted_total_talk_time,  # Added total talk time
+            "user_coin_spending": user_coin_spending,
+            "executive_coin_earnings": executive_coin_earnings,
+            "total_missed_calls": missed_call_count,
             "missed_call_details": missed_call_details,
+            "all_call_details": call_details,
+            "total_calls": len(call_details)
         }, status=status.HTTP_200_OK)
     
 class ExecutiveAnalyticsView(APIView):

@@ -40,7 +40,6 @@ class PlatformAnalyticsView(APIView):
         week_ago = today - timedelta(days=7)
         month_ago = today - timedelta(days=30)
 
-        # Utility function to apply common time filters
         def get_filtered_qs(model, date_field):
             return {
                 "all_time": model.objects.all(),
@@ -49,7 +48,6 @@ class PlatformAnalyticsView(APIView):
                 "last_30_days": model.objects.filter(**{f"{date_field}__date__gte": month_ago}),
             }
 
-        # Format duration in minutes
         def format_minutes(duration):
             seconds = duration.total_seconds() if hasattr(duration, 'total_seconds') else duration or 0
             return str(round(seconds / 60, 2)).replace('.0', '') if seconds else '0'
@@ -99,7 +97,27 @@ class PlatformAnalyticsView(APIView):
             for period, qs in purchase_qs.items()
         }
 
-        # === CALL DETAILS ===
+        # === MISSED CALL METRICS ===
+        missed_call_qs = get_filtered_qs(
+            AgoraCallHistory.objects.filter(status="missed"), 'start_time'
+        )
+        missed_call_counts = {
+            period: qs.count() for period, qs in missed_call_qs.items()
+        }
+        missed_call_details = [
+            {
+                "call_id": call.id,
+                "executive_id": call.executive.id if call.executive else None,
+                "executive_name": call.executive.name if call.executive else "Unknown",
+                "user_id": call.user.id if call.user else None,
+                "user_name": call.user.name if call.user else "Unknown",
+                "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
+                "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
+            }
+            for call in missed_call_qs["all_time"]
+        ]
+
+        # === ALL CALL DETAILS ===
         all_calls = AgoraCallHistory.objects.all().order_by('-start_time')
         call_details = []
         for call in all_calls:
@@ -117,21 +135,6 @@ class PlatformAnalyticsView(APIView):
                 "coins_added": call.coins_added
             })
 
-        # === MISSED CALL DETAILS ===
-        missed_calls = AgoraCallHistory.objects.filter(status="missed")
-        missed_call_details = []
-        for call in missed_calls:
-            missed_call_details.append({
-                "call_id": call.id,
-                "executive_id": call.executive.id if call.executive else None,
-                "executive_name": call.executive.name if call.executive else "Unknown",
-                "user_id": call.user.id if call.user else None,
-                "user_name": call.user.name if call.user else "Unknown",
-                "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
-                "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
-            })
-
-        # === FINAL RESPONSE ===
         return Response({
             "on_call": on_call,
             "today_talk_time_minutes": format_minutes(today_talk_time),
@@ -144,10 +147,11 @@ class PlatformAnalyticsView(APIView):
             "revenue_summary": revenue_summary,
             "user_metrics": user_metrics,
             "executive_metrics": executive_metrics,
+            "missed_call_counts": missed_call_counts,
+            "total_missed_calls": missed_call_counts["all_time"],
+            "missed_call_details": missed_call_details,
             "total_calls": len(call_details),
             "all_call_details": call_details,
-            "total_missed_calls": missed_calls.count(),
-            "missed_call_details": missed_call_details,
         }, status=status.HTTP_200_OK)
     
 class ExecutiveAnalyticsView(APIView):

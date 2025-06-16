@@ -39,75 +39,67 @@ class PlatformAnalyticsView(APIView):
         today = now().date()
         week_ago = today - timedelta(days=7)
         month_ago = today - timedelta(days=30)
-        ninety_days_ago = now() - timedelta(days=90)
 
-        # Total counts
-        total_executives = Executives.objects.count()
-        total_users = User.objects.count()
+        # Utility function to apply common time filters
+        def get_filtered_qs(model, date_field):
+            return {
+                "all_time": model.objects.all(),
+                "today": model.objects.filter(**{f"{date_field}__date": today}),
+                "last_7_days": model.objects.filter(**{f"{date_field}__date__gte": week_ago}),
+                "last_30_days": model.objects.filter(**{f"{date_field}__date__gte": month_ago}),
+            }
 
-        # Active users (last 90 days)
-        active_executives = Executives.objects.filter(online=True).count()
-        active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
+        # Format duration in minutes
+        def format_minutes(duration):
+            seconds = duration.total_seconds() if hasattr(duration, 'total_seconds') else duration or 0
+            return str(round(seconds / 60, 2)).replace('.0', '') if seconds else '0'
 
-        # Call metrics
+        # === USER METRICS ===
+        user_qs = get_filtered_qs(User, 'last_login')
+        user_metrics = {
+            period: {
+                "registered": qs.count(),
+                "suspended": qs.filter(is_suspended=True).count(),
+                "banned": qs.filter(is_banned=True).count(),
+                "dormant": qs.filter(is_dormant=True).count(),
+                "online": qs.filter(is_online=True).count()
+            }
+            for period, qs in user_qs.items()
+        }
+
+        # === EXECUTIVE METRICS ===
+        exec_qs = get_filtered_qs(Executives, 'created_at')
+        executive_metrics = {
+            period: {
+                "registered": qs.count(),
+                "suspended": qs.filter(is_suspended=True).count(),
+                "banned": qs.filter(is_banned=True).count(),
+                "online": qs.filter(online=True).count()
+            }
+            for period, qs in exec_qs.items()
+        }
+
+        # === CALL METRICS ===
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
+        today_talk_time = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(Sum('duration'))['duration__sum'] or timedelta(0)
+        total_talk_time = AgoraCallHistory.objects.aggregate(Sum('duration'))['duration__sum'] or timedelta(0)
 
-        # Calculate talk time durations
-        today_duration_sum = AgoraCallHistory.objects.filter(
-            start_time__date=today
-        ).aggregate(total_duration=Sum('duration'))['total_duration'] or timedelta(seconds=0)
+        # === COIN METRICS ===
+        user_coin_spending = AgoraCallHistory.objects.aggregate(Sum('coins_deducted'))['coins_deducted__sum'] or 0
+        executive_coin_earnings = AgoraCallHistory.objects.aggregate(Sum('coins_added'))['coins_added__sum'] or 0
 
-        lifetime_duration_sum = AgoraCallHistory.objects.aggregate(
-            total_duration=Sum('duration'))['total_duration'] or timedelta(seconds=0)
+        # === PURCHASE METRICS ===
+        purchase_qs = get_filtered_qs(PurchaseHistories, 'purchase_date')
+        coin_sales_summary = {
+            period: qs.aggregate(Sum('coins_purchased'))['coins_purchased__sum'] or 0
+            for period, qs in purchase_qs.items()
+        }
+        revenue_summary = {
+            period: qs.aggregate(Sum('purchased_price'))['purchased_price__sum'] or 0
+            for period, qs in purchase_qs.items()
+        }
 
-        # Format duration to minutes string
-        def format_duration(duration_sum):
-            if isinstance(duration_sum, timedelta):
-                total_seconds = duration_sum.total_seconds()
-            else:
-                total_seconds = duration_sum or 0
-
-            talk_time_minutes = total_seconds / 60
-            if talk_time_minutes == int(talk_time_minutes):
-                return f"{int(talk_time_minutes)}"
-            return f"{talk_time_minutes:.2f}".replace('.00', '')
-
-        formatted_today_talk_time = format_duration(today_duration_sum)
-        formatted_total_talk_time = format_duration(lifetime_duration_sum)
-
-        # Coin metrics (calls)
-        user_coin_spending = AgoraCallHistory.objects.aggregate(
-            total=Sum('coins_deducted'))['total'] or 0
-        executive_coin_earnings = AgoraCallHistory.objects.aggregate(
-            total=Sum('coins_added'))['total'] or 0
-
-        # Coin Sales Summary
-        all_time_coin_sales = PurchaseHistories.objects.aggregate(
-            total=Sum('coins_purchased'))['total'] or 0
-        todays_coin_sales = PurchaseHistories.objects.filter(
-            purchase_date__date=today).aggregate(
-            total=Sum('coins_purchased'))['total'] or 0
-        weekly_coin_sales = PurchaseHistories.objects.filter(
-            purchase_date__date__gte=week_ago).aggregate(
-            total=Sum('coins_purchased'))['total'] or 0
-        monthly_coin_sales = PurchaseHistories.objects.filter(
-            purchase_date__date__gte=month_ago).aggregate(
-            total=Sum('coins_purchased'))['total'] or 0
-
-        # Revenue Summary
-        all_time_revenue = PurchaseHistories.objects.aggregate(
-            total=Sum('purchased_price'))['total'] or 0
-        todays_revenue = PurchaseHistories.objects.filter(
-            purchase_date__date=today).aggregate(
-            total=Sum('purchased_price'))['total'] or 0
-        weekly_revenue = PurchaseHistories.objects.filter(
-            purchase_date__date__gte=week_ago).aggregate(
-            total=Sum('purchased_price'))['total'] or 0
-        monthly_revenue = PurchaseHistories.objects.filter(
-            purchase_date__date__gte=month_ago).aggregate(
-            total=Sum('purchased_price'))['total'] or 0
-
-        # All call details
+        # === CALL DETAILS ===
         all_calls = AgoraCallHistory.objects.all().order_by('-start_time')
         call_details = []
         for call in all_calls:
@@ -125,11 +117,11 @@ class PlatformAnalyticsView(APIView):
                 "coins_added": call.coins_added
             })
 
-        # Missed calls
+        # === MISSED CALL DETAILS ===
         missed_calls = AgoraCallHistory.objects.filter(status="missed")
-        missed_call_count = missed_calls.count()
-        missed_call_details = [
-            {
+        missed_call_details = []
+        for call in missed_calls:
+            missed_call_details.append({
                 "call_id": call.id,
                 "executive_id": call.executive.id if call.executive else None,
                 "executive_name": call.executive.name if call.executive else "Unknown",
@@ -137,42 +129,25 @@ class PlatformAnalyticsView(APIView):
                 "user_name": call.user.name if call.user else "Unknown",
                 "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
-            }
-            for call in missed_calls
-        ]
+            })
 
+        # === FINAL RESPONSE ===
         return Response({
-            "total_executives": total_executives,
-            "total_users": total_users,
-
-            "active_executives": active_executives,
-            "active_users": active_users,
             "on_call": on_call,
-
-            "today_talk_time": formatted_today_talk_time,
-            "total_talk_time": formatted_total_talk_time,
-
-            "user_coin_spending": user_coin_spending,
-            "executive_coin_earnings": executive_coin_earnings,
-
-            "coin_sales_summary": {
-                "all_time": all_time_coin_sales,
-                "today": todays_coin_sales,
-                "last_7_days": weekly_coin_sales,
-                "last_30_days": monthly_coin_sales
+            "today_talk_time_minutes": format_minutes(today_talk_time),
+            "total_talk_time_minutes": format_minutes(total_talk_time),
+            "coin_metrics": {
+                "user_coin_spending": user_coin_spending,
+                "executive_coin_earnings": executive_coin_earnings
             },
-
-            "revenue_summary": {
-                "all_time": all_time_revenue,
-                "today": todays_revenue,
-                "last_7_days": weekly_revenue,
-                "last_30_days": monthly_revenue
-            },
-
-            "total_missed_calls": missed_call_count,
-            "missed_call_details": missed_call_details,
+            "coin_sales_summary": coin_sales_summary,
+            "revenue_summary": revenue_summary,
+            "user_metrics": user_metrics,
+            "executive_metrics": executive_metrics,
+            "total_calls": len(call_details),
             "all_call_details": call_details,
-            "total_calls": len(call_details)
+            "total_missed_calls": missed_calls.count(),
+            "missed_call_details": missed_call_details,
         }, status=status.HTTP_200_OK)
     
 class ExecutiveAnalyticsView(APIView):

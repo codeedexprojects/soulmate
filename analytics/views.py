@@ -50,6 +50,11 @@ class PlatformAnalyticsView(APIView):
         executives_this_week = Executives.objects.filter(created_at__date__gte=start_of_week).count()
         executives_this_month = Executives.objects.filter(created_at__date__gte=start_of_month).count()
 
+        # Time-based user filters
+        users_today = User.objects.filter(created_at__date=today).count()
+        users_this_week = User.objects.filter(created_at__date__gte=start_of_week).count()
+        users_this_month = User.objects.filter(created_at__date__gte=start_of_month).count()
+
         # Active users (last 90 days)
         active_executives = Executives.objects.filter(online=True).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
@@ -57,17 +62,17 @@ class PlatformAnalyticsView(APIView):
         # Call metrics
         on_call = AgoraCallHistory.objects.filter(status="joined").count()
 
-        # Calculate total talk time in seconds (for today)
+        # Talk time (today)
         today_duration_sum = AgoraCallHistory.objects.filter(start_time__date=today).aggregate(
             total_duration=Sum('duration')
         )['total_duration'] or timedelta(seconds=0)
 
-        # Calculate lifetime talk time in seconds (for all users)
+        # Lifetime talk time
         lifetime_duration_sum = AgoraCallHistory.objects.aggregate(
             total_duration=Sum('duration')
         )['total_duration'] or timedelta(seconds=0)
 
-        # Function to format duration
+        # Format durations
         def format_duration(duration_sum):
             if isinstance(duration_sum, timedelta):
                 total_seconds = duration_sum.total_seconds()
@@ -78,7 +83,6 @@ class PlatformAnalyticsView(APIView):
                 return f"{int(talk_time_minutes)}"
             return f"{talk_time_minutes:.2f}".replace('.00', '')
 
-        # Format both durations
         formatted_today_talk_time = format_duration(today_duration_sum)
         formatted_total_talk_time = format_duration(lifetime_duration_sum)
 
@@ -94,11 +98,12 @@ class PlatformAnalyticsView(APIView):
         todays_revenue = PurchaseHistories.objects.filter(
             purchase_date__date=today
         ).aggregate(total=Sum('purchased_price'))['total'] or 0
+
         todays_coin_sales = PurchaseHistories.objects.filter(
             purchase_date__date=today
         ).aggregate(total=Sum('coins_purchased'))['total'] or 0
 
-        # Get all calls with details
+        # All calls
         all_calls = AgoraCallHistory.objects.all().order_by('-start_time')
         call_details = []
         for call in all_calls:
@@ -133,12 +138,21 @@ class PlatformAnalyticsView(APIView):
         ]
 
         return Response({
+            # Executive metrics
             "total_executives": total_executives,
             "executives_all_time": total_executives,
             "executives_today": executives_today,
             "executives_this_week": executives_this_week,
             "executives_this_month": executives_this_month,
+
+            # User metrics
             "total_users": total_users,
+            "users_all_time": total_users,
+            "users_today": users_today,
+            "users_this_week": users_this_week,
+            "users_this_month": users_this_month,
+
+            # Revenue and usage
             "todays_revenue": todays_revenue,
             "todays_coin_sales": todays_coin_sales,
             "active_executives": active_executives,
@@ -148,6 +162,8 @@ class PlatformAnalyticsView(APIView):
             "total_talk_time": formatted_total_talk_time,
             "user_coin_spending": user_coin_spending,
             "executive_coin_earnings": executive_coin_earnings,
+
+            # Calls
             "total_missed_calls": missed_call_count,
             "missed_call_details": missed_call_details,
             "all_call_details": call_details,

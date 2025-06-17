@@ -396,7 +396,7 @@ class UserStatisticsAPIView(APIView):
         ).select_related('userprofile').values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_online',
             'is_suspended', 'is_dormant', 'total_coins_spent',
-            'total_purchases', 'total_talktime', 'coin_balance'
+            'total_purchases', 'total_talktime', 'coin_balance','created_at'
         )
 
         total_users = User.objects.count()
@@ -415,7 +415,7 @@ class UserStatisticsAPIView(APIView):
                 'User_ID': user['user_id'],
                 'mobile_number': user['mobile_number'],
                 'Date': today,
-                'created_at': user['created_at'],
+                'Created_At': user['created_at'].strftime('%Y-%m-%d %H:%M:%S') if user['created_at'] else None,
                 'Ban': user['is_banned'],
                 'Suspend': user['is_suspended'],
                 'Is_Dormant': user['is_dormant'],

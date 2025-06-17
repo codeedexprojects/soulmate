@@ -525,9 +525,78 @@ class CreateAdminView(generics.CreateAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
 
-class AdminDetailUpdate(generics.RetrieveUpdateDestroyAPIView):
+
+class SendAdminOTPView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        password = request.data.get("password")
+
+        if not email or not password:
+            return Response({"error": "Email and password are required."}, status=400)
+
+        user = authenticate(request, email=email, password=password)
+        if not user:
+            return Response({"error": "Invalid email or password."}, status=401)
+
+        if not isinstance(user, Admins):
+            return Response({"error": "User is not an admin."}, status=403)
+
+        otp = str(random.randint(100000, 999999))
+        try:
+            send_otp_2factor(user.mobile_number, otp)
+        except Exception as e:
+            return Response({"error": f"Failed to send OTP: {str(e)}"}, status=500)
+
+        user.otp = otp
+        user.otp_created_at = timezone.now()
+        user.otp_attempts = 0  
+        user.save()
+
+        return Response({"message": "OTP sent to registered mobile number."}, status=200)
+    
+class VerifyAdminOTPView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        otp = request.data.get("otp")
+
+        try:
+            admin = Admins.objects.get(email=email)
+        except Admins.DoesNotExist:
+            return Response({"error": "Admin not found."}, status=404)
+
+        if not admin.otp or not admin.otp_created_at:
+            return Response({"error": "OTP not generated."}, status=400)
+
+        if timezone.now() > admin.otp_created_at + timedelta(minutes=5):
+            return Response({"error": "OTP expired."}, status=400)
+
+        if admin.otp != otp:
+            admin.otp_attempts += 1
+            admin.save()
+            return Response({"error": "Invalid OTP."}, status=400)
+
+        admin.otp = None
+        admin.otp_created_at = None
+        admin.otp_attempts = 0
+        admin.save()
+
+        request.session[f"otp_verified_{admin.id}"] = True
+
+        return Response({"message": "OTP verified."}, status=200)
+    
+class AdminDetailUpdate(generics.UpdateAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
+
+    def update(self, request, *args, **kwargs):
+        admin = self.get_object()
+
+        if not request.session.get(f"otp_verified_{admin.id}", False):
+            return Response({"error": "OTP verification required."}, status=403)
+
+        request.session[f"otp_verified_{admin.id}"] = False
+
+        return super().update(request, *args, **kwargs)
 
 class SendPasswordResetOTPView(APIView):
     def post(self, request):

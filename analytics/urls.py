@@ -16,6 +16,8 @@ urlpatterns = [
 
     path('create-admin/', CreateAdminView.as_view(), name='create-admin'),
     path('admin-login/', SuperuserLoginView.as_view(), name='admin-login'),
+    path('admin/send-otp/', SendAdminOTPView.as_view(), name='admin-send-otp'),
+    path('admin/verify-otp/', VerifyAdminOTPView.as_view(), name='admin-verify-otp'),
     path('admin/update/<int:pk>/',AdminDetailUpdate.as_view(), name='update-admin'),
     path('password-reset/send-otp/', SendPasswordResetOTPView.as_view(), name='send-password-reset-otp'),
     path('password-reset/verify-otp/', VerifyOTPResetPasswordView.as_view(), name='verify-password-reset-otp'),

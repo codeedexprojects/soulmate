@@ -415,6 +415,7 @@ class UserStatisticsAPIView(APIView):
                 'User_ID': user['user_id'],
                 'mobile_number': user['mobile_number'],
                 'Date': today,
+                'created_at': user['created_at'],
                 'Ban': user['is_banned'],
                 'Suspend': user['is_suspended'],
                 'Is_Dormant': user['is_dormant'],

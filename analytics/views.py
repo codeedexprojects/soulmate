@@ -579,25 +579,15 @@ class VerifyAdminOTPView(APIView):
         admin.otp = None
         admin.otp_created_at = None
         admin.otp_attempts = 0
-        admin.otp_verified_at = timezone.now()  
         admin.save()
+
+        request.session[f"otp_verified_{admin.id}"] = True
 
         return Response({"message": "OTP verified successfully."}, status=200)
     
 class AdminDetailUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
-
-    def get_object(self):
-        admin = super().get_object()
-        if not admin.otp_verified_at:
-            raise PermissionDenied("OTP verification required.")
-        
-        # Check if OTP was verified within last 5 minutes
-        if timezone.now() > admin.otp_verified_at + timedelta(minutes=5):
-            raise PermissionDenied("OTP expired. Please verify again.")
-        
-        return admin
 
 
 class SendPasswordResetOTPView(APIView):

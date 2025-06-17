@@ -24,6 +24,7 @@ from django.views import View
 from django.db import transaction
 import requests
 from users.models import UserProfile
+from django.utils.timezone import localtime
 
 class CreateRechargePlanView(APIView):
     def post(self, request):
@@ -447,13 +448,14 @@ class UserStatisticsDetailAPIView(APIView):
 
             total_talktime=Sum('caller__duration')
         ).values('id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended', 
-                 'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases', 'total_talktime').first()
+                 'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases', 'total_talktime','created_at').first()
 
         response_data = {
             'id': user_data['id'],
             'user_id': user_data['user_id'],
             'mobile_number': user_data['mobile_number'],
             'date': today,
+            'created_at': localtime(user_data['created_at']).strftime('%Y-%m-%d %H:%M:%S') if user_data['created_at'] else None,
             'is_banned': user_data['is_banned'],
             'is_suspended': user_data['is_suspended'],
             'is_dormant': user_data['is_dormant'],

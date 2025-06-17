@@ -589,15 +589,6 @@ class AdminDetailUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
 
-    def update(self, request, *args, **kwargs):
-        admin = self.get_object()
-
-        if not request.session.get(f"otp_verified_{admin.id}", False):
-            return Response({"error": "OTP verification required."}, status=403)
-
-        request.session[f"otp_verified_{admin.id}"] = False
-
-        return super().update(request, *args, **kwargs)
 
 class SendPasswordResetOTPView(APIView):
     def post(self, request):

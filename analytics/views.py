@@ -584,7 +584,7 @@ class VerifyAdminOTPView(APIView):
 
         return Response({"message": "OTP verified."}, status=200)
     
-class AdminDetailUpdate(generics.UpdateAPIView):
+class AdminDetailUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
 

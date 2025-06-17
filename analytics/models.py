@@ -29,6 +29,7 @@ class Admins(AbstractBaseUser, PermissionsMixin):
     otp = models.CharField(max_length=6, null=True, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
     otp_attempts = models.PositiveSmallIntegerField(default=0)
+    otp_verified_at = models.DateTimeField(blank=True, null=True)
     is_staff = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)

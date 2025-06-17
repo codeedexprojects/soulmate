@@ -552,9 +552,6 @@ class SendAdminOTPView(APIView):
 
         return Response({"message": "OTP sent successfully to mobile number."}, status=200)
     
-import secrets
-from django.core.cache import cache  
-
 class VerifyAdminOTPView(APIView):
     def post(self, request):
         mobile_number = request.data.get("mobile_number")
@@ -584,30 +581,14 @@ class VerifyAdminOTPView(APIView):
         admin.otp_attempts = 0
         admin.save()
 
-        otp_token = secrets.token_urlsafe(32)
-        cache.set(f'otp_verified_{admin.id}', otp_token, timeout=500)  
+        request.session[f"otp_verified_{admin.id}"] = True
 
-        return Response({
-            "message": "OTP verified successfully.",
-            "otp_token": otp_token,
-            "admin_id": admin.id
-        }, status=200)
+        return Response({"message": "OTP verified successfully."}, status=200)
     
 class AdminDetailUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Admins.objects.all()
     serializer_class = AdminSerializer
 
-    def update(self, request, *args, **kwargs):
-        admin = self.get_object()
-        otp_token = request.data.get("otp_token")
-
-        valid_token = cache.get(f'otp_verified_{admin.id}')
-        if not otp_token or otp_token != valid_token:
-            return Response({"error": "OTP verification required."}, status=403)
-
-        cache.delete(f'otp_verified_{admin.id}')
-
-        return super().update(request, *args, **kwargs)
 
 class SendPasswordResetOTPView(APIView):
     def post(self, request):

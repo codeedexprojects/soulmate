@@ -528,39 +528,40 @@ class CreateAdminView(generics.CreateAPIView):
 
 class SendAdminOTPView(APIView):
     def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
+        mobile_number = request.data.get("mobile_number")
 
-        if not email or not password:
-            return Response({"error": "Email and password are required."}, status=400)
+        if not mobile_number:
+            return Response({"error": "Mobile number is required."}, status=400)
 
-        user = authenticate(request, email=email, password=password)
-        if not user:
-            return Response({"error": "Invalid email or password."}, status=401)
-
-        if not isinstance(user, Admins):
-            return Response({"error": "User is not an admin."}, status=403)
+        try:
+            admin = Admins.objects.get(mobile_number=mobile_number)
+        except Admins.DoesNotExist:
+            return Response({"error": "Admin with this mobile number not found."}, status=404)
 
         otp = str(random.randint(100000, 999999))
+
         try:
-            send_otp_2factor(user.mobile_number, otp)
+            send_otp_2factor(mobile_number, otp)
         except Exception as e:
             return Response({"error": f"Failed to send OTP: {str(e)}"}, status=500)
 
-        user.otp = otp
-        user.otp_created_at = timezone.now()
-        user.otp_attempts = 0  
-        user.save()
+        admin.otp = otp
+        admin.otp_created_at = timezone.now()
+        admin.otp_attempts = 0
+        admin.save()
 
-        return Response({"message": "OTP sent to registered mobile number."}, status=200)
+        return Response({"message": "OTP sent successfully to mobile number."}, status=200)
     
 class VerifyAdminOTPView(APIView):
     def post(self, request):
-        email = request.data.get("email")
+        mobile_number = request.data.get("mobile_number")
         otp = request.data.get("otp")
 
+        if not mobile_number or not otp:
+            return Response({"error": "Mobile number and OTP are required."}, status=400)
+
         try:
-            admin = Admins.objects.get(email=email)
+            admin = Admins.objects.get(mobile_number=mobile_number)
         except Admins.DoesNotExist:
             return Response({"error": "Admin not found."}, status=404)
 
@@ -582,7 +583,7 @@ class VerifyAdminOTPView(APIView):
 
         request.session[f"otp_verified_{admin.id}"] = True
 
-        return Response({"message": "OTP verified."}, status=200)
+        return Response({"message": "OTP verified successfully."}, status=200)
     
 class AdminDetailUpdate(generics.RetrieveUpdateDestroyAPIView):
     queryset = Admins.objects.all()

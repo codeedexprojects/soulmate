@@ -798,7 +798,7 @@ class CoinRedemptionRequestView(APIView):
 
 
 class RedemptionRequestListView(generics.ListAPIView):
-    queryset = CoinRedemptionRequest.objects.all()
+    queryset = CoinRedemptionRequest.objects.all().order_by('-created_at')
     serializer_class = CoinRedemptionRequestSerializer
 
     def get(self, request):

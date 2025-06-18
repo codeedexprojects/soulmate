@@ -27,8 +27,8 @@ class CreateChannelView(APIView):
 
     @transaction.atomic
     def post(self, request):
-        app_id = "9019ftiivkla33fc6d46548481241f4b88b564346c"
-        app_certificate = "e2f0a6refa085d34973ad4676f08gttsxfc7cfa785796d"
+        app_id = "9019fa33fc6d4654848121f4b88b346c"
+        app_certificate = "e2f0a6a085d34973ad08c7cfa785796d"
         role = 1
         expiration_in_seconds = 3600
 

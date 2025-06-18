@@ -520,8 +520,9 @@ class CoinConversionListCreateView(generics.ListCreateAPIView):
         return float(coins) * 0.5  # Example: 1 coin = 0.5 rupee
 
 
-
-
+class CoinConversionUpdateView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = CoinConversion.objects.all()
+    serializer_class = CoinConversionSerializer
 
       
     

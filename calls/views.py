@@ -24,14 +24,13 @@ AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
 class CreateChannelView(APIView):
     permission_classes = [AllowAny]
 
-    @transaction.atomic
     def post(self, request):
-        app_id = "9019ftiivkla33fc6d46548481241f4b88b564346c"
-        app_certificate = "e2f0a6refa085d34973ad4676f08gttsxfc7cfa785796d"
+        app_id = "9019fa33fc6d4654848121f4b88b346c"
+        app_certificate = "e2f0a6a085d34973ad08c7cfa785796d"
         channel_name = request.data.get("channel_name")
         executive_id = request.data.get("executive_id")
         user_id = request.data.get("user_id")
-        role = 1
+        role = 1 
         expiration_in_seconds = 3600
 
         if not channel_name:
@@ -41,8 +40,7 @@ class CreateChannelView(APIView):
             return Response({"error": "Both executive_id and user_id are required."}, status=400)
 
         try:
-            # Lock executive row to prevent race condition
-            executive = Executives.objects.select_for_update().get(id=executive_id)
+            executive = Executives.objects.get(id=executive_id)
             user = User.objects.get(id=user_id)
         except Executives.DoesNotExist:
             return Response({"error": "Invalid executive_id."}, status=404)
@@ -54,7 +52,7 @@ class CreateChannelView(APIView):
 
         if executive.on_call:
             return Response({"error": "The executive is already on another call."}, status=403)
-
+        
         if not executive.online:
             return Response({"error": "The executive is offline."}, status=403)
 
@@ -62,17 +60,27 @@ class CreateChannelView(APIView):
             current_time = int(time.time())
             privilege_expired_ts = current_time + expiration_in_seconds
             user_token = RtcTokenBuilder.buildTokenWithUid(
-                app_id, app_certificate, channel_name, user.id, role, privilege_expired_ts,
-            )
-            executive_token = RtcTokenBuilder.buildTokenWithUid(
-                app_id, app_certificate, channel_name, executive.id, 2, privilege_expired_ts,
+                app_id,
+                app_certificate,
+                channel_name,
+                user.id,
+                role,
+                privilege_expired_ts,
             )
         except Exception as e:
             return Response({"error": f"Token generation failed: {str(e)}"}, status=500)
 
-        # Mark executive as on call immediately
-        executive.on_call = True
-        executive.save()
+        try:
+            executive_token = RtcTokenBuilder.buildTokenWithUid(
+                app_id,
+                app_certificate,
+                channel_name,
+                executive.id,  
+                2,  
+                privilege_expired_ts,
+            )
+        except Exception as e:
+            return Response({"error": f"Executive token generation failed: {str(e)}"}, status=500)
 
         call_history = AgoraCallHistory.objects.create(
             user=user,
@@ -83,22 +91,22 @@ class CreateChannelView(APIView):
             start_time=now(),
             executive_joined=False,
             uid=user.id,
-            status="pending",
+            status="pending",  
         )
 
         return Response({
             "message": "Channel created successfully.",
-            "token": user_token,
-            "executive_token": executive_token,
+            "token": user_token,  
+            "executive_token": executive_token,  
             "channel_name": channel_name,
             "caller_name": user.name,
             "receiver_name": executive.name,
             "user_id": user.user_id,
             "executive_id": executive.executive_id,
             "executive": executive.id,
-            "agora_uid": user.id,
-            "executive_agora_uid": executive.id,
-            "call_id": call_history.id
+            "agora_uid": user.id,  
+            "executive_agora_uid": executive.id, 
+            "call_id": call_history.id  
         }, status=200)
 
     

@@ -23,6 +23,7 @@ urlpatterns = [
     path('user-statistics/', UserStatisticsAPIView.as_view(), name='user-statistics'),
     path('user-statistics/<int:user_id>/', UserStatisticsDetailAPIView.as_view(), name='user-statistics'),
     path('coin-conversions/', CoinConversionListCreateView.as_view(), name='coin-conversion-list-create'),
+    path('coin-conversion/<int:pk>/', CoinConversionUpdateView.as_view(), name='coin-conversion-update'),
     path('cashfree/<int:user_id>/<int:plan_id>/', CreatePaymentLinkView.as_view(), name='create-payment-link'),
     path('get-payment-details/<int:user_id>/', GetPaymentDetailsView.as_view(), name='get-payment-details'),
 

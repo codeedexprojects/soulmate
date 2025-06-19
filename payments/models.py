@@ -26,6 +26,10 @@ class RechargePlan(models.Model):
     
     def calculate_talk_time_minutes(self):
         return self.coin_package / 180
+    
+    def get_adjusted_coin_package(self):
+        bonus_percentage = Decimal(self.discount_percentage) / 100
+        return int(self.coin_package + (self.coin_package * bonus_percentage))
 
     def __str__(self):
         return self.plan_name

@@ -6,7 +6,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
     discount_amount = serializers.SerializerMethodField()
     final_amount = serializers.SerializerMethodField()
     total_talktime = serializers.SerializerMethodField()
-    coin_package = serializers.SerializerMethodField()
+    coin_package = serializers.SerializerMethodField(write_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=RechargePlanCato.objects.all(),
         write_only=True

@@ -25,6 +25,7 @@ class CallHistorySerializer(serializers.ModelSerializer):
             'executive_gender',
             'duration',
             'status',
+            'coins_deducted',
             'formatted_duration',
             'formatted_start_time',
             'formatted_end_time',

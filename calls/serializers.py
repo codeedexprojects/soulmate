@@ -250,9 +250,11 @@ class CallRatingSerializer(serializers.ModelSerializer):
 
 class CallRatingSerializerview(serializers.ModelSerializer):
     executive_name = serializers.CharField(source='executive.name', read_only=True)
+    executive_id = serializers.CharField(source='executive.executive_id',read_only=True)
+    user_id = serializers.CharField(source='user.user_id',read_only=True)
     class Meta:
         model = CallRating
-        fields = ['id', 'executive', 'user', 'execallhistory','executive_name' ,'stars', 'comment', 'created_at']
+        fields = ['id', 'executive','executive_id','user_id', 'user', 'execallhistory','executive_name' ,'stars', 'comment', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 

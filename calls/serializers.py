@@ -4,6 +4,8 @@ from users.serializers import UserSerializer,ExecutiveSerializer
 from django.utils.timezone import localtime
 from payments.models import CoinConversion
 from executives.models import ExecutiveProfilePicture
+from django.utils.timezone import localtime
+import pytz
 
 class CallHistorySerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -88,12 +90,17 @@ class CallHistorySerializer(serializers.ModelSerializer):
     def get_formatted_start_time(self, obj):
         if obj.start_time is None:
             return None
-        return obj.start_time.strftime('%B %d, %Y, %I:%M %p')
+        kolkata_tz = pytz.timezone('Asia/Kolkata')
+        local_dt = obj.start_time.astimezone(kolkata_tz)
+        return local_dt.strftime('%B %d, %Y, %I:%M %p')
 
     def get_formatted_end_time(self, obj):
         if obj.end_time is None:
             return None
-        return obj.end_time.strftime('%B %d, %Y, %I:%M %p')
+        kolkata_tz = pytz.timezone('Asia/Kolkata')
+        local_dt = obj.end_time.astimezone(kolkata_tz)
+        return local_dt.strftime('%B %d, %Y, %I:%M %p')
+
 
     def get_executive_gender(self, obj):
         return obj.executive.gender

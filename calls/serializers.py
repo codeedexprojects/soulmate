@@ -6,6 +6,7 @@ from payments.models import CoinConversion
 from executives.models import ExecutiveProfilePicture
 from django.utils.timezone import localtime
 import pytz
+from zoneinfo import ZoneInfo
 
 class CallHistorySerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -155,6 +156,8 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
         user = getattr(obj, 'user', None)
         executive = getattr(obj, 'executive', None)
 
+        kolkata_tz = ZoneInfo("Asia/Kolkata")
+
         return {
             "id": obj.id,
             "user": {
@@ -173,8 +176,8 @@ class TalkTimeHistorySerializer(serializers.ModelSerializer):
             "status": obj.status,
             "channel_name": obj.channel_name,
             "executive_joined": obj.executive_joined,
-            "call_start_time": localtime(obj.start_time).strftime("%d/%m/%Y %I:%M %p") if obj.start_time else None,
-            "call_end_time": localtime(obj.end_time).strftime("%d/%m/%Y %I:%M %p") if obj.end_time else None,
+            "call_start_time": obj.start_time.astimezone(kolkata_tz).strftime("%d/%m/%Y %I:%M %p") if obj.start_time else None,
+            "call_end_time": obj.end_time.astimezone(kolkata_tz).strftime("%d/%m/%Y %I:%M %p") if obj.end_time else None,
             "duration": obj.duration.total_seconds() if obj.duration else None,
         }
 

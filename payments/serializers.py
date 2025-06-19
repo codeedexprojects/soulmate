@@ -6,6 +6,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
     discount_amount = serializers.SerializerMethodField()
     final_amount = serializers.SerializerMethodField()
     total_talktime = serializers.SerializerMethodField()
+    coin_package = serializers.SerializerMethodField()
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=RechargePlanCato.objects.all(),
         write_only=True
@@ -28,6 +29,9 @@ class RechargePlanSerializer(serializers.ModelSerializer):
 
     def get_final_amount(self, obj):
         return obj.calculate_final_price()
+    
+    def get_coin_package(self, obj):
+        return obj.get_adjusted_coin_package()
 
     def get_total_talktime(self, obj):
         talktime_minutes = obj.coin_package / 180 

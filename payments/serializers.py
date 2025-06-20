@@ -88,20 +88,31 @@ class RechargeCoinsSerializer(serializers.Serializer):
             'final_amount': final_amount
         }
     
+from django.utils.timezone import localtime
+from zoneinfo import ZoneInfo
+
 class PurchaseHistoriesSerializer(serializers.ModelSerializer):
     base_price = serializers.CharField(source='recharge_plan.base_price', read_only=True)
     final_amount = serializers.SerializerMethodField()
     purchase_date = serializers.SerializerMethodField()
-    user_id = serializers.CharField(source='user.user_id',read_only=True)
+    user_id = serializers.CharField(source='user.user_id', read_only=True)
+
     class Meta:
         model = PurchaseHistories
-        fields = ['id', 'recharge_plan', 'user_id','coins_purchased', 'purchased_price', 'base_price', 'final_amount','payment_status', 'purchase_date','is_admin']
+        fields = [
+            'id', 'recharge_plan', 'user_id', 'coins_purchased',
+            'purchased_price', 'base_price', 'final_amount',
+            'payment_status', 'purchase_date', 'is_admin'
+        ]
 
     def get_final_amount(self, obj):
         return obj.recharge_plan.calculate_final_price()
 
     def get_purchase_date(self, obj):
-        return obj.purchase_date.strftime("%a, %d %b %I:%M %p")
+        # Convert to Asia/Kolkata timezone
+        kolkata_time = obj.purchase_date.astimezone(ZoneInfo("Asia/Kolkata"))
+        return kolkata_time.strftime("%a, %d %b %I:%M %p")
+
 
 
 class RechargePlanCategorySerializer(serializers.ModelSerializer):

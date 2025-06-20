@@ -9,7 +9,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
 
     coin_package = serializers.IntegerField(write_only=True) 
     adjusted_coin_package = serializers.SerializerMethodField() 
-    base_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    base_price = serializers.IntegerField()
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=RechargePlanCato.objects.all(),
         write_only=True

@@ -92,7 +92,7 @@ from django.utils.timezone import localtime
 from zoneinfo import ZoneInfo
 
 class PurchaseHistoriesSerializer(serializers.ModelSerializer):
-    base_price = serializers.CharField(source='recharge_plan.base_price', read_only=True)
+    base_price = serializers.IntegerField(source='recharge_plan.base_price', read_only=True)
     # final_amount = serializers.SerializerMethodField()
     purchase_date = serializers.SerializerMethodField()
     user_id = serializers.CharField(source='user.user_id', read_only=True)

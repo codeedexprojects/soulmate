@@ -176,7 +176,7 @@ class CreateRazorpayOrderView(APIView):
         PurchaseHistories.objects.create(
             user=user,
             recharge_plan=plan,
-            coins_purchased=plan.coin_package,
+            coins_purchased=plan.get_adjusted_coin_package(),
             purchased_price=amount,
             razorpay_order_id=razorpay_order['id'],
             payment_status='PENDING'

@@ -32,27 +32,34 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Sum, F, ExpressionWrapper, DurationField, Avg, Count
 from users.utils import send_otp_2factor
 import random
+from django.utils.timezone import make_aware
+from datetime import datetime, time
 
 
 class PlatformAnalyticsView(APIView):
     def get(self, request):
         today = now().date()
-        ninety_days_ago = now() - timedelta(days=90)
-        start_of_week = today - timedelta(days=today.weekday())
-        start_of_month = today.replace(day=1)
+        now_dt = now()
+        ninety_days_ago = now_dt - timedelta(days=90)
+
+        # Time boundaries
+        start_of_today = make_aware(datetime.combine(today, time.min))
+        end_of_today = make_aware(datetime.combine(today, time.max))
+        start_of_week = make_aware(datetime.combine(today - timedelta(days=today.weekday()), time.min))
+        start_of_month = make_aware(datetime.combine(today.replace(day=1), time.min))
 
         # Executives
         total_executives = Executives.objects.count()
         executives_today = Executives.objects.filter(created_at__date=today).count()
-        executives_week = Executives.objects.filter(created_at__date__gte=start_of_week).count()
-        executives_month = Executives.objects.filter(created_at__date__gte=start_of_month).count()
+        executives_week = Executives.objects.filter(created_at__gte=start_of_week).count()
+        executives_month = Executives.objects.filter(created_at__gte=start_of_month).count()
         active_executives = Executives.objects.filter(online=True).count()
 
         # Users
         total_users = User.objects.count()
         users_today = User.objects.filter(created_at__date=today).count()
-        users_week = User.objects.filter(created_at__date__gte=start_of_week).count()
-        users_month = User.objects.filter(created_at__date__gte=start_of_month).count()
+        users_week = User.objects.filter(created_at__gte=start_of_week).count()
+        users_month = User.objects.filter(created_at__gte=start_of_month).count()
         active_users = User.objects.filter(last_login__gte=ninety_days_ago).count()
 
         # Call metrics
@@ -86,11 +93,11 @@ class PlatformAnalyticsView(APIView):
             total=Sum('coins_added')
         )['total'] or 0
 
-        # Revenue and coin sales
+        # Revenue and coin sales (timezone-aware filtering)
         purchases_all = PurchaseHistories.objects.filter(payment_status='SUCCESS')
-        purchases_today = purchases_all.filter(purchase_date__date=today)
-        purchases_week = purchases_all.filter(purchase_date__date__gte=start_of_week)
-        purchases_month = purchases_all.filter(purchase_date__date__gte=start_of_month)
+        purchases_today = purchases_all.filter(purchase_date__range=(start_of_today, end_of_today))
+        purchases_week = purchases_all.filter(purchase_date__gte=start_of_week)
+        purchases_month = purchases_all.filter(purchase_date__gte=start_of_month)
 
         revenue_today = purchases_today.aggregate(total=Sum('purchased_price'))['total'] or 0
         revenue_week = purchases_week.aggregate(total=Sum('purchased_price'))['total'] or 0

@@ -29,6 +29,9 @@ class RechargePlanSerializer(serializers.ModelSerializer):
 
     def get_discount_amount(self, obj):
         return obj.calculate_discount()
+    
+    def get_base_price(self, obj):
+        return obj.base_prize()
 
     def get_final_amount(self, obj):
         return obj.calculate_final_price()

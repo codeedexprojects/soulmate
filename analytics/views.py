@@ -514,7 +514,8 @@ class ExecutiveStatusView(APIView):
                 'total_talk_time_today': total_talk_time_today,
                 'total_joined_calls': total_joined_calls,
                 'total_missed_calls': total_missed_calls,
-                'online': executive.online
+                'online': executive.online,
+                'is_banned':executive.is_banned
             }, status=status.HTTP_200_OK)
 
         except Executives.DoesNotExist:

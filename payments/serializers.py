@@ -9,7 +9,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
 
     coin_package = serializers.IntegerField(write_only=True) 
     adjusted_coin_package = serializers.SerializerMethodField() 
-    base_price  = serializers.SerializerMethodField() 
+    base_price = serializers.DecimalField(source='base_price', max_digits=10, decimal_places=2, read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=RechargePlanCato.objects.all(),
         write_only=True
@@ -29,9 +29,6 @@ class RechargePlanSerializer(serializers.ModelSerializer):
 
     def get_discount_amount(self, obj):
         return obj.calculate_discount()
-    
-    def get_base_price(self, obj):
-        return obj.base_prize()
 
     def get_final_amount(self, obj):
         return obj.calculate_final_price()

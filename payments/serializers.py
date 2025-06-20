@@ -69,8 +69,8 @@ class RechargeCoinsSerializer(serializers.Serializer):
     def calculate_discount(self, base_amount, discount_percentage):
         return base_amount * (discount_percentage / 100)
 
-    def calculate_final_amount(self, base_amount, discount):
-        return base_amount - discount
+    # def calculate_final_amount(self, base_amount, discount):
+    #     return base_amount - discount
 
     def create(self, validated_data):
         coin_package = validated_data['coin_package']
@@ -78,14 +78,14 @@ class RechargeCoinsSerializer(serializers.Serializer):
         discount_percentage = validated_data['discount_percentage']
 
         discount = self.calculate_discount(base_amount, discount_percentage)
-        final_amount = self.calculate_final_amount(base_amount, discount)
+        # final_amount = self.calculate_final_amount(base_amount, discount)
 
         return {
             'coin_package': coin_package,
             'base_amount': base_amount,
             'discount_percentage': discount_percentage,
             'discount_amount': discount,
-            'final_amount': final_amount
+            # 'final_amount': final_amount
         }
     
 from django.utils.timezone import localtime

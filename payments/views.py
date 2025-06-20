@@ -159,7 +159,7 @@ class CreateRazorpayOrderView(APIView):
         plan = get_object_or_404(RechargePlan, id=plan_id)
 
         # Calculate amount
-        amount = Decimal(plan.calculate_final_price())
+        amount = Decimal(plan.base_price())
         amount_in_paise = int(amount * 100)
 
         # Create Razorpay order

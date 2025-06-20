@@ -4,7 +4,7 @@ from analytics.models import CoinRedemptionRequest
 
 class RechargePlanSerializer(serializers.ModelSerializer):
     discount_amount = serializers.SerializerMethodField()
-    final_amount = serializers.SerializerMethodField()
+    # final_amount = serializers.SerializerMethodField()
     total_talktime = serializers.SerializerMethodField()
 
     coin_package = serializers.IntegerField(write_only=True) 
@@ -23,15 +23,15 @@ class RechargePlanSerializer(serializers.ModelSerializer):
         model = RechargePlan
         fields = [
             'id', 'plan_name', 'coin_package', 'adjusted_coin_package', 'base_price',
-            'discount_percentage', 'discount_amount', 'final_amount',
+            'discount_percentage', 'discount_amount',
             'category_id', 'category_name', 'total_talktime'
         ]
 
     def get_discount_amount(self, obj):
         return obj.calculate_discount()
 
-    def get_final_amount(self, obj):
-        return obj.calculate_final_price()
+    # def get_final_amount(self, obj):
+    #     return obj.calculate_final_price()
 
     def get_adjusted_coin_package(self, obj):
         return obj.get_adjusted_coin_package()

@@ -21,8 +21,8 @@ class RechargePlan(models.Model):
     def calculate_discount(self):
         return self.base_price * Decimal(self.discount_percentage / 100)
 
-    def calculate_final_price(self):
-        return self.base_price - self.calculate_discount()
+    # def calculate_final_price(self):
+    #     return self.base_price - self.calculate_discount()
     
     def calculate_talk_time_minutes(self):
         return self.coin_package / 180

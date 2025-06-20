@@ -105,8 +105,8 @@ class PurchaseHistoriesSerializer(serializers.ModelSerializer):
             'payment_status', 'purchase_date', 'is_admin'
         ]
 
-    def get_final_amount(self, obj):
-        return obj.recharge_plan.calculate_final_price()
+    # def get_final_amount(self, obj):
+    #     return obj.recharge_plan.calculate_final_price()
 
     def get_purchase_date(self, obj):
         # Convert to Asia/Kolkata timezone

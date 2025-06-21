@@ -341,7 +341,7 @@ class PurchaseHistoryListView(generics.ListAPIView):
 class UserPurchaseHistoriesView(APIView):
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
-        purchase_history = PurchaseHistories.objects.filter(user=user)
+        purchase_history = PurchaseHistories.objects.filter(user=user).order_by('-created_at')
         serializer = PurchaseHistoriesSerializer(purchase_history, many=True)
 
         return Response({

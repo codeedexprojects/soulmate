@@ -178,7 +178,7 @@ class GetUserCoinBalanceView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class UserListView(ListAPIView):
-    queryset = User.objects.all()
+    queryset = User.objects.all().order_by('-created_at')
     serializer_class = UserSerializer
 
 class UserDetailView(RetrieveUpdateDestroyAPIView):

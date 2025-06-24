@@ -219,6 +219,7 @@ class GetLatestRazorpayOrderView(APIView):
 class HandlePaymentSuccessView(APIView):
     def post(self, request, razorpay_order_id):
         try:
+            # Fetch all payments for the order
             payments = razorpay_client.order.payments(razorpay_order_id)
             if not payments['items']:
                 return Response({'message': 'No payment linked to this order.'}, status=404)
@@ -231,12 +232,25 @@ class HandlePaymentSuccessView(APIView):
             with transaction.atomic():
                 history = PurchaseHistories.objects.select_for_update().get(razorpay_order_id=razorpay_order_id)
 
+                # If already successful, no need to do anything
                 if history.payment_status == 'SUCCESS':
                     return Response({"message": "Payment already completed. Coins already added."}, status=200)
 
+                # Handle failed/cancelled/refunded payments
+                if status_razor in ['failed', 'refunded', 'cancelled']:
+                    history.razorpay_payment_id = payment_id
+                    history.payment_status = 'FAILED'
+                    history.save()
+                    return Response({
+                        "message": f"Payment failed with status: {status_razor.upper()}",
+                        "payment_status": "FAILED"
+                    }, status=400)
+
+                # If not captured yet, capture it now
                 if status_razor != 'captured':
                     razorpay_client.payment.capture(payment_id, amount)
 
+                # Mark as success and credit coins
                 history.razorpay_payment_id = payment_id
                 history.payment_status = 'SUCCESS'
                 history.save()
@@ -248,11 +262,16 @@ class HandlePaymentSuccessView(APIView):
                 "message": "Payment successful and coins added.",
                 "coins_added": history.coins_purchased,
                 "current_balance": history.user.coin_balance,
+                "payment_status": "SUCCESS"
             }, status=200)
+
+        except PurchaseHistories.DoesNotExist:
+            return Response({"error": "Order not found in local database."}, status=404)
 
         except Exception as e:
             logger.error(f"Payment verification failed for {razorpay_order_id}: {e}")
             return Response({"error": f"Payment verification failed: {str(e)}"}, status=400)
+
 
 
 

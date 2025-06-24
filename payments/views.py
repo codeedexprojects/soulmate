@@ -179,7 +179,7 @@ class CreateRazorpayOrderView(APIView):
             coins_purchased=plan.get_adjusted_coin_package(),
             purchased_price=amount,
             razorpay_order_id=razorpay_order['id'],
-            payment_status='PENDING'
+            # payment_status='PENDING'
         )
 
         return Response({
@@ -276,7 +276,7 @@ class VerifyPaymentView(APIView):
                     user_profile.add_coins(history.coins_purchased)
                 return Response({"status": "SUCCESS", "message": "Payment verified and updated"})
             else:
-                return Response({"status": "PENDING", "message": "Payment not yet captured"})
+                return Response({"status": "FAILED", "message": "Payment not yet captured"})
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 

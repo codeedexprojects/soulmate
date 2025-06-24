@@ -261,24 +261,47 @@ class VerifyPaymentView(APIView):
     def get(self, request, order_id):
         try:
             payments = razorpay_client.order.payments(order_id)
+            history = PurchaseHistories.objects.get(razorpay_order_id=order_id)
+
             if not payments["items"]:
-                return Response({"status": "PENDING", "message": "No payment found"}, status=200)
+                # No payment attempt made — likely closed payment window
+                if history.payment_status != "FAILED":
+                    history.payment_status = "FAILED"
+                    history.save()
+                return Response({
+                    "status": "FAILED",
+                    "message": "No payment attempt found. Possibly payment window was closed."
+                }, status=200)
 
             payment = payments["items"][0]
             if payment["status"] == "captured":
-                # Update DB (same as HandlePaymentSuccessView)
-                history = PurchaseHistories.objects.get(razorpay_order_id=order_id)
                 if history.payment_status != "SUCCESS":
                     history.payment_status = "SUCCESS"
                     history.razorpay_payment_id = payment["id"]
                     history.save()
-                    user_profile = UserProfile.objects.get(user_id=history.user.id)
+
+                    user_profile, _ = UserProfile.objects.get_or_create(user=history.user)
                     user_profile.add_coins(history.coins_purchased)
-                return Response({"status": "SUCCESS", "message": "Payment verified and updated"})
+
+                return Response({
+                    "status": "SUCCESS",
+                    "message": "Payment verified and coins added."
+                }, status=200)
             else:
-                return Response({"status": "FAILED", "message": "Payment not yet captured"})
+                # Payment was attempted but not successful
+                if history.payment_status != "FAILED":
+                    history.payment_status = "FAILED"
+                    history.save()
+                return Response({
+                    "status": "FAILED",
+                    "message": f"Payment status from Razorpay: {payment['status']}"
+                }, status=200)
+
+        except PurchaseHistories.DoesNotExist:
+            return Response({"error": "Order not found in system."}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
 
 #withoutrazorpay
 class RechargeCoinsByPlanView(APIView):

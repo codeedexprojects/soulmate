@@ -238,11 +238,12 @@ class HandlePaymentSuccessView(APIView):
                     history.payment_status = 'FAILED'
                     history.razorpay_payment_id = payment_id
                     history.save()
-                    return Response({"message": "Payment failed. Order marked as FAILED."}, status=400)
+                    return Response({"message": "Payment failed."}, status=400)
 
                 if status_razor != 'captured':
                     razorpay_client.payment.capture(payment_id, amount)
 
+                # Final capture success
                 history.razorpay_payment_id = payment_id
                 history.payment_status = 'SUCCESS'
                 history.save()
@@ -263,37 +264,39 @@ class HandlePaymentSuccessView(APIView):
 
 
 
+
 #verify
 class VerifyPaymentView(APIView):
     def get(self, request, order_id):
         try:
             payments = razorpay_client.order.payments(order_id)
             if not payments["items"]:
-                return Response({"status": "FAILED", "message": "No payment found"}, status=200)
+                return Response({"status": "PENDING", "message": "No payment found"}, status=200)
 
             payment = payments["items"][0]
             payment_status = payment["status"]
+            payment_id = payment["id"]
 
             history = PurchaseHistories.objects.get(razorpay_order_id=order_id)
 
             if payment_status == "captured":
                 if history.payment_status != "SUCCESS":
                     history.payment_status = "SUCCESS"
-                    history.razorpay_payment_id = payment["id"]
+                    history.razorpay_payment_id = payment_id
                     history.save()
-                    user_profile = UserProfile.objects.get(user_id=history.user.id)
+                    user_profile, _ = UserProfile.objects.get_or_create(user_id=history.user.id)
                     user_profile.add_coins(history.coins_purchased)
                 return Response({"status": "SUCCESS", "message": "Payment verified and updated"})
 
             elif payment_status == "failed":
                 if history.payment_status != "FAILED":
                     history.payment_status = "FAILED"
-                    history.razorpay_payment_id = payment["id"]
+                    history.razorpay_payment_id = payment_id
                     history.save()
                 return Response({"status": "FAILED", "message": "Payment failed"})
 
             else:
-                return Response({"status": "PENDING", "message": f"Payment status: {payment_status}"})
+                return Response({"status": "PENDING", "message": "Payment not yet captured"})
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)

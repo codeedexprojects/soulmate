@@ -59,6 +59,9 @@ class CreateChannelView(APIView):
 
         if not executive.online:
             return Response({"error": "The executive is offline."}, status=403)
+        
+        if executive.is_banned:
+            return Response({"error": "This executive is banned and cannot be called."}, status=403)
 
         try:
             current_time = int(time.time())

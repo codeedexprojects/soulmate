@@ -179,7 +179,7 @@ class CreateRazorpayOrderView(APIView):
             coins_purchased=plan.get_adjusted_coin_package(),
             purchased_price=amount,
             razorpay_order_id=razorpay_order['id'],
-            # payment_status='PENDING'
+            payment_status='FAILED'
         )
 
         return Response({

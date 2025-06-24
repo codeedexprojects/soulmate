@@ -265,18 +265,30 @@ class VerifyPaymentView(APIView):
                 return Response({"status": "PENDING", "message": "No payment found"}, status=200)
 
             payment = payments["items"][0]
-            if payment["status"] == "captured":
-                # Update DB (same as HandlePaymentSuccessView)
-                history = PurchaseHistories.objects.get(razorpay_order_id=order_id)
+            payment_status = payment["status"]
+            payment_id = payment["id"]
+
+            history = PurchaseHistories.objects.get(razorpay_order_id=order_id)
+
+            if payment_status == "captured":
                 if history.payment_status != "SUCCESS":
                     history.payment_status = "SUCCESS"
-                    history.razorpay_payment_id = payment["id"]
+                    history.razorpay_payment_id = payment_id
                     history.save()
                     user_profile = UserProfile.objects.get(user_id=history.user.id)
                     user_profile.add_coins(history.coins_purchased)
                 return Response({"status": "SUCCESS", "message": "Payment verified and updated"})
+
+            elif payment_status in ["failed", "refunded", "cancelled"]:
+                if history.payment_status != "FAILED":
+                    history.payment_status = "FAILED"
+                    history.razorpay_payment_id = payment_id
+                    history.save()
+                return Response({"status": "FAILED", "message": f"Payment {payment_status}."})
+
             else:
-                return Response({"status": "FAILED", "message": "Payment not yet captured"})
+                return Response({"status": "PENDING", "message": f"Payment status: {payment_status}"}, status=200)
+
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 

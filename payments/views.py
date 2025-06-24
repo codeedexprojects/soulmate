@@ -279,18 +279,19 @@ class VerifyPaymentView(APIView):
                     user_profile.add_coins(history.coins_purchased)
                 return Response({"status": "SUCCESS", "message": "Payment verified and updated"})
 
-            elif payment_status in ["failed", "refunded", "cancelled"]:
+            elif payment_status == "failed":
                 if history.payment_status != "FAILED":
                     history.payment_status = "FAILED"
                     history.razorpay_payment_id = payment_id
                     history.save()
-                return Response({"status": "FAILED", "message": f"Payment {payment_status}."})
+                return Response({"status": "FAILED", "message": "Payment failed"})
 
             else:
                 return Response({"status": "PENDING", "message": f"Payment status: {payment_status}"}, status=200)
 
         except Exception as e:
             return Response({"error": str(e)}, status=400)
+
 
 #withoutrazorpay
 class RechargeCoinsByPlanView(APIView):

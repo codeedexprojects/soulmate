@@ -262,7 +262,7 @@ class VerifyPaymentView(APIView):
         try:
             payments = razorpay_client.order.payments(order_id)
             if not payments["items"]:
-                return Response({"status": "PENDING", "message": "No payment found"}, status=200)
+                return Response({"status": "PENDING", "message": "No payment attempt found"}, status=200)
 
             payment = payments["items"][0]
             payment_status = payment["status"]
@@ -275,20 +275,31 @@ class VerifyPaymentView(APIView):
                     history.payment_status = "SUCCESS"
                     history.razorpay_payment_id = payment_id
                     history.save()
-                    user_profile = UserProfile.objects.get(user_id=history.user.id)
+                    user_profile, _ = UserProfile.objects.get_or_create(user=history.user)
                     user_profile.add_coins(history.coins_purchased)
-                return Response({"status": "SUCCESS", "message": "Payment verified and updated"})
+                return Response({
+                    "status": "SUCCESS",
+                    "message": "Payment captured and coins added"
+                })
 
-            elif payment_status == "failed":
+            elif payment_status in ["failed", "refunded", "cancelled"]:
                 if history.payment_status != "FAILED":
                     history.payment_status = "FAILED"
                     history.razorpay_payment_id = payment_id
                     history.save()
-                return Response({"status": "FAILED", "message": "Payment failed"})
+                return Response({
+                    "status": "FAILED",
+                    "message": f"Payment failed with status: {payment_status}"
+                })
 
             else:
-                return Response({"status": "PENDING", "message": f"Payment status: {payment_status}"}, status=200)
+                return Response({
+                    "status": "PENDING",
+                    "message": f"Current payment status: {payment_status}"
+                })
 
+        except PurchaseHistories.DoesNotExist:
+            return Response({"error": "Order not found in DB"}, status=404)
         except Exception as e:
             return Response({"error": str(e)}, status=400)
 

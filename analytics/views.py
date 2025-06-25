@@ -99,7 +99,7 @@ class PlatformAnalyticsView(APIView):
         purchases_week = purchases_all.filter(purchase_date__gte=start_of_week)
         purchases_month = purchases_all.filter(purchase_date__gte=start_of_month)
 
-        revenue_today = purchases_today.aggregate(total=Sum('purchased_price'))['total'] or 0
+        revenue_today = purchases_today.aggregate(total=Sum('recharge_plan.base_price'))['total'] or 0
         revenue_week = purchases_week.aggregate(total=Sum('purchased_price'))['total'] or 0
         revenue_month = purchases_month.aggregate(total=Sum('purchased_price'))['total'] or 0
         revenue_all = purchases_all.aggregate(total=Sum('purchased_price'))['total'] or 0

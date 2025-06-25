@@ -322,7 +322,8 @@ class RechargeCoinsByPlanView(APIView):
             recharge_plan=plan,
             coins_purchased=plan.coin_package,
             purchased_price=plan_price,
-            is_admin = True
+            is_admin = True,
+            payment_status ='SUCCESS'
         )
 
         referral_bonus_given = False

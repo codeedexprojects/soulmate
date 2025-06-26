@@ -1047,3 +1047,9 @@ class AdminManagerExecutiveListView(generics.ListAPIView):
     def get_queryset(self):
         """Filter only users with the 'manager_executive' role."""
         return Admins.objects.filter(role='manager_executive')
+    
+class ExecutiveRedemptionRequestListView(APIView):
+    def get(self, request, executive_id):
+        requests = CoinRedemptionRequest.objects.filter(executive_id=executive_id).order_by('-created_at')
+        serializer = CoinRedemptionRequestSerializer(requests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)

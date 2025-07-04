@@ -1042,7 +1042,7 @@ class ManagerExecutiveListCreateView(generics.ListCreateAPIView):
 
 class AdminManagerExecutiveListView(generics.ListAPIView):
     serializer_class = ManagerExecutiveSerializer
-    permission_classes = [AllowAny]  # Allows all users to access the API
+    permission_classes = [AllowAny] 
 
     def get_queryset(self):
         """Filter only users with the 'manager_executive' role."""

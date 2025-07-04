@@ -110,6 +110,16 @@ class CreateChannelView(APIView):
 
         threading.Thread(target=mark_executive_on_call, args=(executive.id,)).start()
 
+        def clear_on_call_if_not_joined(call_id, executive_id):
+            time.sleep(60) 
+            call = AgoraCallHistory.objects.filter(id=call_id, status='pending').first()
+            if call:
+                call.status = 'missed'
+                call.save()
+                Executives.objects.filter(id=executive_id).update(on_call=False)
+
+        threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
+
         return Response(response_data, status=200)
 
     

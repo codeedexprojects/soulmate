@@ -15,11 +15,13 @@ class AdminManager(BaseUserManager):
         admin.save(using=self._db)
         return admin
 
-    def create_super_admin(self, email, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
 
         return self.create_admin(email, password, **extra_fields)
+
 
 class Admins(AbstractBaseUser, PermissionsMixin):
   
@@ -33,6 +35,7 @@ class Admins(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=now)
 
     ROLE_CHOICES = [
         ('hr_user', 'HR - User'),

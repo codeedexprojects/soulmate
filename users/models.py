@@ -53,7 +53,7 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'mobile_number'
     REQUIRED_FIELDS = ['name']  
 
     objects = CustomUserManager()

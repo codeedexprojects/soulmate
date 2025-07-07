@@ -681,8 +681,6 @@ class SuperuserLoginView(generics.GenericAPIView):
             "refresh_token": str(refresh),
             "user_id": admin.id,
             "email": admin.email,
-            "name": admin.name,
-            "role": admin.role,
             "is_superuser": admin.is_superuser,
             "is_staff": admin.is_staff
         }, status=status.HTTP_200_OK)

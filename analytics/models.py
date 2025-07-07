@@ -47,6 +47,17 @@ class Admins(AbstractBaseUser, PermissionsMixin):
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='other')
 
+    groups = models.ManyToManyField(
+        Group,
+        related_name='admin_groups',
+        blank=True
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='admin_permissions',
+        blank=True
+    )
+
     objects = AdminManager()
 
     USERNAME_FIELD = 'email'

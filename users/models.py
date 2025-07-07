@@ -10,7 +10,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid
 from executives.models import Executives
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager,PermissionsMixin
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager,PermissionsMixin,Group,Permission
 from django.utils.timezone import now
 from django.db import transaction
 
@@ -62,6 +62,17 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    groups = models.ManyToManyField(
+        Group,
+        related_name='user_groups',
+        blank=True
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name='user_permissions',
+        blank=True
+    )
+
 
     USERNAME_FIELD = 'email'  
     REQUIRED_FIELDS = ['name', 'mobile_number']

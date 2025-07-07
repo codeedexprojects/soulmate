@@ -661,9 +661,14 @@ class ListAdminView(generics.ListAPIView):
     serializer_class = AdminSerializer
 
 class SuperuserLoginView(generics.GenericAPIView):
+    serializer_class = AdminLoginSerializer 
+
     def post(self, request):
-        email = request.data.get("email")
-        password = request.data.get("password")
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
 
         admin = authenticate(request, email=email, password=password)
         if not admin:
@@ -677,7 +682,7 @@ class SuperuserLoginView(generics.GenericAPIView):
             "user_id": admin.id,
             "email": admin.email,
             "name": admin.name,
-            "role": admin.role, 
+            "role": admin.role,
             "is_superuser": admin.is_superuser,
             "is_staff": admin.is_staff
         }, status=status.HTTP_200_OK)

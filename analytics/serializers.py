@@ -106,8 +106,8 @@ class AdminLoginSerializer(serializers.Serializer):
             return {
                 'id': user.id,
                 'email': user.email,
-                'name': user.name,
-                'role': user.role,
+                # 'name': user.name,
+                # 'role': user.role,
                 'is_superuser': user.is_superuser,
             }
         else:

@@ -1,4 +1,4 @@
-ilfrom django.db import models
+from django.db import models
 from executives.models import Executives
 from django.conf import settings
 from decimal import Decimal

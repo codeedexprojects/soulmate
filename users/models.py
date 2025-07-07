@@ -1,4 +1,4 @@
-from django.db import models
+ilfrom django.db import models
 from executives.models import Executives
 from django.conf import settings
 from decimal import Decimal
@@ -53,7 +53,7 @@ class User(AbstractBaseUser):
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    USERNAME_FIELD = 'mobile_number'
+    USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']  
 
     objects = CustomUserManager()

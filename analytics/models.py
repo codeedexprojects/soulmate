@@ -19,8 +19,9 @@ class AdminManager(BaseUserManager):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
         extra_fields.setdefault('is_active', True)
-    
+
         return self.create_admin(email, password, **extra_fields)
+
 
 class Admins(AbstractBaseUser, PermissionsMixin):
   

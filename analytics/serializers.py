@@ -106,8 +106,8 @@ class AdminLoginSerializer(serializers.Serializer):
             return {
                 'id': user.id,
                 'email': user.email,
-                # 'name': user.name,
-                # 'role': user.role,
+                'name': user.name,
+                'role': user.role,
                 'is_superuser': user.is_superuser,
             }
         else:
@@ -119,6 +119,10 @@ class AdminLoginSerializer(serializers.Serializer):
             'name': user.name,
             'role': user.role,
         }
+    
+class SuperuserLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField()
     
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)

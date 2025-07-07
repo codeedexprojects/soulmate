@@ -10,26 +10,35 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 import uuid
 from executives.models import Executives
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager,PermissionsMixin
 from django.utils.timezone import now
 from django.db import transaction
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, mobile_number, password=None, **extra_fields):
+    def create_user(self, mobile_number=None, password=None, **extra_fields):
         if not mobile_number:
             raise ValueError('The Mobile Number field must be set')
+        extra_fields.setdefault('is_active', True)
         user = self.model(mobile_number=mobile_number, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, mobile_number, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
+    def create_superuser(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Superusers must have an email address')
         extra_fields.setdefault('is_superuser', True)
-        return self.create_user(mobile_number, password, **extra_fields)
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_active', True)
 
-class User(AbstractBaseUser):
+        user = self.model(email=self.normalize_email(email), **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+
+class User(AbstractBaseUser, PermissionsMixin):
     GENDER_CHOICES = [
         ('male', 'Male'),
         ('female', 'Female'),
@@ -37,7 +46,8 @@ class User(AbstractBaseUser):
     ]
 
     name = models.CharField(max_length=100, blank=True, null=True)
-    mobile_number = models.CharField(max_length=15, unique=True)
+    email = models.EmailField(unique=True, null=True, blank=True) 
+    mobile_number = models.CharField(max_length=15, unique=True, null=True, blank=True)
     dp_image = models.ImageField(upload_to='user/dp_images/', blank=True, null=True)
     otp = models.CharField(max_length=6, blank=True, null=True)
     is_verified = models.BooleanField(default=False)
@@ -49,12 +59,12 @@ class User(AbstractBaseUser):
     is_suspended = models.BooleanField(default=False)
     is_dormant = models.BooleanField(default=False)
     is_online = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True) 
+    is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    USERNAME_FIELD = 'mobile_number'
-    REQUIRED_FIELDS = ['name']  
+    USERNAME_FIELD = 'email'  
+    REQUIRED_FIELDS = ['name', 'mobile_number']
 
     objects = CustomUserManager()
 

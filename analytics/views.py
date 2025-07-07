@@ -661,7 +661,7 @@ class ListAdminView(generics.ListAPIView):
     serializer_class = AdminSerializer
 
 class SuperuserLoginView(generics.GenericAPIView):
-    serializer_class = AdminLoginSerializer 
+    serializer_class = SuperuserLoginSerializer 
 
     def post(self, request):
         serializer = self.get_serializer(data=request.data)

@@ -34,6 +34,7 @@ class Admins(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
     is_superuser = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=now)
 
     ROLE_CHOICES = [
         ('hr_user', 'HR - User'),

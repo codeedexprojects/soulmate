@@ -111,7 +111,7 @@ class CreateChannelView(APIView):
         threading.Thread(target=mark_executive_on_call, args=(executive.id,)).start()
 
         def clear_on_call_if_not_joined(call_id, executive_id):
-            time.sleep(60) 
+            time.sleep(30)
             call = AgoraCallHistory.objects.filter(id=call_id, status='pending').first()
             if call:
                 call.status = 'missed'
@@ -334,35 +334,30 @@ class LeaveChannelForUserView(APIView):
         except AgoraCallHistory.DoesNotExist:
             return Response({"error": "Call history not found."}, status=404)
 
-        if call_entry.status in ["left", "missed", "rejected"]:
-            return Response({"error": f"Call already marked as {call_entry.status}."}, status=400)
-
         user = call_entry.user
         executive = call_entry.executive
 
-        user.token_expiry = timezone.now()  
-        executive.token_expiry = timezone.now()  
+        user.token_expiry = timezone.now()
+        executive.token_expiry = timezone.now()
         user.save()
         executive.save()
 
-        if call_entry.status == "pending":
-            call_entry.status="missed"  
-            call_entry.save()
+        Executives.objects.filter(id=executive.id).update(on_call=False)
+        executive.refresh_from_db()
 
+        if call_entry.status == "pending":
+            call_entry.status = "missed"
+            call_entry.save()
             return Response({
-                "message": f"Call was missed without joining.",
+                "message": "Call was missed without joining.",
                 "call_id": call_entry.id,
                 "status": "missed",
             }, status=200)
 
         if call_entry.status == "joined":
-            call_entry.end_call()  
+            call_entry.end_call()
             call_entry.status = "left"
             call_entry.save()
-        
-            Executives.objects.filter(id=executive.id).update(on_call=False)
-            executive.refresh_from_db()
-
             return Response({
                 "message": "Call ended successfully.",
                 "call_id": call_entry.id,
@@ -372,7 +367,14 @@ class LeaveChannelForUserView(APIView):
                 "coins_added": call_entry.coins_added,
             }, status=200)
 
-        return Response({"error": "Unexpected call status."}, status=400)
+        call_entry.status = "left"
+        call_entry.save()
+        return Response({
+            "message": "Call status updated and ended as fallback.",
+            "call_id": call_entry.id,
+            "status": "left"
+        }, status=200)
+
         
 class LeaveAllCallsForExecutiveView(APIView):
     permission_classes = [AllowAny]

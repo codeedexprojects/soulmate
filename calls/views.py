@@ -165,9 +165,9 @@ def send_fcm_notification(fcm_token, title, body):
     try:
         response = requests.post("https://fcm.googleapis.com/fcm/send", json=payload, headers=headers)
         return {
-            "success": True,
+            "success": response.status_code == 200,
             "status_code": response.status_code,
-            "fcm_response": response.json(),
+            "raw_response": response.text,  # <- helpful
             "token_sent_to": fcm_token
         }
     except Exception as e:

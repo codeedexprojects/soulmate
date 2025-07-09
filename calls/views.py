@@ -149,10 +149,13 @@ server_key = "BJKcbYVUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2
 
 
 def send_fcm_notification(fcm_token, title, body):
+    url = "https://fcm.googleapis.com/fcm/send"  # ✅ Correct FCM endpoint
+
     headers = {
         "Authorization": f"key={server_key}",
         "Content-Type": "application/json"
     }
+
     payload = {
         "to": fcm_token,
         "notification": {
@@ -163,11 +166,11 @@ def send_fcm_notification(fcm_token, title, body):
     }
 
     try:
-        response = requests.post("https://fcm.googleapis.com/fcm/send", json=payload, headers=headers)
+        response = requests.post(url, json=payload, headers=headers)
         return {
             "success": response.status_code == 200,
             "status_code": response.status_code,
-            "raw_response": response.text,  # <- helpful
+            "raw_response": response.text,
             "token_sent_to": fcm_token
         }
     except Exception as e:

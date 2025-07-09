@@ -23,8 +23,133 @@ server_key = "BJKcbYVUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2
 # 9626e8b8b5f847e6961cb9a996e1ae93
 # ab41eb854807425faa1b44481ff97fe3
     
+# def send_fcm_notification(fcm_token, title, body):
+#     server_key = server_key
+#     headers = {
+#         "Authorization": f"key={server_key}",
+#         "Content-Type": "application/json"
+#     }
+#     payload = {
+#         "to": fcm_token,
+#         "notification": {
+#             "title": title,
+#             "body": body
+#         },
+#         "priority": "high"
+#     }
+
+#     response = requests.post("https://fcm.googleapis.com/fcm/send", json=payload, headers=headers)
+#     return response.status_code, response.json()
+
+
+# class CreateChannelView(APIView):
+#     permission_classes = [AllowAny]
+
+#     @transaction.atomic
+#     def post(self, request):
+#         app_id = "9019fa33fc6d4654848121f4b88b346c"
+#         app_certificate = "e2f0a6a085d34973ad08c7cfa785796d"
+#         role = 1
+#         expiration_in_seconds = 3600
+
+#         channel_name = request.data.get("channel_name")
+#         executive_id = request.data.get("executive_id")
+#         user_id = request.data.get("user_id")
+
+#         if not channel_name:
+#             channel_name = f"bestie_{uuid.uuid4().hex[:8]}_{int(time.time())}"
+
+#         if not executive_id or not user_id:
+#             return Response({"error": "Both executive_id and user_id are required."}, status=400)
+
+#         try:
+#             executive = Executives.objects.select_for_update().get(id=executive_id)
+#             user = User.objects.get(id=user_id)
+#         except Executives.DoesNotExist:
+#             return Response({"error": "Invalid executive_id."}, status=404)
+#         except User.DoesNotExist:
+#             return Response({"error": "Invalid user_id."}, status=404)
+
+#         if user.coin_balance < 180:
+#             return Response({"error": "Insufficient balance. You need at least 180 coins to start a call."}, status=403)
+
+#         if executive.on_call:
+#             return Response({"error": "The executive is already on another call."}, status=403)
+
+#         if not executive.online:
+#             return Response({"error": "The executive is offline."}, status=403)
+
+#         if executive.is_banned:
+#             return Response({"error": "This executive is banned and cannot be called."}, status=403)
+
+#         try:
+#             current_time = int(time.time())
+#             privilege_expired_ts = current_time + expiration_in_seconds
+
+#             user_token = RtcTokenBuilder.buildTokenWithUid(
+#                 app_id, app_certificate, channel_name, user.id, role, privilege_expired_ts
+#             )
+#             executive_token = RtcTokenBuilder.buildTokenWithUid(
+#                 app_id, app_certificate, channel_name, executive.id, 2, privilege_expired_ts
+#             )
+#         except Exception as e:
+#             return Response({"error": f"Token generation failed: {str(e)}"}, status=500)
+
+#         call_history = AgoraCallHistory.objects.create(
+#             user=user,
+#             executive=executive,
+#             channel_name=channel_name,
+#             executive_token=executive_token,
+#             token=user_token,
+#             start_time=now(),
+#             executive_joined=False,
+#             uid=user.id,
+#             status="pending",
+#         )
+
+#         if executive.fcm_token:
+#             notification_title = "Incoming Call"
+#             notification_body = f"{user.user_id} is calling you."
+#             threading.Thread(
+#                 target=send_fcm_notification,
+#                 args=(executive.fcm_token, notification_title, notification_body)
+#             ).start()
+
+#         def mark_executive_on_call(executive_id):
+#             Executives.objects.filter(id=executive_id).update(on_call=True)
+
+#         threading.Thread(target=mark_executive_on_call, args=(executive.id,)).start()
+
+#         def clear_on_call_if_not_joined(call_id, executive_id):
+#             time.sleep(30)  
+#             call = AgoraCallHistory.objects.filter(id=call_id, status='pending').first()
+#             if call:
+#                 call.status = 'missed'
+#                 call.save()
+#                 Executives.objects.filter(id=executive_id).update(on_call=False)
+
+#         threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
+
+#         response_data = {
+#             "message": "Channel created successfully.",
+#             "token": user_token,
+#             "executive_token": executive_token,
+#             "channel_name": channel_name,
+#             "caller_name": user.name,
+#             "receiver_name": executive.name,
+#             "user_id": user.user_id,
+#             "executive_id": executive.executive_id,
+#             "executive": executive.id,
+#             "agora_uid": user.id,
+#             "executive_agora_uid": executive.id,
+#             "call_id": call_history.id
+#         }
+
+#         return Response(response_data, status=200)
+
+
 def send_fcm_notification(fcm_token, title, body):
-    server_key = server_key
+    server_key = server_key  # Ensure this is defined in settings
     headers = {
         "Authorization": f"key={server_key}",
         "Content-Type": "application/json"
@@ -38,8 +163,20 @@ def send_fcm_notification(fcm_token, title, body):
         "priority": "high"
     }
 
-    response = requests.post("https://fcm.googleapis.com/fcm/send", json=payload, headers=headers)
-    return response.status_code, response.json()
+    try:
+        response = requests.post("https://fcm.googleapis.com/fcm/send", json=payload, headers=headers)
+        return {
+            "success": True,
+            "status_code": response.status_code,
+            "fcm_response": response.json(),
+            "token_sent_to": fcm_token
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "token_sent_to": fcm_token
+        }
 
 
 class CreateChannelView(APIView):
@@ -47,8 +184,8 @@ class CreateChannelView(APIView):
 
     @transaction.atomic
     def post(self, request):
-        app_id = "9019fa33fc6d4654848121f4b88b346c"
-        app_certificate = "e2f0a6a085d34973ad08c7cfa785796d"
+        app_id = "9019fa33fc6d4654848121f4b88b346c80"
+        app_certificate = "e2f0a6a085d34973ad08c7cfa785796d75"
         role = 1
         expiration_in_seconds = 3600
 
@@ -95,6 +232,7 @@ class CreateChannelView(APIView):
         except Exception as e:
             return Response({"error": f"Token generation failed: {str(e)}"}, status=500)
 
+        # Create call record
         call_history = AgoraCallHistory.objects.create(
             user=user,
             executive=executive,
@@ -107,21 +245,24 @@ class CreateChannelView(APIView):
             status="pending",
         )
 
+        # Send push notification to executive
+        fcm_result = None
         if executive.fcm_token:
-            notification_title = "Incoming Call"
-            notification_body = f"{user.user_id} is calling you."
-            threading.Thread(
-                target=send_fcm_notification,
-                args=(executive.fcm_token, notification_title, notification_body)
-            ).start()
+            fcm_result = send_fcm_notification(
+                executive.fcm_token,
+                title="Incoming Call",
+                body=f"{user.name or 'A user'} is calling you"
+            )
 
+        # Mark executive on_call
         def mark_executive_on_call(executive_id):
             Executives.objects.filter(id=executive_id).update(on_call=True)
 
         threading.Thread(target=mark_executive_on_call, args=(executive.id,)).start()
 
+        # Auto-clear if not joined
         def clear_on_call_if_not_joined(call_id, executive_id):
-            time.sleep(30)  
+            time.sleep(30)  # or 180 for production
             call = AgoraCallHistory.objects.filter(id=call_id, status='pending').first()
             if call:
                 call.status = 'missed'
@@ -130,6 +271,7 @@ class CreateChannelView(APIView):
 
         threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
 
+        # Prepare response
         response_data = {
             "message": "Channel created successfully.",
             "token": user_token,
@@ -142,7 +284,8 @@ class CreateChannelView(APIView):
             "executive": executive.id,
             "agora_uid": user.id,
             "executive_agora_uid": executive.id,
-            "call_id": call_history.id
+            "call_id": call_history.id,
+            "fcm_status": fcm_result if fcm_result else {"info": "No FCM token available"}
         }
 
         return Response(response_data, status=200)

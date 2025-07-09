@@ -148,29 +148,22 @@ server_key = "BJKcbYVUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2
 #         return Response(response_data, status=200)
 
 
+from firebase_admin import messaging
+
 def send_fcm_notification(fcm_token, title, body):
-    url = "https://fcm.googleapis.com/fcm/send"  # ✅ Correct FCM endpoint
-
-    headers = {
-        "Authorization": f"key={server_key}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "to": fcm_token,
-        "notification": {
-            "title": title,
-            "body": body
-        },
-        "priority": "high"
-    }
-
     try:
-        response = requests.post(url, json=payload, headers=headers)
+        message = messaging.Message(
+            notification=messaging.Notification(
+                title=title,
+                body=body
+            ),
+            token=fcm_token,
+            android=messaging.AndroidConfig(priority="high"),
+        )
+        response = messaging.send(message)
         return {
-            "success": response.status_code == 200,
-            "status_code": response.status_code,
-            "raw_response": response.text,
+            "success": True,
+            "message_id": response,
             "token_sent_to": fcm_token
         }
     except Exception as e:
@@ -179,6 +172,7 @@ def send_fcm_notification(fcm_token, title, body):
             "error": str(e),
             "token_sent_to": fcm_token
         }
+
 
 
 class CreateChannelView(APIView):

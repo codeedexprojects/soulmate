@@ -27,6 +27,9 @@ urlpatterns = [
     path('leave_channel_for_executive/', LeaveChannelForExecutiveView.as_view(), name='leave_channel_for_executive'),
     path('leave_channel_for_user/', LeaveChannelForUserView.as_view(), name='leave_channel_for_user'),
     path('leave-all-calls/', LeaveAllCallsForExecutiveView.as_view(), name='leave_all_calls_for_executive'),
+    
+    path('update-fcm-token/', UpdateExecutiveFCMTokenView.as_view(), name='update-fcm-token'),
+
 
 
 ]

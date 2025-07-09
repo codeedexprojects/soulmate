@@ -14,14 +14,34 @@ import uuid
 from rest_framework import generics, viewsets,status
 from django.shortcuts import get_object_or_404
 import threading
+import requests
 
 
 AGORA_APP_ID = '9019fa33fc6d4654848121f4b88b346c'
 AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
-
+server_key = "BJKcbYVUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2wv8bl_t_cAvwh5oB5tRdU"
 # 9626e8b8b5f847e6961cb9a996e1ae93
 # ab41eb854807425faa1b44481ff97fe3
     
+def send_fcm_notification(fcm_token, title, body):
+    server_key = "VUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2wv8bl_t_cAvwh5oB5tRdU"
+    headers = {
+        "Authorization": f"key={server_key}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "to": fcm_token,
+        "notification": {
+            "title": title,
+            "body": body
+        },
+        "priority": "high"
+    }
+
+    response = requests.post("https://fcm.googleapis.com/fcm/send", json=payload, headers=headers)
+    return response.status_code, response.json()
+
+
 class CreateChannelView(APIView):
     permission_classes = [AllowAny]
 
@@ -43,7 +63,6 @@ class CreateChannelView(APIView):
             return Response({"error": "Both executive_id and user_id are required."}, status=400)
 
         try:
-            # Lock the executive row to prevent race condition
             executive = Executives.objects.select_for_update().get(id=executive_id)
             user = User.objects.get(id=user_id)
         except Executives.DoesNotExist:
@@ -59,7 +78,7 @@ class CreateChannelView(APIView):
 
         if not executive.online:
             return Response({"error": "The executive is offline."}, status=403)
-        
+
         if executive.is_banned:
             return Response({"error": "This executive is banned and cannot be called."}, status=403)
 
@@ -76,7 +95,6 @@ class CreateChannelView(APIView):
         except Exception as e:
             return Response({"error": f"Token generation failed: {str(e)}"}, status=500)
 
-        # Create call record
         call_history = AgoraCallHistory.objects.create(
             user=user,
             executive=executive,
@@ -88,6 +106,29 @@ class CreateChannelView(APIView):
             uid=user.id,
             status="pending",
         )
+
+        if executive.fcm_token:
+            notification_title = "Incoming Call"
+            notification_body = f"{user.name} is calling you."
+            threading.Thread(
+                target=send_fcm_notification,
+                args=(executive.fcm_token, notification_title, notification_body)
+            ).start()
+
+        def mark_executive_on_call(executive_id):
+            Executives.objects.filter(id=executive_id).update(on_call=True)
+
+        threading.Thread(target=mark_executive_on_call, args=(executive.id,)).start()
+
+        def clear_on_call_if_not_joined(call_id, executive_id):
+            time.sleep(30)  
+            call = AgoraCallHistory.objects.filter(id=call_id, status='pending').first()
+            if call:
+                call.status = 'missed'
+                call.save()
+                Executives.objects.filter(id=executive_id).update(on_call=False)
+
+        threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
 
         response_data = {
             "message": "Channel created successfully.",
@@ -104,24 +145,27 @@ class CreateChannelView(APIView):
             "call_id": call_history.id
         }
 
-        # Mark executive on_call AFTER sending response
-        def mark_executive_on_call(executive_id):
-            Executives.objects.filter(id=executive_id).update(on_call=True)
-
-        threading.Thread(target=mark_executive_on_call, args=(executive.id,)).start()
-
-        def clear_on_call_if_not_joined(call_id, executive_id):
-            time.sleep(30)
-            call = AgoraCallHistory.objects.filter(id=call_id, status='pending').first()
-            if call:
-                call.status = 'missed'
-                call.save()
-                Executives.objects.filter(id=executive_id).update(on_call=False)
-
-        threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
-
         return Response(response_data, status=200)
 
+class UpdateExecutiveFCMTokenView(APIView):
+    permission_classes = [AllowAny]  
+
+    def post(self, request):
+        executive_id = request.data.get('executive_id')
+        fcm_token = request.data.get('fcm_token')
+
+        if not executive_id or not fcm_token:
+            return Response({'error': 'executive_id and fcm_token are required'}, status=400)
+
+        try:
+            executive = Executives.objects.get(id=executive_id)
+        except Executives.DoesNotExist:
+            return Response({'error': 'Executive not found'}, status=404)
+
+        executive.fcm_token = fcm_token
+        executive.save()
+
+        return Response({'message': 'FCM token updated successfully'})
     
 
 class GetRecentChannelView(APIView):

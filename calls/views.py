@@ -149,7 +149,6 @@ server_key = "BJKcbYVUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2
 
 
 def send_fcm_notification(fcm_token, title, body):
-    server_key = server_key  # Ensure this is defined in settings
     headers = {
         "Authorization": f"key={server_key}",
         "Content-Type": "application/json"

@@ -24,7 +24,7 @@ server_key = "BJKcbYVUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2
 # ab41eb854807425faa1b44481ff97fe3
     
 def send_fcm_notification(fcm_token, title, body):
-    server_key = "VUkyLoBIqovSiNs1dM43vZzkEwj1QSZr1yx8wQIUhHZ1BEcVZM6UyQMM7Eq2wv8bl_t_cAvwh5oB5tRdU"
+    server_key = server_key
     headers = {
         "Authorization": f"key={server_key}",
         "Content-Type": "application/json"
@@ -109,7 +109,7 @@ class CreateChannelView(APIView):
 
         if executive.fcm_token:
             notification_title = "Incoming Call"
-            notification_body = f"{user.name} is calling you."
+            notification_body = f"{user.user_id} is calling you."
             threading.Thread(
                 target=send_fcm_notification,
                 args=(executive.fcm_token, notification_title, notification_body)

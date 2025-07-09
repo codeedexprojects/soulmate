@@ -81,6 +81,7 @@ class Executives(AbstractBaseUser):
     last_activity = models.DateTimeField(null=True, blank=True)
     account_number = models.CharField(max_length=50,blank=True, null=True)
     ifsc_code = models.CharField(max_length=20,blank=True, null=True)
+    fcm_token = models.CharField(max_length=255, blank=True, null=True)
     AUTO_LOGOUT_MINUTES = 5
     
     USERNAME_FIELD = 'mobile_number' 

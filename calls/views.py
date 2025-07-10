@@ -247,7 +247,7 @@ class CreateChannelView(APIView):
             fcm_result = send_fcm_notification(
                 executive.fcm_token,
                 title="Incoming Call",
-                body=f"{user.name or 'A user'} is calling you"
+                body=f"{user.user_id or 'A user'} is calling you"
             )
 
         # Mark executive on_call

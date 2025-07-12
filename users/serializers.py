@@ -268,7 +268,9 @@ class ReferralHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReferralHistory
-        fields = ['referred_user', 'recharged']
+        # fields = ['referred_user', 'recharged']
+        fields = ['referred_user']
+
 
 class BannedUserSerializer(serializers.ModelSerializer):
     class Meta:

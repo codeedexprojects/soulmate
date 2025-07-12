@@ -79,7 +79,7 @@ class RegisterOrLoginView(APIView):
         except User.DoesNotExist:
             # New code added here - check for deleted account
             has_deleted_account = DeletedUser.objects.filter(mobile_number=mobile_number).exists()
-            initial_coin_balance = 0 if has_deleted_account else 300  # Set balance based on deletion history
+            initial_coin_balance = 0 if has_deleted_account else 1000  # Set balance based on deletion history
 
             try:
                 send_otp_2factor(mobile_number, otp)

@@ -116,8 +116,7 @@ class RegisterOrLoginView(APIView):
                     referrer = ReferralCode.objects.get(code=referral_code).user
                     ReferralHistory.objects.create(referrer=referrer, referred_user=user)
 
-                    # ✅ Reward the referrer with coins
-                    referrer.coin_balance += 100
+                    referrer.coin_balance += 1000
                     referrer.save()
                 except ReferralCode.DoesNotExist:
                     return Response(

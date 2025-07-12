@@ -38,7 +38,11 @@ class RegisterOrLoginView(APIView):
 
             if user.is_banned:
                 return Response(
-                    {'message': 'User is banned and cannot log in.', 'is_banned': True, 'is_existing_user': True},
+                    {
+                        'message': 'User is banned and cannot log in.',
+                        'is_banned': True,
+                        'is_existing_user': True
+                    },
                     status=status.HTTP_403_FORBIDDEN
                 )
 
@@ -46,17 +50,25 @@ class RegisterOrLoginView(APIView):
                 send_otp_2factor(mobile_number, otp)
             except Exception as e:
                 return Response(
-                    {'message': 'Failed to send OTP. Please try again later.', 'message': str(e)},
+                    {
+                        'message': 'Failed to send OTP. Please try again later.',
+                        'error': str(e)
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
             user.otp = otp
             user.save()
 
-            if referral_code and not hasattr(user, 'referred_by'):
+            # ✅ Handle referral logic for existing users (if not already referred)
+            if referral_code and not ReferralHistory.objects.filter(referred_user=user).exists():
                 try:
                     referrer = ReferralCode.objects.get(code=referral_code).user
                     ReferralHistory.objects.create(referrer=referrer, referred_user=user)
+
+                    # ✅ Reward the referrer with coins
+                    referrer.coin_balance += 100
+                    referrer.save()
                 except ReferralCode.DoesNotExist:
                     return Response(
                         {'message': 'Invalid referral code.', 'status': False},
@@ -67,7 +79,7 @@ class RegisterOrLoginView(APIView):
                 {
                     'message': 'Login OTP sent to your mobile number.',
                     'user_id': user.id,
-                    'mobile_number':user.mobile_number,
+                    'mobile_number': user.mobile_number,
                     'otp': user.otp,
                     'status': True,
                     'is_existing_user': True,
@@ -77,29 +89,36 @@ class RegisterOrLoginView(APIView):
             )
 
         except User.DoesNotExist:
-            # New code added here - check for deleted account
+            # ✅ Handle new user registration
             has_deleted_account = DeletedUser.objects.filter(mobile_number=mobile_number).exists()
-            initial_coin_balance = 0 if has_deleted_account else 1000  # Set balance based on deletion history
+            initial_coin_balance = 0 if has_deleted_account else 1000
 
             try:
                 send_otp_2factor(mobile_number, otp)
             except Exception as e:
                 return Response(
-                    {'message': 'Failed to send OTP. Please try again later.', 'message': str(e)},
+                    {
+                        'message': 'Failed to send OTP. Please try again later.',
+                        'error': str(e)
+                    },
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
 
-            # Modified to use initial_coin_balance instead of hardcoded 300
             user = User.objects.create(
                 mobile_number=mobile_number,
                 otp=otp,
                 coin_balance=initial_coin_balance
             )
 
+            # ✅ Handle referral logic for new users
             if referral_code:
                 try:
                     referrer = ReferralCode.objects.get(code=referral_code).user
                     ReferralHistory.objects.create(referrer=referrer, referred_user=user)
+
+                    # ✅ Reward the referrer with coins
+                    referrer.coin_balance += 100
+                    referrer.save()
                 except ReferralCode.DoesNotExist:
                     return Response(
                         {'message': 'Invalid referral code.', 'status': False},
@@ -112,13 +131,14 @@ class RegisterOrLoginView(APIView):
                     'status': True,
                     'is_existing_user': False,
                     'user_id': user.id,
-                    'mobile_number':user.mobile_number,
+                    'mobile_number': user.mobile_number,
                     'otp': user.otp,
                     'coin_balance': user.coin_balance,
                     'user_main_id': user.user_id,
                 },
                 status=status.HTTP_200_OK
             )
+
 
 class DeleteUserAccountView(APIView):
     def delete(self, request, user_id, *args, **kwargs):

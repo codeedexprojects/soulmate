@@ -60,14 +60,12 @@ class RegisterOrLoginView(APIView):
             user.otp = otp
             user.save()
 
-            # ✅ Handle referral logic for existing users (if not already referred)
             if referral_code and not ReferralHistory.objects.filter(referred_user=user).exists():
                 try:
                     referrer = ReferralCode.objects.get(code=referral_code).user
                     ReferralHistory.objects.create(referrer=referrer, referred_user=user)
 
-                    # ✅ Reward the referrer with coins
-                    referrer.coin_balance += 100
+                    referrer.coin_balance += 1000
                     referrer.save()
                 except ReferralCode.DoesNotExist:
                     return Response(
@@ -89,7 +87,6 @@ class RegisterOrLoginView(APIView):
             )
 
         except User.DoesNotExist:
-            # ✅ Handle new user registration
             has_deleted_account = DeletedUser.objects.filter(mobile_number=mobile_number).exists()
             initial_coin_balance = 0 if has_deleted_account else 1000
 
@@ -110,7 +107,6 @@ class RegisterOrLoginView(APIView):
                 coin_balance=initial_coin_balance
             )
 
-            # ✅ Handle referral logic for new users
             if referral_code:
                 try:
                     referrer = ReferralCode.objects.get(code=referral_code).user

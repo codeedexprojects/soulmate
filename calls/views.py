@@ -214,6 +214,9 @@ class CreateChannelView(APIView):
 
         if executive.is_banned:
             return Response({"error": "This executive is banned and cannot be called."}, status=403)
+        
+        if user.is_suspended:
+            return Response({"error": "You can't make call , Account is suspended."},status=403)
 
         try:
             current_time = int(time.time())

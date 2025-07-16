@@ -574,17 +574,19 @@ class ReferralDetailsView(APIView):
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
 
-        # Get referral code
         referral_code = ReferralCode.objects.filter(user=user).first()
         referral_code_data = ReferralCodeSerializer(referral_code).data if referral_code else None
 
-        # Get referral history
         referral_history = ReferralHistory.objects.filter(referrer=user)
         referral_history_data = ReferralHistorySerializer(referral_history, many=True).data
+
+        REFERRAL_COIN = 1000
+        total_referral_coin = referral_history.count() * REFERRAL_COIN
 
         return Response({
             "user_id": user.id,
             "username": user.name,
             "referral_code": referral_code_data,
-            "referral_history": referral_history_data
+            "referral_history": referral_history_data,
+            "total_referral_coin": total_referral_coin
         }, status=status.HTTP_200_OK)

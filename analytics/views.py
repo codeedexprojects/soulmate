@@ -37,6 +37,9 @@ from datetime import datetime, time
 
 
 class PlatformAnalyticsView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    
     def get(self, request):
         today = now().date()
         now_dt = now()

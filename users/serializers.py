@@ -9,7 +9,7 @@ from django.conf import settings
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'name', 'mobile_number', 'otp', 'is_verified', 'gender', 'coin_balance', 'user_id', 'last_login']
+        fields = ['id', 'name', 'mobile_number', 'otp', 'gender', 'coin_balance', 'user_id', 'last_login']
         read_only_fields = ['user_id', 'last_login', 'otp']
 
     def create(self, validated_data):

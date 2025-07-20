@@ -261,12 +261,14 @@ class CreateChannelView(APIView):
 
         # Auto-clear if not joined
         def clear_on_call_if_not_joined(call_id, executive_id):
-            time.sleep(30)  # or 180 for production
-            call = AgoraCallHistory.objects.filter(id=call_id, status='pending').first()
-            if call:
+            time.sleep(30)
+            call = AgoraCallHistory.objects.filter(id=call_id).first()
+            if call and not call.executive_joined and call.status == 'pending':
                 call.status = 'missed'
+                call.end_time = now()
                 call.save()
                 Executives.objects.filter(id=executive_id).update(on_call=False)
+
 
         threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
 

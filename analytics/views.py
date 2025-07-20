@@ -674,6 +674,9 @@ class SuperuserLoginView(generics.GenericAPIView):
         if not admin:
             return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        if not hasattr(admin, "role"):
+            return Response({"detail": "This user does not have a role attribute."}, status=status.HTTP_400_BAD_REQUEST)
+
         refresh = RefreshToken.for_user(admin)
 
         return Response({

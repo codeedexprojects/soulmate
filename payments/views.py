@@ -409,12 +409,14 @@ class StatisticsAPIView(APIView):
         }
 
         return Response(data)
+from django.utils.timezone import now, is_naive, make_aware
+import pytz
 
 class UserStatisticsAPIView(APIView):
     def get(self, request):
         today = datetime.now().date()
+        IST = pytz.timezone('Asia/Kolkata')
 
-        # Get user data with related profile coin balance and aggregated statistics
         user_data = User.objects.annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
             total_purchases=Count('purchasehistories'),
@@ -422,7 +424,7 @@ class UserStatisticsAPIView(APIView):
         ).select_related('userprofile').values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_online',
             'is_suspended', 'is_dormant', 'total_coins_spent',
-            'total_purchases', 'total_talktime', 'coin_balance','created_at'
+            'total_purchases', 'total_talktime', 'coin_balance', 'created_at'
         )
 
         total_users = User.objects.count()
@@ -434,14 +436,27 @@ class UserStatisticsAPIView(APIView):
             talktime = user['total_talktime']
             total_seconds = talktime.total_seconds() if isinstance(talktime, timedelta) else (talktime or 0)
             talktime_minutes = total_seconds / 60
-            formatted_talktime = f"{int(talktime_minutes)} Mins" if talktime_minutes == int(talktime_minutes) else f"{talktime_minutes:.2f} Mins".replace('.00', '')
+            formatted_talktime = (
+                f"{int(talktime_minutes)} Mins" if talktime_minutes == int(talktime_minutes)
+                else f"{talktime_minutes:.2f} Mins".replace('.00', '')
+            )
 
+            created_at = user['created_at']
+            if created_at:
+                if is_naive(created_at):
+                    created_at = make_aware(created_at)
+                created_at = created_at.astimezone(IST)
+                created_at_str = created_at.strftime('%Y-%m-%d %I:%M:%S %p')
+            else:
+                created_at_str = None
+
+            # Build user dictionary
             response_data.append({
                 'id': user['id'],
                 'User_ID': user['user_id'],
                 'mobile_number': user['mobile_number'],
                 'Date': today,
-                'Created_At': user['created_at'].strftime('%Y-%m-%d %H:%M:%S') if user['created_at'] else None,
+                'Created_At': created_at_str,
                 'Ban': user['is_banned'],
                 'Suspend': user['is_suspended'],
                 'Is_Dormant': user['is_dormant'],
@@ -459,7 +474,6 @@ class UserStatisticsAPIView(APIView):
             'inactive_users': inactive_users_count,
             'user_data': response_data,
         })
-
 
 class UserStatisticsDetailAPIView(APIView):
     def get(self, request, user_id):

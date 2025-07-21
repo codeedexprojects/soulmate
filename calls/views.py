@@ -523,15 +523,18 @@ class LeaveChannelForUserView(APIView):
         user = call_entry.user
         executive = call_entry.executive
 
+        # Mark tokens as expired and update executive call status
         user.token_expiry = timezone.now()
         executive.token_expiry = timezone.now()
         user.save()
         executive.save()
-
         Executives.objects.filter(id=executive.id).update(on_call=False)
         executive.refresh_from_db()
 
-        if call_entry.status == "joined":
+        # Protect joined calls from being marked as missed
+        original_status = call_entry.status
+
+        if original_status == "joined":
             call_entry.end_call()
             call_entry.status = "left"
             call_entry.save()
@@ -544,19 +547,40 @@ class LeaveChannelForUserView(APIView):
                 "coins_added": call_entry.coins_added,
             }, status=200)
 
-        if call_entry.status in ["pending", "left"]:
-            call_entry.status = "missed"
-            call_entry.save()
+        elif original_status == "pending":
+            # Ensure no one joined before marking it missed
+            if call_entry.duration and call_entry.duration.total_seconds() > 0:
+                call_entry.status = "left"
+                call_entry.save()
+                return Response({
+                    "message": "Call had duration, marking as left.",
+                    "call_id": call_entry.id,
+                    "status": "left",
+                    "call_duration": str(call_entry.duration),
+                }, status=200)
+            else:
+                call_entry.status = "missed"
+                call_entry.save()
+                return Response({
+                    "message": "Call was missed without joining.",
+                    "call_id": call_entry.id,
+                    "status": "missed",
+                }, status=200)
+
+        elif original_status in ["left", "missed"]:
             return Response({
-                "message": "Call was missed without joining.",
+                "message": f"Call already marked as {original_status}.",
                 "call_id": call_entry.id,
-                "status": "missed",
+                "status": original_status,
             }, status=200)
 
+        # Fallback handling
+        call_entry.status = "left"
+        call_entry.save()
         return Response({
-            "message": "Call already ended.",
+            "message": "Call status updated as fallback.",
             "call_id": call_entry.id,
-            "status": call_entry.status
+            "status": "left"
         }, status=200)
 
 

@@ -531,7 +531,8 @@ class LeaveChannelForUserView(APIView):
         Executives.objects.filter(id=executive.id).update(on_call=False)
         executive.refresh_from_db()
 
-        if call_entry.status == "pending":
+        # Enforce stronger check: if user never joined (i.e. not marked as 'joined', 'missed', or 'rejected')
+        if call_entry.status not in ["joined", "missed", "rejected"]:
             call_entry.status = "missed"
             call_entry.save()
             return Response({
@@ -540,6 +541,7 @@ class LeaveChannelForUserView(APIView):
                 "status": "missed",
             }, status=200)
 
+        # If user joined, end the call and update status
         if call_entry.status == "joined":
             call_entry.end_call()
             call_entry.status = "left"
@@ -553,13 +555,13 @@ class LeaveChannelForUserView(APIView):
                 "coins_added": call_entry.coins_added,
             }, status=200)
 
-        call_entry.status = "left"
-        call_entry.save()
+        # Fallback for already handled statuses like missed/rejected
         return Response({
-            "message": "Call status updated and ended as fallback.",
+            "message": "Call already ended.",
             "call_id": call_entry.id,
-            "status": "left"
+            "status": call_entry.status
         }, status=200)
+
 
         
 class LeaveAllCallsForExecutiveView(APIView):

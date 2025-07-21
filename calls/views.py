@@ -531,8 +531,7 @@ class LeaveChannelForUserView(APIView):
         Executives.objects.filter(id=executive.id).update(on_call=False)
         executive.refresh_from_db()
 
-        # Check if user never joined
-        if call_entry.status != "joined" and not call_entry.joined_at:
+        if call_entry.status == "pending":
             call_entry.status = "missed"
             call_entry.save()
             return Response({
@@ -554,7 +553,6 @@ class LeaveChannelForUserView(APIView):
                 "coins_added": call_entry.coins_added,
             }, status=200)
 
-        # Fallback
         call_entry.status = "left"
         call_entry.save()
         return Response({

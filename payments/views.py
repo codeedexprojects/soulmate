@@ -554,9 +554,9 @@ class CoinConversionListCreateView(generics.ListCreateAPIView):
         rupees = self.calculate_rupees(coins)
         serializer.save(rupees=rupees)
 
-    def calculate_rupees(self, coins):
-        # Replace this with your actual conversion logic
-        return float(coins) * 0.5  # Example: 1 coin = 0.5 rupee
+    # def calculate_rupees(self, coins):
+    #     # Replace this with your actual conversion logic
+    #     return float(coins) * 0.5  # Example: 1 coin = 0.5 rupee
 
 
 class CoinConversionUpdateView(generics.RetrieveUpdateDestroyAPIView):

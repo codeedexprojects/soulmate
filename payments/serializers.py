@@ -49,7 +49,7 @@ class CategoryWithPlansSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'plans']
 
     def get_plans(self, obj):
-        plans = obj.recharge_plans.all()
+        plans = obj.recharge_plans.filter(is_active=True)
         return RechargePlanSerializer(plans, many=True).data
     
 class RechargeCoinsSerializer(serializers.Serializer):

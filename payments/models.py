@@ -17,6 +17,7 @@ class RechargePlan(models.Model):
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
     discount_percentage = models.FloatField(default=0)
     category_id = models.ForeignKey(RechargePlanCato, on_delete=models.CASCADE, related_name='recharge_plans', default=1)
+    is_active = models.BooleanField(default=True)
 
     def calculate_discount(self):
         return self.base_price * Decimal(self.discount_percentage / 100)

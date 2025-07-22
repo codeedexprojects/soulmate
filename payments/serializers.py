@@ -24,7 +24,7 @@ class RechargePlanSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'plan_name', 'coin_package', 'adjusted_coin_package', 'base_price',
             'discount_percentage', 'discount_amount', 'final_amount',
-            'category_id', 'category_name', 'total_talktime'
+            'category_id', 'category_name', 'total_talktime','is_active'
         ]
 
     def get_discount_amount(self, obj):
@@ -102,7 +102,7 @@ class PurchaseHistoriesSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'recharge_plan', 'user_id', 'coins_purchased',
             'purchased_price', 'base_price', 'final_amount',
-            'payment_status', 'purchase_date', 'is_admin'
+            'payment_status', 'purchase_date', 'is_admin','is_active'
         ]
 
     def get_final_amount(self, obj):

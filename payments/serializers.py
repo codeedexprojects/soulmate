@@ -102,7 +102,7 @@ class PurchaseHistoriesSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'recharge_plan', 'user_id', 'coins_purchased',
             'purchased_price', 'base_price', 'final_amount',
-            'payment_status', 'purchase_date', 'is_admin','is_active'
+            'payment_status', 'purchase_date', 'is_admin'
         ]
 
     def get_final_amount(self, obj):

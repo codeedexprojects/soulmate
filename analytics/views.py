@@ -140,6 +140,8 @@ class PlatformAnalyticsView(APIView):
                 "executive_name": call.executive.name if call.executive else "Unknown",
                 "user_id": call.user.id if call.user else None,
                 "user_name": call.user.name if call.user else "Unknown",
+                "id": call.user.user_id if call.user else None,
+                "executive_id": call.executive.executive_id if call.executive else None,
                 "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
             } for call in missed_calls

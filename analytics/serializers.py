@@ -245,31 +245,38 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
         ).aggregate(total_duration=models.Sum('duration'))['total_duration'] or timedelta()
 
         total_minutes = int(total_duration.total_seconds() // 60)
-        target_minutes = 720
-        interval_minutes = target_minutes // 4  
-        coins_per_interval = 10000
 
-        intervals_achieved = total_minutes // interval_minutes
-
-        if total_minutes == 0:
-            obj.reward_intervals_today = 0  
-            obj.save()
+        reward_tiers = [
+            (180, 5000),     # 3 hours
+            (360, 7500),     # 6 hours
+            (540, 10000),    # 9 hours
+            (720, 15000),    # 12 hours
+        ]
 
         if not hasattr(obj, "reward_intervals_today"):
-            obj.reward_intervals_today = 0
+            obj.reward_intervals_today = 0 
             obj.save()
 
-        current_reward_count = obj.reward_intervals_today
-        if intervals_achieved > current_reward_count:
-            new_rewards = intervals_achieved - current_reward_count
-            total_reward_coins = new_rewards * coins_per_interval
+        coins_to_add = 0
+        tiers_completed = 0
 
-            obj.coins_balance += total_reward_coins
-            obj.reward_intervals_today = intervals_achieved
+        for minutes_required, coins in reward_tiers:
+            if total_minutes >= minutes_required:
+                tiers_completed += 1
+            else:
+                break
+
+        if tiers_completed > obj.reward_intervals_today:
+            for i in range(obj.reward_intervals_today, tiers_completed):
+                coins_to_add += reward_tiers[i][1]
+
+            obj.coins_balance += coins_to_add
+            obj.reward_intervals_today = tiers_completed
             obj.save()
 
-        progression_percentage = min((total_minutes / target_minutes), 1.0) * 100
+        progression_percentage = min((total_minutes / 720), 1.0) * 100
         return round(progression_percentage, 2)
+
 
     def get_minutes_talked_today(self, obj):
         start_of_day = now().replace(hour=0, minute=0, second=0, microsecond=0)

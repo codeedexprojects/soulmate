@@ -192,6 +192,7 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
     total_missed_calls = serializers.SerializerMethodField()
     coins_balance = serializers.FloatField()
     coins_earned_today = serializers.SerializerMethodField()
+    bonus_coins_earned_today = serializers.SerializerMethodField()
     progression_percentage = serializers.SerializerMethodField()
     minutes_talked_today = serializers.SerializerMethodField()
 
@@ -205,6 +206,7 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
             'total_missed_calls',
             'coins_balance',
             'coins_earned_today',
+            'bonus_coins_earned_today', 
             'progression_percentage',
             'minutes_talked_today',
         ]
@@ -218,7 +220,6 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
         total_duration = AgoraCallHistory.objects.filter(
             executive=obj, status='left'
         ).aggregate(total_duration=models.Sum('duration'))['total_duration'] or timedelta(0)
-
         return round(total_duration.total_seconds() / 60, 2)
 
     def get_total_accepted_calls(self, obj):
@@ -237,9 +238,8 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
             ).aggregate(coins_earned=models.Sum('coins_deducted'))['coins_earned'] or 0
         )
 
-    def get_progression_percentage(self, obj):
+    def calculate_bonus_coins(self, obj):
         start_of_day = now().replace(hour=0, minute=0, second=0, microsecond=0)
-
         total_duration = AgoraCallHistory.objects.filter(
             executive=obj, start_time__gte=start_of_day
         ).aggregate(total_duration=models.Sum('duration'))['total_duration'] or timedelta()
@@ -274,9 +274,15 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
             obj.reward_intervals_today = tiers_completed
             obj.save()
 
-        progression_percentage = min((total_minutes / 720), 1.0) * 100
-        return round(progression_percentage, 2)
+        return coins_to_add, total_minutes
 
+    def get_progression_percentage(self, obj):
+        _, total_minutes = self.calculate_bonus_coins(obj)
+        return round(min((total_minutes / 720), 1.0) * 100, 2)
+
+    def get_bonus_coins_earned_today(self, obj):
+        coins_to_add, _ = self.calculate_bonus_coins(obj)
+        return coins_to_add
 
     def get_minutes_talked_today(self, obj):
         start_of_day = now().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -284,3 +290,4 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
             executive=obj, start_time__gte=start_of_day
         ).aggregate(total_duration=models.Sum('duration'))['total_duration'] or timedelta()
         return int(total_duration.total_seconds() // 60)
+

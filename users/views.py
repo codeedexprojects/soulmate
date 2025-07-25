@@ -107,7 +107,7 @@ class RegisterOrLoginView(APIView):
                 coin_balance=initial_coin_balance
             )
 
-            if referral_code:
+            if referral_code and not has_deleted_account:
                 try:
                     referrer = ReferralCode.objects.get(code=referral_code).user
                     ReferralHistory.objects.create(referrer=referrer, referred_user=user)
@@ -133,6 +133,7 @@ class RegisterOrLoginView(APIView):
                 },
                 status=status.HTTP_200_OK
             )
+
 
 
 class DeleteUserAccountView(APIView):

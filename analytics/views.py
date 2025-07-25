@@ -133,6 +133,8 @@ class PlatformAnalyticsView(APIView):
         # Missed calls
         missed_calls = AgoraCallHistory.objects.filter(status="missed")
         missed_call_count = missed_calls.count()
+        missed_calls_today = missed_calls.filter(start_time__date=today)
+        missed_call_count_today = missed_calls_today.count()
         missed_call_details = [
             {
                 "call_id": call.id,
@@ -170,6 +172,7 @@ class PlatformAnalyticsView(APIView):
             "executive_coin_earnings": executive_coin_earnings,
             "total_missed_calls": missed_call_count,
             "missed_call_details": missed_call_details,
+            "missed_calls_today": missed_call_count_today,
             "all_call_details": call_details,
             "total_calls": len(call_details),
 

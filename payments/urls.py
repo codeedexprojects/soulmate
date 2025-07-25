@@ -26,6 +26,7 @@ urlpatterns = [
     path('coin-conversion/<int:pk>/', CoinConversionUpdateView.as_view(), name='coin-conversion-update'),
     path('cashfree/<int:user_id>/<int:plan_id>/', CreatePaymentLinkView.as_view(), name='create-payment-link'),
     path('get-payment-details/<int:user_id>/', GetPaymentDetailsView.as_view(), name='get-payment-details'),
+    path('purchase-by-admin/', PurchaseDoneByAdminHistoryView.as_view(), name='admin-purchase-history'),
 
     path('cashfree/webhook/<str:order_id>/', cashfree_webhook, name='cashfree-webhook'),
 

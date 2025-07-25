@@ -777,3 +777,15 @@ class GetPaymentDetailsView(APIView):
             "payment_status": latest_purchase.payment_status,
             "payment_link": latest_purchase.payment_link,
         }, status=status.HTTP_200_OK)
+
+class PurchaseDoneByAdminHistoryView(APIView):
+    def get(self, request):
+        admin_purchases = PurchaseHistories.objects.filter(is_admin=True)
+        total_spent = admin_purchases.aggregate(total_spent=Sum('purchased_price'))['total_spent'] or 0
+
+        serializer = PurchaseHistoriesSerializer(admin_purchases, many=True)
+
+        return Response({
+            'total_admin_spent': total_spent,
+            'admin_purchase_histories': serializer.data
+        })

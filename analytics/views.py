@@ -132,6 +132,7 @@ class PlatformAnalyticsView(APIView):
 
         # Missed calls
         missed_calls = AgoraCallHistory.objects.filter(status="missed")
+        today_total_calls = AgoraCallHistory.objects.filter(start_time__date=today).count()
         missed_call_count = missed_calls.count()
         missed_calls_today = missed_calls.filter(start_time__date=today)
         missed_call_count_today = missed_calls_today.count()
@@ -175,6 +176,7 @@ class PlatformAnalyticsView(APIView):
             "missed_calls_today": missed_call_count_today,
             "all_call_details": call_details,
             "total_calls": len(call_details),
+            "today_total_calls": today_total_calls,
 
             # Revenue
             "revenue_today": revenue_today,

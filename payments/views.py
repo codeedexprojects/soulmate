@@ -781,7 +781,7 @@ class GetPaymentDetailsView(APIView):
 class PurchaseDoneByAdminHistoryView(APIView):
     def get(self, request):
         admin_purchases = PurchaseHistories.objects.filter(is_admin=True)
-        total_spent = admin_purchases.aggregate(total_spent=Sum('purchased_price'))['total_spent'] or 0
+        total_spent = admin_purchases.aggregate(total_spent=Sum('base_price'))['total_spent'] or 0
 
         serializer = PurchaseHistoriesSerializer(admin_purchases, many=True)
 

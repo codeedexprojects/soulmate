@@ -1055,15 +1055,15 @@ class ExecutiveRedemptionRequestListView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 class GetExecutiveDeviceIDView(APIView):
-    def get(self, request, user_id):
+    def get(self, request, id):
         try:
-            executive = Executives.objects.get(user_id=user_id)
+            executive = Executives.objects.get(id=id)
         except Executives.DoesNotExist:
             return Response({"message": "Executive not found."}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({
             "executive_id": executive.executive_id,
-            "user_id": executive.user_id.id if executive.user_id else None,
+            "id": executive.id,
             "mobile_number": executive.mobile_number,
             "device_id": executive.device_id
         }, status=status.HTTP_200_OK)

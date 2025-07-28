@@ -46,6 +46,6 @@ urlpatterns = [
     path('manager-executives-list/', AdminManagerExecutiveListView.as_view(), name='manager-executives'),
     path('coin-redemption/executive/<int:executive_id>/', ExecutiveRedemptionRequestListView.as_view(), name='executive-coin-redemption-list'),
 
-    path('executive/device-id/<int:user_id>/', GetExecutiveDeviceIDView.as_view(), name='get-executive-device-id'),
+    path('executive/device-id/<int:id>/', GetExecutiveDeviceIDView.as_view(), name='get-executive-device-id'),
 
 ]

@@ -450,7 +450,7 @@ class UserStatisticsAPIView(APIView):
                 total=Sum('coins_deducted')
             )['total'] or 0
 
-            total_purchases=Count('purchasehistories'),
+            total_purchases = user.purchasehistory_set.count()
 
             created_at = user.created_at
             if created_at:

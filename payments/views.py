@@ -5,7 +5,7 @@ from .serializers import *
 from rest_framework.views import APIView
 from rest_framework import generics
 from datetime import datetime
-from django.db.models import Sum, Count
+from django.db.models import Sum, Count ,Q
 from django.db.models import Count
 from datetime import datetime, timedelta
 from django.http import HttpResponse, JsonResponse
@@ -478,16 +478,18 @@ class UserStatisticsAPIView(APIView):
 class UserStatisticsDetailAPIView(APIView):
     def get(self, request, user_id):
         today = datetime.now().date()
-
         user = get_object_or_404(User, id=user_id)
 
         user_data = User.objects.filter(id=user.id).annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('purchasehistories'),#change
-
-            total_talktime=Sum('caller__duration')
-        ).values('id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended', 
-                 'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases', 'total_talktime','created_at').first()
+            total_purchases=Count('purchasehistories'),
+            # Only include call durations where status is 'left'
+            total_talktime=Sum('caller__duration', filter=Q(caller__status='left'))
+        ).values(
+            'id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended',
+            'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases',
+            'total_talktime', 'created_at'
+        ).first()
 
         response_data = {
             'id': user_data['id'],

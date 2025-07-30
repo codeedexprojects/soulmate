@@ -450,7 +450,7 @@ class UserStatisticsAPIView(APIView):
                 total=Sum('coins_deducted')
             )['total'] or 0
 
-            total_purchases = user.purchasehistory_set.count()
+            # total_purchases = user.purchasehistories.count()
 
             created_at = user.created_at
             if created_at:
@@ -472,7 +472,7 @@ class UserStatisticsAPIView(APIView):
                 'Is_Dormant': user.is_dormant,
                 'is_online': user.is_online,
                 'Total_Coin_Spend': total_coins_spent,
-                'Total_Purchases': total_purchases,
+                # 'Total_Purchases': total_purchases,
                 'Total_Talktime': formatted_talktime,
                 'Total_Talktime_Seconds': total_seconds,
                 'Coin_Balance': user.coin_balance or 0,

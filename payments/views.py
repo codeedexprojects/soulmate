@@ -420,7 +420,7 @@ class UserStatisticsAPIView(APIView):
         user_data = User.objects.annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
             total_purchases=Count('purchasehistories'),
-            total_talktime=Sum('caller__duration'),
+            total_talktime=Sum('caller__duration', filter=Q(caller__status='left')),
         ).select_related('userprofile').values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_online',
             'is_suspended', 'is_dormant', 'total_coins_spent',
@@ -450,7 +450,6 @@ class UserStatisticsAPIView(APIView):
             else:
                 created_at_str = None
 
-            # Build user dictionary
             response_data.append({
                 'id': user['id'],
                 'User_ID': user['user_id'],

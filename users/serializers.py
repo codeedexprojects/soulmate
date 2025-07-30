@@ -274,7 +274,16 @@ class ReferralHistorySerializer(serializers.ModelSerializer):
     def get_referral_amount(self, obj):
         return 1000  
 
+class ReferralDetailHistorySerializer(serializers.ModelSerializer):
+    referred_user = ReferredUserSerializer()
+    referral_amount = serializers.SerializerMethodField()
+    referrer_name = serializers.CharField(source='referrer.name',read_only=True)
+    class Meta:
+        model = ReferralHistory
+        fields = ['referred_user', 'referral_amount','referrer','referrer_name']
 
+    def get_referral_amount(self, obj):
+        return 1000  
 
 class BannedUserSerializer(serializers.ModelSerializer):
     class Meta:

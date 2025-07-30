@@ -59,12 +59,22 @@ class AgoraCallHistory(models.Model):
 
 
 
-    def end_call(self):
+    # def end_call(self):
 
-        self.end_time = now()
+    #     self.end_time = now()
+    #     self.is_active = False
+    #     self.save()
+    #     self.update_coin_transfer()
+
+    def end_call(self):
+        self.end_time = timezone.now()
+        self.duration = self.end_time - self.start_time
+        self.status = "left"
         self.is_active = False
         self.save()
         self.update_coin_transfer()
+
+from django.utils import timezone
 
 
 class Channel(models.Model):

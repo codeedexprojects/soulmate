@@ -38,8 +38,7 @@ class AgoraCallHistory(models.Model):
             self.save()
 
     def update_coin_transfer(self, coins_per_second=3):
-
-        if self.status == "joined" and self.end_time:
+        if self.end_time:
             self.calculate_duration()
             total_seconds = int(self.duration.total_seconds())
             coins_to_transfer = total_seconds * coins_per_second
@@ -59,20 +58,21 @@ class AgoraCallHistory(models.Model):
 
 
 
-    def end_call(self):
-
-        self.end_time = now()
-        self.is_active = False
-        self.save()
-        self.update_coin_transfer()
 
     # def end_call(self):
-    #     self.end_time = timezone.now()
-    #     self.duration = self.end_time - self.start_time
-    #     self.status = "left"
+
+    #     self.end_time = now()
     #     self.is_active = False
     #     self.save()
     #     self.update_coin_transfer()
+
+    def end_call(self):
+        self.end_time = timezone.now()
+        self.duration = self.end_time - self.start_time
+        self.status = "left"
+        self.is_active = False
+        self.save()
+        self.update_coin_transfer()
 
 from django.utils import timezone
 

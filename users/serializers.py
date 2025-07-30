@@ -269,7 +269,7 @@ class ReferralHistorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReferralHistory
-        fields = ['referred_user', 'referral_amount']
+        fields = ['referred_user', 'referral_amount','referrer']
 
     def get_referral_amount(self, obj):
         return 1000  

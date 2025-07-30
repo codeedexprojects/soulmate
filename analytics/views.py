@@ -34,22 +34,25 @@ from users.utils import send_otp_2factor
 import random
 from django.utils.timezone import make_aware
 from datetime import datetime, time
+import pytz
 
+
+IST = pytz.timezone("Asia/Kolkata")
 
 class PlatformAnalyticsView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
-    
+
     def get(self, request):
-        today = now().date()
-        now_dt = now()
+        now_dt = now().astimezone(IST)
+        today = now_dt.date()
         ninety_days_ago = now_dt - timedelta(days=90)
 
         # Time boundaries
-        start_of_today = make_aware(datetime.combine(today, time.min))
-        end_of_today = make_aware(datetime.combine(today, time.max))
-        start_of_week = make_aware(datetime.combine(today - timedelta(days=today.weekday()), time.min))
-        start_of_month = make_aware(datetime.combine(today.replace(day=1), time.min))
+        start_of_today = IST.localize(datetime.combine(today, time.min))
+        end_of_today = IST.localize(datetime.combine(today, time.max))
+        start_of_week = IST.localize(datetime.combine(today - timedelta(days=today.weekday()), time.min))
+        start_of_month = IST.localize(datetime.combine(today.replace(day=1), time.min))
 
         # Executives
         total_executives = Executives.objects.count()
@@ -96,7 +99,7 @@ class PlatformAnalyticsView(APIView):
             total=Sum('coins_added')
         )['total'] or 0
 
-        # Revenue and coin sales (timezone-aware filtering)
+        # Revenue and coin sales
         purchases_all = PurchaseHistories.objects.filter(payment_status='SUCCESS')
         purchases_today = purchases_all.filter(purchase_date__range=(start_of_today, end_of_today))
         purchases_week = purchases_all.filter(purchase_date__gte=start_of_week)
@@ -122,8 +125,8 @@ class PlatformAnalyticsView(APIView):
                 "user_id": call.user.id if call.user else None,
                 "user_name": call.user.name if call.user else "Unknown",
                 "status": call.status,
-                "start_time": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
-                "end_time": call.end_time.strftime("%Y-%m-%d %H:%M:%S") if call.end_time else None,
+                "start_time": call.start_time.astimezone(IST).strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
+                "end_time": call.end_time.astimezone(IST).strftime("%Y-%m-%d %H:%M:%S") if call.end_time else None,
                 "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration,
                 "coins_deducted": call.coins_deducted,
                 "coins_added": call.coins_added
@@ -145,7 +148,7 @@ class PlatformAnalyticsView(APIView):
                 "user_name": call.user.name if call.user else "Unknown",
                 "id": call.user.user_id if call.user else None,
                 "executive_id": call.executive.executive_id if call.executive else None,
-                "missed_at": call.start_time.strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
+                "missed_at": call.start_time.astimezone(IST).strftime("%Y-%m-%d %H:%M:%S") if call.start_time else None,
                 "duration": call.duration.total_seconds() if hasattr(call.duration, 'total_seconds') else call.duration
             } for call in missed_calls
         ]

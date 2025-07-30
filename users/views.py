@@ -597,5 +597,5 @@ class ReferralHistoryListView(APIView):
 
     def get(self, request):
         referrals = ReferralHistory.objects.all()
-        serializer = ReferralHistorySerializer(referrals, many=True)
+        serializer = ReferralDetailHistorySerializer(referrals, many=True)
         return Response(serializer.data)

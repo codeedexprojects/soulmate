@@ -473,21 +473,37 @@ class UserStatisticsAPIView(APIView):
             'inactive_users': inactive_users_count,
             'user_data': response_data,
         })
+from django.db.models import F, ExpressionWrapper, DurationField, Case, When
 
 class UserStatisticsDetailAPIView(APIView):
     def get(self, request, user_id):
         today = datetime.now().date()
         user = get_object_or_404(User, id=user_id)
 
+        # Get durations from related Caller objects where status is 'left'
+        from calls.models import AgoraCallHistory  # import your Caller model
+
+        # Get total talktime safely (sum of durations OR end_time - start_time)
+        callers = AgoraCallHistory.objects.filter(user=user, status='left').annotate(
+            effective_duration=Case(
+                When(duration__isnull=False, then=F('duration')),
+                When(duration__isnull=True, end_time__isnull=False, start_time__isnull=False,
+                     then=ExpressionWrapper(F('end_time') - F('start_time'), output_field=DurationField())),
+                default=None
+            )
+        )
+
+        total_talktime_seconds = callers.aggregate(
+            total=Sum('effective_duration')
+        )['total'].total_seconds() if callers.exists() and callers.aggregate(total=Sum('effective_duration'))['total'] else 0
+
         user_data = User.objects.filter(id=user.id).annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
             total_purchases=Count('purchasehistories'),
-            # Only include call durations where status is 'left'
-            total_talktime=Sum('caller__duration', filter=Q(caller__status='left'))
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended',
             'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases',
-            'total_talktime', 'created_at'
+            'created_at'
         ).first()
 
         response_data = {
@@ -502,7 +518,7 @@ class UserStatisticsDetailAPIView(APIView):
             'is_online': user_data['is_online'],
             'total_coins_spent': user_data['total_coins_spent'] or 0,
             'total_purchases': user_data['total_purchases'] or 0,
-            'total_talktime': user_data['total_talktime'] or 0,
+            'total_talktime': round(total_talktime_seconds, 2),  # in seconds
         }
 
         return Response(response_data)

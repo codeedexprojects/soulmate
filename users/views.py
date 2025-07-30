@@ -591,3 +591,11 @@ class ReferralDetailsView(APIView):
             "referral_history": referral_history_data,
             "total_referral_coin": total_referral_coin
         }, status=status.HTTP_200_OK)
+    
+class ReferralHistoryListView(APIView):
+    permission_classes = [] 
+
+    def get(self, request):
+        referrals = ReferralHistory.objects.all()
+        serializer = ReferralHistorySerializer(referrals, many=True)
+        return Response(serializer.data)

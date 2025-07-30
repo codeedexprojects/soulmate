@@ -417,31 +417,42 @@ class UserStatisticsAPIView(APIView):
         today = datetime.now().date()
         IST = pytz.timezone('Asia/Kolkata')
 
-        user_data = User.objects.annotate(
-            total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('purchasehistories'),
-            total_talktime=Sum('caller__duration', filter=Q(caller__status='left')),
-        ).select_related('userprofile').values(
-            'id', 'user_id', 'mobile_number', 'is_banned', 'is_online',
-            'is_suspended', 'is_dormant', 'total_coins_spent',
-            'total_purchases', 'total_talktime', 'coin_balance', 'created_at'
-        )
+        users = User.objects.select_related('userprofile').all()
 
-        total_users = User.objects.count()
-        active_users_count = User.objects.filter(last_login__isnull=False).count()
+        total_users = users.count()
+        active_users_count = users.filter(last_login__isnull=False).count()
         inactive_users_count = total_users - active_users_count
 
+        from calls.models import AgoraCallHistory
+
         response_data = []
-        for user in user_data:
-            talktime = user['total_talktime']
-            total_seconds = talktime.total_seconds() if isinstance(talktime, timedelta) else (talktime or 0)
+        for user in users:
+            callers = AgoraCallHistory.objects.filter(user=user, status='left').annotate(
+                effective_duration=Case(
+                    When(duration__isnull=False, then=F('duration')),
+                    When(duration__isnull=True, end_time__isnull=False, start_time__isnull=False,
+                         then=ExpressionWrapper(F('end_time') - F('start_time'), output_field=DurationField())),
+                    default=None
+                )
+            )
+            total_talktime = callers.aggregate(
+                total=Sum('effective_duration')
+            )['total']
+
+            total_seconds = total_talktime.total_seconds() if total_talktime else 0
             talktime_minutes = total_seconds / 60
             formatted_talktime = (
                 f"{int(talktime_minutes)} Mins" if talktime_minutes == int(talktime_minutes)
                 else f"{talktime_minutes:.2f} Mins".replace('.00', '')
             )
 
-            created_at = user['created_at']
+            total_coins_spent = AgoraCallHistory.objects.filter(user=user).aggregate(
+                total=Sum('coins_deducted')
+            )['total'] or 0
+
+            total_purchases = user.purchasehistories.count()
+
+            created_at = user.created_at
             if created_at:
                 if is_naive(created_at):
                     created_at = make_aware(created_at)
@@ -451,20 +462,20 @@ class UserStatisticsAPIView(APIView):
                 created_at_str = None
 
             response_data.append({
-                'id': user['id'],
-                'User_ID': user['user_id'],
-                'mobile_number': user['mobile_number'],
+                'id': user.id,
+                'User_ID': user.user_id,
+                'mobile_number': user.mobile_number,
                 'Date': today,
                 'Created_At': created_at_str,
-                'Ban': user['is_banned'],
-                'Suspend': user['is_suspended'],
-                'Is_Dormant': user['is_dormant'],
-                'is_online': user['is_online'],
-                'Total_Coin_Spend': user['total_coins_spent'] or 0,
-                'Total_Purchases': user['total_purchases'] or 0,
+                'Ban': user.is_banned,
+                'Suspend': user.is_suspended,
+                'Is_Dormant': user.is_dormant,
+                'is_online': user.is_online,
+                'Total_Coin_Spend': total_coins_spent,
+                'Total_Purchases': total_purchases,
                 'Total_Talktime': formatted_talktime,
                 'Total_Talktime_Seconds': total_seconds,
-                'Coin_Balance': user['coin_balance'] or 0,
+                'Coin_Balance': user.coin_balance or 0,
             })
 
         return Response({
@@ -473,6 +484,7 @@ class UserStatisticsAPIView(APIView):
             'inactive_users': inactive_users_count,
             'user_data': response_data,
         })
+    
 from django.db.models import F, ExpressionWrapper, DurationField, Case, When
 
 class UserStatisticsDetailAPIView(APIView):
@@ -480,10 +492,8 @@ class UserStatisticsDetailAPIView(APIView):
         today = datetime.now().date()
         user = get_object_or_404(User, id=user_id)
 
-        # Get durations from related Caller objects where status is 'left'
-        from calls.models import AgoraCallHistory  # import your Caller model
+        from calls.models import AgoraCallHistory 
 
-        # Get total talktime safely (sum of durations OR end_time - start_time)
         callers = AgoraCallHistory.objects.filter(user=user, status='left').annotate(
             effective_duration=Case(
                 When(duration__isnull=False, then=F('duration')),

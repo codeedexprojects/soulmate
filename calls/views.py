@@ -702,3 +702,25 @@ class OngoingCallsAPIView(APIView):
             })
 
         return Response(ongoing_calls_data, status=status.HTTP_200_OK)
+    
+class GetListenerTokenAPIView(APIView):
+    permission_classes = []  # Only admins can listen
+
+    def get(self, request, call_id):
+        # Find the call in DB
+        call = get_object_or_404(AgoraCallHistory, id=call_id)
+
+        # We’ll use the channel_name already stored
+        channel_name = call.channel_name
+        
+        # The stored user token in DB
+        listener_token = call.token  # Or call.executive_token if you prefer executive's token
+
+        # Generate a UID for admin (should be unique)
+        admin_uid = int(time.time()) % 100000
+
+        return Response({
+            "channel_name": channel_name,
+            "uid": admin_uid,
+            "token": listener_token
+        })

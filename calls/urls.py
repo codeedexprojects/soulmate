@@ -29,6 +29,7 @@ urlpatterns = [
     path('leave-all-calls/', LeaveAllCallsForExecutiveView.as_view(), name='leave_all_calls_for_executive'),
     
     path('update-fcm-token/', UpdateExecutiveFCMTokenView.as_view(), name='update-fcm-token'),
+    path("calls/<int:call_id>/listener-token/", GetListenerTokenAPIView.as_view(), name="listener-token"),
 
 
 

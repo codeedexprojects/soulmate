@@ -493,8 +493,6 @@ class UserStatisticsDetailAPIView(APIView):
         today = datetime.now().date()
         user = get_object_or_404(User, id=user_id)
 
-        from calls.models import AgoraCallHistory 
-
         callers = AgoraCallHistory.objects.filter(user=user, status='left').annotate(
             effective_duration=Case(
                 When(duration__isnull=False, then=F('duration')),
@@ -510,7 +508,7 @@ class UserStatisticsDetailAPIView(APIView):
 
         user_data = User.objects.filter(id=user.id).annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('purchasehistories'),
+            total_purchases=Count('purchasehistories', filter=Q(purchasehistories__payment_status='SUCCESS')),
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended',
             'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases',
@@ -529,7 +527,7 @@ class UserStatisticsDetailAPIView(APIView):
             'is_online': user_data['is_online'],
             'total_coins_spent': user_data['total_coins_spent'] or 0,
             'total_purchases': user_data['total_purchases'] or 0,
-            'total_talktime': round(total_talktime_seconds, 2),  # in seconds
+            'total_talktime': round(total_talktime_seconds, 2),
         }
 
         return Response(response_data)

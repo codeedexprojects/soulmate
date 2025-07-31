@@ -508,7 +508,7 @@ class UserStatisticsDetailAPIView(APIView):
 
         user_data = User.objects.filter(id=user.id).annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
-            total_purchases=Count('purchasehistories', filter=Q(purchasehistories__payment_status='SUCCESS')),
+            total_purchases = PurchaseHistories.objects.filter(user=user, payment_status='SUCCESS').count(),
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended',
             'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases',

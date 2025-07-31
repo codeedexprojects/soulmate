@@ -514,7 +514,7 @@ class UserStatisticsDetailAPIView(APIView):
             # total_purchases=Count('purchasehistories', filter=Q(purchasehistories__payment_status='SUCCESS')),
         ).values(
             'id', 'user_id', 'mobile_number', 'is_banned', 'is_suspended',
-            'is_dormant', 'is_online', 'total_coins_spent', 'total_purchases',
+            'is_dormant', 'is_online', 'total_coins_spent',
             'created_at'
         ).first()
 

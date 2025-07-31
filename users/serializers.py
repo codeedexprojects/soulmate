@@ -280,10 +280,12 @@ class ReferralDetailHistorySerializer(serializers.ModelSerializer):
     referrer_name = serializers.CharField(source='referrer.name',read_only=True)
     referrer_mobile = serializers.CharField(source='referrer.mobile_number',read_only=True)
     referred_user_mobile = serializers.CharField(source='referred_user.mobile_number',read_only=True)
+    referred_user_id = serializers.CharField(source='referred_user.user_id',read_only=True)
+    referrer_user_id = serializers.CharField(source='referrer.user_id',read_only=True)
 
     class Meta:
         model = ReferralHistory
-        fields = ['referred_user', 'referral_amount','referrer','referrer_name','referrer_mobile','referred_user_mobile']
+        fields = ['referred_user', 'referral_amount','referrer','referrer_name','referrer_mobile','referred_user_mobile','referrer_user_id','referred_user_id']
 
     def get_referral_amount(self, obj):
         return 1000  

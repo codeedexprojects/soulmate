@@ -723,11 +723,12 @@ class GetListenerTokenAPIView(APIView):
 
 class CallHistoryListView(APIView):
     def get(self, request):
-        status_filter = request.query_params.get("status", None)
+        status_filter = request.query_params.get("status", "").strip().lower()
+
         calls = AgoraCallHistory.objects.all().order_by('-start_time')
 
         if status_filter:
-            calls = calls.filter(status=status_filter)
+            calls = calls.filter(status__iexact=status_filter)
 
         serializer = CallHistorySerializer(calls, many=True)
         return Response(serializer.data)

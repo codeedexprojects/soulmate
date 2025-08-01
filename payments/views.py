@@ -459,6 +459,7 @@ class UserStatisticsAPIView(APIView):
                 created_at_str = created_at.strftime('%Y-%m-%d %I:%M:%S %p')
             else:
                 created_at_str = None
+                #coin balance all users
             total_coin_balance_all_users = users.aggregate(total_balance=Sum('coin_balance'))['total_balance'] or 0
             response_data.append({
                 'id': user.id,

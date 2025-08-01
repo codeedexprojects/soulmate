@@ -731,10 +731,8 @@ class CustomPageNumberPagination(PageNumberPagination):
 
 class CallHistoryListView(APIView):
     def get(self, request):
-        from calls.models import AgoraCallHistory
-        status_filter = request.GET.get('status')  
-
-        calls = AgoraCallHistory.objects.select_related('user', 'executive').all()
+        status_filter = request.query_params.get("status", None)
+        calls = AgoraCallHistory.objects.all().order_by('-start_time')
 
         if status_filter:
             calls = calls.filter(status=status_filter)
@@ -742,5 +740,5 @@ class CallHistoryListView(APIView):
         paginator = CustomPageNumberPagination()
         paginated_calls = paginator.paginate_queryset(calls, request)
 
-        serializer = CallHistorySerializer(paginated_calls, many=True, context={'request': request})
+        serializer = CallHistorySerializer(paginated_calls, many=True)
         return paginator.get_paginated_response(serializer.data)

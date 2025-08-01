@@ -450,9 +450,7 @@ class UserStatisticsAPIView(APIView):
                 total=Sum('coins_deducted')
             )['total'] or 0
 
-            # total_purchases = user.purchasehistories.count()
-            total_purchases = PurchaseHistories.objects.filter(user=user, payment_status='SUCCESS').count()
-
+            total_purchases = (PurchaseHistories.objects.filter(user=user, payment_status='SUCCESS',is_admin=False).aggregate(total_amount=Sum('purchased_price'))['total_amount'] or 0)
             created_at = user.created_at
             if created_at:
                 if is_naive(created_at):

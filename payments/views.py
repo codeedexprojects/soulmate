@@ -821,6 +821,7 @@ class PurchaseDoneByAdminHistoryView(APIView):
         return Response({
             'total_admin_spent': total_spent,
             'total_coins_spent':total_coins_spent,
-            'total_coins_sold':total_coins_sold,
+            'total_coins_sold_refferel':total_coins_sold,
+            'total_referrals':total_referrals,
             'admin_purchase_histories': serializer.data
         })

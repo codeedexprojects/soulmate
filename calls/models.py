@@ -27,6 +27,7 @@ class AgoraCallHistory(models.Model):
     coins_added = models.PositiveIntegerField(default=0)
     last_coin_update_time = models.DateTimeField(null=True, blank=True) 
     is_active = models.BooleanField(default=True)  
+    cleared_by_user = models.BooleanField(default=False)  
 
     def __str__(self):
         return f"Call from {self.user} to {self.executive} on {self.channel_name} (Status: {self.status})"

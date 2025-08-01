@@ -720,3 +720,31 @@ class GetListenerTokenAPIView(APIView):
             "uid": admin_uid,
             "token": listener_token
         })
+
+
+from django.core.paginator import Paginator
+   
+class CallHistoryListView(APIView):
+
+    def get(self, request):
+        status_filter = request.GET.get("status")
+        page = int(request.GET.get("page", 1))
+        page_size = int(request.GET.get("page_size", 10))
+
+        queryset = AgoraCallHistory.objects.select_related("user", "executive").order_by("-start_time")
+
+        if status_filter in dict(AgoraCallHistory.STATUS_CHOICES):
+            queryset = queryset.filter(status=status_filter)
+
+        paginator = Paginator(queryset, page_size)
+        current_page = paginator.get_page(page)
+
+        serializer = CallHistorySerializer(current_page, many=True)
+
+        return Response({
+            "total_records": paginator.count,
+            "total_pages": paginator.num_pages,
+            "current_page": page,
+            "page_size": page_size,
+            "results": serializer.data
+        })

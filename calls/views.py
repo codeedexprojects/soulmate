@@ -671,6 +671,35 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         return super().retrieve(request, *args, **kwargs)
 
+# from rest_framework.decorators import action
+
+# class CallHistoryViewSet(viewsets.ModelViewSet):
+#     serializer_class = CallHistorySerializer
+#     queryset = AgoraCallHistory.objects.all()
+    
+#     def get_queryset(self):
+#         qs = AgoraCallHistory.objects.filter(cleared_by_user=False)
+#         if 'pk' in self.kwargs:
+#             user_id = self.kwargs['pk']
+#             return qs.filter(user_id=user_id).order_by('-start_time')
+#         return qs
+
+#     def retrieve(self, request, *args, **kwargs):
+#         if 'pk' in kwargs:
+#             queryset = self.filter_queryset(self.get_queryset())
+#             serializer = self.get_serializer(queryset, many=True)
+#             return Response(serializer.data)
+#         return super().retrieve(request, *args, **kwargs)
+
+#     @action(detail=True, methods=['post'], url_path='clear')
+#     def clear_history(self, request, pk=None):
+#         updated_count = AgoraCallHistory.objects.filter(user_id=pk, cleared_by_user=False).update(cleared_by_user=True)
+#         return Response(
+#             {"message": f"{updated_count} calls cleared for user {pk}"},
+#             status=status.HTTP_200_OK
+#         )
+
+
 class ExecutiveCallHistoryListView(APIView):
     def get(self, request, executive_id):
         executive = get_object_or_404(Executives, id=executive_id)

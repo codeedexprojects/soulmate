@@ -48,6 +48,7 @@ urlpatterns = [
     
     path('user/referral/<int:user_id>/', ReferralDetailsView.as_view(), name='user-referral-details'),
     path('referral-history/', ReferralHistoryListView.as_view(), name='referral-history-list'),
+    path('total-referral-coins/', TotalReferralCoinsSoldView.as_view(), name='total-referral-coins'),
 
 ]
 

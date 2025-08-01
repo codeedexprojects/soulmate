@@ -808,11 +808,18 @@ class GetPaymentDetailsView(APIView):
 class PurchaseDoneByAdminHistoryView(APIView):
     def get(self, request):
         admin_purchases = PurchaseHistories.objects.filter(is_admin=True)
-        total_spent = admin_purchases.aggregate(total_spent=Sum('coins_purchased'))['total_spent'] or 0
+        total_spent = admin_purchases.aggregate(total_spent=Sum('recharge_plan__base_price'))['total_spent'] or 0
+        total_coins_spent = admin_purchases.aggregate(total_spent=Sum('coins_purchased'))['total_spent'] or 0
+        total_referrals = ReferralHistory.objects.all().count()
+        
+        referral_coin_value = 1000
+        total_coins_sold = total_referrals * referral_coin_value
 
         serializer = PurchaseHistoriesSerializer(admin_purchases, many=True)
 
         return Response({
             'total_admin_spent': total_spent,
+            'total_coins_spent':total_coins_spent,
+            'total_coins_sold':total_coins_sold,
             'admin_purchase_histories': serializer.data
         })

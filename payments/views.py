@@ -503,10 +503,9 @@ class UserStatisticsDetailAPIView(APIView):
         total_talktime_seconds = callers.aggregate(
             total=Sum('effective_duration')
         )['total'].total_seconds() if callers.exists() and callers.aggregate(total=Sum('effective_duration'))['total'] else 0
-        total_purchases = PurchaseHistories.objects.filter(user=user, payment_status='SUCCESS').count()
+        total_purchases = (PurchaseHistories.objects.filter(user=user, payment_status='SUCCESS',is_admin=False).aggregate(total_amount=Sum('purchased_price'))['total_amount'] or 0)
 
 
-        # ✅ Annotate user data with filtered purchase count
         user_data = User.objects.filter(id=user.id).annotate(
             total_coins_spent=Sum('caller__coins_deducted'),
             # total_purchases=Count('purchasehistories', filter=Q(purchasehistories__payment_status='SUCCESS')),

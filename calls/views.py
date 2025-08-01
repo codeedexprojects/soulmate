@@ -721,94 +721,13 @@ class GetListenerTokenAPIView(APIView):
             "token": listener_token
         })
 
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, filters, status
-import django_filters
-from datetime import datetime, timedelta
+class CallHistoryListView(APIView):
+    def get(self, request):
+        status_filter = request.query_params.get("status", None)
+        calls = AgoraCallHistory.objects.all().order_by('-start_time')
 
+        if status_filter:
+            calls = calls.filter(status=status_filter)
 
-class AgoraCallHistoryFilter(django_filters.FilterSet):
-    status = django_filters.ChoiceFilter(choices=AgoraCallHistory.STATUS_CHOICES)
-    executive_joined = django_filters.BooleanFilter()
-    is_active = django_filters.BooleanFilter()
-    
-    # Date range filters
-    start_date = django_filters.DateFilter(field_name="start_time", lookup_expr='date__gte')
-    end_date = django_filters.DateFilter(field_name="start_time", lookup_expr='date__lte')
-    
-    # Duration filters (in seconds)
-    min_duration = django_filters.NumberFilter(method='filter_min_duration')
-    max_duration = django_filters.NumberFilter(method='filter_max_duration')
-    
-    # Coins filters
-    min_coins_deducted = django_filters.NumberFilter(field_name="coins_deducted", lookup_expr='gte')
-    max_coins_deducted = django_filters.NumberFilter(field_name="coins_deducted", lookup_expr='lte')
-    
-    class Meta:
-        model = AgoraCallHistory
-        fields = ['status', 'executive_joined', 'is_active']
-    
-    def filter_min_duration(self, queryset, name, value):
-        if value is not None:
-            min_duration = timedelta(seconds=value)
-            return queryset.filter(duration__gte=min_duration)
-        return queryset
-    
-    def filter_max_duration(self, queryset, name, value):
-        if value is not None:
-            max_duration = timedelta(seconds=value)
-            return queryset.filter(duration__lte=max_duration)
-        return queryset
-
-
-class CallHistoryListView(generics.ListAPIView):
-    
-    serializer_class = CallHistorySerializer
-    permission_classes = []
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class = AgoraCallHistoryFilter
-    search_fields = ['user__username', 'user__first_name', 'user__last_name', 
-                    'executive__name', 'executive__email', 'channel_name']
-    ordering_fields = ['start_time', 'end_time', 'duration', 'coins_deducted', 
-                      'coins_added', 'status']
-    ordering = ['-start_time']  
-    
-    def get_queryset(self):
-        queryset = AgoraCallHistory.objects.select_related('user', 'executive').all()
-        
-        # If you want to filter by current user's calls only, uncomment below:
-        # queryset = queryset.filter(user=self.request.user)
-        
-        return queryset
-    
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        
-        # Custom pagination
-        page_size = min(int(request.query_params.get('page_size', 20)), 100)
-        page = int(request.query_params.get('page', 1))
-        
-        # Calculate pagination
-        total_count = queryset.count()
-        start_index = (page - 1) * page_size
-        end_index = start_index + page_size
-        
-        paginated_queryset = queryset[start_index:end_index]
-        serializer = self.get_serializer(paginated_queryset, many=True)
-        
-        # Calculate pagination info
-        total_pages = (total_count + page_size - 1) // page_size
-        has_next = page < total_pages
-        has_previous = page > 1
-        
-        return Response({
-            'count': total_count,
-            'total_pages': total_pages,
-            'current_page': page,
-            'page_size': page_size,
-            'has_next': has_next,
-            'has_previous': has_previous,
-            'next_page': page + 1 if has_next else None,
-            'previous_page': page - 1 if has_previous else None,
-            'results': serializer.data
-        })
+        serializer = CallHistorySerializer(calls, many=True)
+        return Response(serializer.data)

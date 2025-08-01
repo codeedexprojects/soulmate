@@ -599,3 +599,17 @@ class ReferralHistoryListView(APIView):
         referrals = ReferralHistory.objects.all()
         serializer = ReferralDetailHistorySerializer(referrals, many=True)
         return Response(serializer.data)
+    
+class TotalReferralCoinsSoldView(APIView):
+    permission_classes = [AllowAny]  
+
+    def get(self, request):
+        total_referrals = ReferralHistory.objects.all().count()
+        
+        referral_coin_value = 1000
+        total_coins_sold = total_referrals * referral_coin_value
+
+        return Response({
+            "total_referrals": total_referrals,
+            "total_coins_sold": total_coins_sold
+        })

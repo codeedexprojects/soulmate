@@ -749,6 +749,11 @@ class GetListenerTokenAPIView(APIView):
             "uid": admin_uid,
             "token": listener_token
         })
+from rest_framework.pagination import PageNumberPagination
+class CallHistoryPagination(PageNumberPagination):
+    page_size = 10  # default items per page
+    page_size_query_param = 'page_size'  
+    max_page_size = 100
 
 class CallHistoryListView(APIView):
     def get(self, request):
@@ -759,5 +764,8 @@ class CallHistoryListView(APIView):
         if status_filter:
             calls = calls.filter(status__iexact=status_filter)
 
-        serializer = CallHistorySerializer(calls, many=True)
-        return Response(serializer.data)
+        paginator = CallHistoryPagination()
+        paginated_calls = paginator.paginate_queryset(calls, request)
+
+        serializer = CallHistorySerializer(paginated_calls, many=True)
+        return paginator.get_paginated_response(serializer.data)

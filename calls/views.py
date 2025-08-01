@@ -722,29 +722,25 @@ class GetListenerTokenAPIView(APIView):
         })
 
 
-from django.core.paginator import Paginator
+from rest_framework.pagination import PageNumberPagination
    
+class CustomPageNumberPagination(PageNumberPagination):
+    page_size = 10 
+    page_size_query_param = 'page_size'
+    max_page_size = 1000  
+
 class CallHistoryListView(APIView):
-
     def get(self, request):
-        status_filter = request.GET.get("status")
-        page = int(request.GET.get("page", 1))
-        page_size = int(request.GET.get("page_size", 10))
+        from calls.models import AgoraCallHistory
+        status_filter = request.GET.get('status')  
 
-        queryset = AgoraCallHistory.objects.select_related("user", "executive").order_by("-start_time")
+        calls = AgoraCallHistory.objects.select_related('user', 'executive').all()
 
-        if status_filter in dict(AgoraCallHistory.STATUS_CHOICES):
-            queryset = queryset.filter(status=status_filter)
+        if status_filter:
+            calls = calls.filter(status=status_filter)
 
-        paginator = Paginator(queryset, page_size)
-        current_page = paginator.get_page(page)
+        paginator = CustomPageNumberPagination()
+        paginated_calls = paginator.paginate_queryset(calls, request)
 
-        serializer = CallHistorySerializer(current_page, many=True)
-
-        return Response({
-            "total_records": paginator.count,
-            "total_pages": paginator.num_pages,
-            "current_page": page,
-            "page_size": page_size,
-            "results": serializer.data
-        })
+        serializer = CallHistorySerializer(paginated_calls, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)

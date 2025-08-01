@@ -112,16 +112,12 @@ class PlatformAnalyticsView(APIView):
         )
         revenue_week = purchases_week.aggregate(total=Sum('recharge_plan__base_price'))['total'] or 0
         revenue_month = purchases_month.aggregate(total=Sum('recharge_plan__base_price'))['total'] or 0
-        revenue_all = (
-            purchases_all
-            .filter(is_admin=False)
-            .aggregate(total=Sum('recharge_plan__base_price'))['total'] or 0
-        )
+        revenue_all = (purchases_all .filter(is_admin=False) .aggregate(total=Sum('recharge_plan__base_price'))['total'] or 0)
 
-        coins_today = purchases_today.aggregate(total=Sum('coins_purchased'))['total'] or 0
+        coins_today = (purchases_today.filter(is_admin=False).aggregate(total=Sum('coins_purchased'))['total'] or 0)
         coins_week = purchases_week.aggregate(total=Sum('coins_purchased'))['total'] or 0
         coins_month = purchases_month.aggregate(total=Sum('coins_purchased'))['total'] or 0
-        coins_all = purchases_all.aggregate(total=Sum('coins_purchased'))['total'] or 0
+        coins_all = (purchases_all.filter(is_admin=False).aggregate(total=Sum('coins_purchased'))['total'] or 0)
 
         # Call details
         all_calls = AgoraCallHistory.objects.all().order_by('-start_time')

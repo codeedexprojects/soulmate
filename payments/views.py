@@ -805,6 +805,7 @@ class GetPaymentDetailsView(APIView):
             "payment_link": latest_purchase.payment_link,
         }, status=status.HTTP_200_OK)
 
+from users.models import ReferralHistory
 class PurchaseDoneByAdminHistoryView(APIView):
     def get(self, request):
         admin_purchases = PurchaseHistories.objects.filter(is_admin=True)

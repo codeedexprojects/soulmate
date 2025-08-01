@@ -817,11 +817,13 @@ class PurchaseDoneByAdminHistoryView(APIView):
         total_coins_sold = total_referrals * referral_coin_value
 
         serializer = PurchaseHistoriesSerializer(admin_purchases, many=True)
+        total_coins_deducted = AgoraCallHistory.objects.aggregate(total=Sum('coins_deducted'))['total'] or 0
 
         return Response({
             'total_admin_spent': total_spent,
             'total_coins_spent':total_coins_spent,
             'total_coins_sold_refferel':total_coins_sold,
             'total_referrals':total_referrals,
+            'total_coins_deducted':total_coins_deducted,
             'admin_purchase_histories': serializer.data
         })

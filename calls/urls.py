@@ -30,6 +30,7 @@ urlpatterns = [
     
     path('update-fcm-token/', UpdateExecutiveFCMTokenView.as_view(), name='update-fcm-token'),
     path("calls/<int:call_id>/listener-token/", GetListenerTokenAPIView.as_view(), name="listener-token"),
+    path("call-history/", CallHistoryListView.as_view(), name="call-history"),
 
 
 

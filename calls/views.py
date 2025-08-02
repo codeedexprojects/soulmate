@@ -741,13 +741,12 @@ class GetListenerTokenAPIView(APIView):
         channel_name = call.channel_name
         
         listener_token = call.token  
-
-        admin_uid = int(time.time()) % 100000
+        us_id = call.uid
 
         return Response({
             "channel_name": channel_name,
-            "uid": admin_uid,
-            "token": listener_token
+            "token": listener_token,
+            "UID":us_id
         })
 from rest_framework.pagination import PageNumberPagination
 class CallHistoryPagination(PageNumberPagination):

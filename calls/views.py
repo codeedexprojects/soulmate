@@ -742,8 +742,8 @@ class GetListenerTokenAPIView(APIView):
         
         listener_token = call.token  
         us_id = call.uid
-        executive_id = call.executive.user_id
-        user_id = call.user.user_id
+        executive_id = call.executive.id
+        user_id = call.user.id
 
         return Response({
             "channel_name": channel_name,

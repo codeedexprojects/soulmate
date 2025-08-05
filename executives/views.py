@@ -584,21 +584,69 @@ class SetOnlineView(APIView):
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
+# class SetOfflineView(APIView):
+#     def patch(self, request, pk):
+#         try:
+#             with transaction.atomic():
+#                 Executives.objects.filter(id=pk).update(online=False)
+#                 executive = Executives.objects.get(id=pk)
+
+#             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
+#             return Response({
+#                 'message': 'Executive is now offline.',
+#                 'details': serializer.data
+#             }, status=status.HTTP_200_OK)
+
+#         except Executives.DoesNotExist:
+#             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+
 class SetOfflineView(APIView):
     def patch(self, request, pk):
         try:
             with transaction.atomic():
-                Executives.objects.filter(id=pk).update(online=False)
-                executive = Executives.objects.get(id=pk)
+                # 1. Get executive
+                executive = Executives.objects.select_for_update().get(id=pk)
+
+                # 2. Find any active or pending calls for this executive
+                active_calls = AgoraCallHistory.objects.filter(
+                    executive=executive,
+                    status__in=["pending", "joined"],  # calls to handle
+                    is_active=True
+                )
+
+                for call in active_calls:
+                    # If it's pending, mark as rejected
+                    if call.status == "pending":
+                        call.status = "rejected"
+                        call.end_time = timezone.now()
+                        call.is_active = False
+                        call.save()
+
+                    # If it's joined, mark as left
+                    elif call.status == "joined":
+                        call.end_call()
+                        call.status = "left"
+                        call.save()
+
+                    # Update user's and executive's token expiry
+                    call.user.token_expiry = timezone.now()
+                    executive.token_expiry = timezone.now()
+                    call.user.save()
+                    executive.save()
+
+                # 3. Mark executive offline and not on call
+                Executives.objects.filter(id=pk).update(online=False, on_call=False)
+                executive.refresh_from_db()
 
             serializer = ExecutivesSerializer(executive, context={'user_id': request.user.id})
             return Response({
-                'message': 'Executive is now offline.',
+                'message': 'Executive is now offline and any active calls have been closed.',
                 'details': serializer.data
             }, status=status.HTTP_200_OK)
 
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 class SetOnlineStatusView(APIView):
     permission_classes = [AllowAny]

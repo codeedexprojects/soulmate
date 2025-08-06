@@ -209,6 +209,7 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
             'bonus_coins_earned_today', 
             'progression_percentage',
             'minutes_talked_today',
+            'on_call'
         ]
 
     def get_total_online_minutes(self, obj):

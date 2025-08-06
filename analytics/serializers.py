@@ -190,7 +190,7 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
     total_talktime_minutes = serializers.SerializerMethodField()
     total_accepted_calls = serializers.SerializerMethodField()
     total_missed_calls = serializers.SerializerMethodField()
-    coins_balance = serializers.FloatField()
+    coins_balance = serializers.SerializerMethodField()
     coins_earned_today = serializers.SerializerMethodField()
     bonus_coins_earned_today = serializers.SerializerMethodField()
     progression_percentage = serializers.SerializerMethodField()
@@ -291,4 +291,13 @@ class ExecutiveStatsSerializer(serializers.ModelSerializer):
             executive=obj, start_time__gte=start_of_day
         ).aggregate(total_duration=models.Sum('duration'))['total_duration'] or timedelta()
         return int(total_duration.total_seconds() // 60)
+    
+    def get_coins_balance(self, obj):
+        total_coins = (
+            AgoraCallHistory.objects.filter(executive=obj)
+            .aggregate(total=Sum('coins_added'))['total'] or 0
+        )
+        return float(total_coins)
+
+from django.db.models import Sum
 

@@ -204,79 +204,62 @@ class ExecutiveAnalyticsView(APIView):
         today = now().date()
 
         # **Handle Period Parameter (Default: Lifetime)**
-        period = request.query_params.get("period", None)  # '1d', '7d', '1m'
+        period = request.query_params.get("period", None)  # '7d', '1m'
         if period == "7d":
             start_date = today - timedelta(days=7)
             total_days = 7
         elif period == "1m":
             start_date = today - timedelta(days=30)
             total_days = 30
-        else:  # **Default: Lifetime Data**
+        else:
             start_date = None
-            total_days = None  # No fixed range
+            total_days = None
 
         # **Filter Calls Based on Period**
         call_filter = {"executive_id": executive.id}
         if start_date:
             call_filter["start_time__date__gte"] = start_date
 
-        # **Total Calls**
+        # -------------------------------
+        # 📌 Period Stats
+        # -------------------------------
         total_calls = AgoraCallHistory.objects.filter(**call_filter).count()
-
-        # **Total Coins Earned**
         total_coins_earned = (
-            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_added"))["total"]
-            or 0
+            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_added"))["total"] or 0
         )
 
-        # **Total Talk Time (Convert timedelta to minutes)**
         total_talk_time_seconds = (
-            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("duration"))["total"]
-            or timedelta()
+            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("duration"))["total"] or timedelta()
         ).total_seconds()
-        total_talk_time = round(total_talk_time_seconds / 60)  # Convert to minutes
+        total_talk_time = round(total_talk_time_seconds / 60)
 
-        # **Last Call Details**
         last_call = (
-            AgoraCallHistory.objects.filter(**call_filter)
-            .order_by("-start_time")
-            .first()
+            AgoraCallHistory.objects.filter(**call_filter).order_by("-start_time").first()
         )
         last_call_date = (
             last_call.start_time.strftime("%a, %d %b %I:%M %p") if last_call else "No Calls Yet"
         )
 
-        # **Missed Calls**
         missed_calls = AgoraCallHistory.objects.filter(**call_filter, status="missed")
         missed_call_count = missed_calls.count()
         missed_call_details = [
             {
                 "user_id": call.user.id if call.user else None,
                 "user_name": call.user.name if call.user else "Unknown",
-                "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p")
-                if call.start_time
-                else "Unknown",
+                "missed_at": call.start_time.strftime("%a, %d %b %I:%M %p") if call.start_time else "Unknown",
             }
             for call in missed_calls
         ]
 
-        # **User Coin Spending**
         user_coin_spending = (
-            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_deducted"))["total"]
-            or 0
+            AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_deducted"))["total"] or 0
         )
 
-        # **Coin Sales (Same as earnings)**
-        coin_sales = total_coins_earned
-
-        # **Average Call Duration**
         avg_call_duration = round(total_talk_time / total_calls, 2) if total_calls else 0
 
-        # **Total Online Time (Convert timedelta to minutes)**
         total_online_seconds = executive.total_on_duty_seconds or 0
         total_online_minutes = round(total_online_seconds / 60)
 
-        # **Total Calls Per Day (for Chart)**
         calls_per_day = (
             AgoraCallHistory.objects.filter(**call_filter)
             .values("start_time__date")
@@ -284,45 +267,75 @@ class ExecutiveAnalyticsView(APIView):
             .order_by("start_time__date")
         )
 
-        # **Average Rating for Executive**
         avg_rating = (
             Rating.objects.filter(executive_id=executive.id)
             .filter(created_at__date__gte=start_date) if start_date else Rating.objects.filter(executive_id=executive.id)
         ).aggregate(avg=Avg("rating"))["avg"] or 0
 
-        # **Online Days Calculation**
         online_days = (
             AgoraCallHistory.objects.filter(**call_filter)
             .values("start_time__date")
             .distinct()
             .count()
         )
-
-        # **Offline Days Calculation**
         offline_days = (total_days - online_days) if total_days else "N/A (Lifetime Data)"
 
+        # -------------------------------
+        # 📌 Total Lifetime Stats
+        # -------------------------------
+        lifetime_filter = {"executive_id": executive.id}
+
+        lifetime_calls = AgoraCallHistory.objects.filter(**lifetime_filter).count()
+        lifetime_coins_earned = (
+            AgoraCallHistory.objects.filter(**lifetime_filter).aggregate(total=Sum("coins_added"))["total"] or 0
+        )
+        lifetime_talk_time_seconds = (
+            AgoraCallHistory.objects.filter(**lifetime_filter).aggregate(total=Sum("duration"))["total"] or timedelta()
+        ).total_seconds()
+        lifetime_talk_time = round(lifetime_talk_time_seconds / 60)
+
+        lifetime_avg_rating = (
+            Rating.objects.filter(executive_id=executive.id)
+            .aggregate(avg=Avg("rating"))["avg"] or 0
+        )
+
+        # -------------------------------
+        # 📌 Final Response
+        # -------------------------------
         return Response(
             {
                 "executive_id": executive.id,
-                "total_calls": total_calls,
-                "total_coins_earned": total_coins_earned,
-                "total_talk_time": f"{total_talk_time} Mins",
-                "last_call_date": last_call_date,
-                "earnings": total_coins_earned,
-                "user_coin_spending": user_coin_spending,
-                "coin_sales": coin_sales,
-                "missed_calls_count": missed_call_count,
-                "missed_call_details": missed_call_details,
-                "avg_call_duration": f"{avg_call_duration} Mins",
-                "total_online_time": f"{total_online_minutes} Mins",
-                "calls_per_day": list(calls_per_day),
-                "average_rating": round(avg_rating, 2),
-                "online_days": online_days,
-                "offline_days": offline_days,
                 "period": period or "lifetime",
+
+                # Period stats
+                "stats": {
+                    "total_calls": total_calls,
+                    "total_coins_earned": total_coins_earned,
+                    "total_talk_time": f"{total_talk_time} Mins",
+                    "last_call_date": last_call_date,
+                    "earnings": total_coins_earned,
+                    "user_coin_spending": user_coin_spending,
+                    "missed_calls_count": missed_call_count,
+                    "missed_call_details": missed_call_details,
+                    "avg_call_duration": f"{avg_call_duration} Mins",
+                    "total_online_time": f"{total_online_minutes} Mins",
+                    "calls_per_day": list(calls_per_day),
+                    "average_rating": round(avg_rating, 2),
+                    "online_days": online_days,
+                    "offline_days": offline_days,
+                },
+
+                # Lifetime stats
+                "total_stats": {
+                    "total_calls": lifetime_calls,
+                    "total_coins_earned": lifetime_coins_earned,
+                    "total_talk_time": f"{lifetime_talk_time} Mins",
+                    "average_rating": round(lifetime_avg_rating, 2),
+                },
             },
             status=status.HTTP_200_OK,
         )
+
     
 class LogCallView(APIView):
     def get(self, request, user_id):

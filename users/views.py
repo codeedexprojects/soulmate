@@ -136,32 +136,32 @@ class RegisterOrLoginView(APIView):
 
 
 
-class DeleteUserAccountView(APIView):
-    def delete(self, request, user_id, *args, **kwargs):
-        user = get_object_or_404(User, id=user_id)
-        
-        DeletedUser.objects.get_or_create(mobile_number=user.mobile_number)
-        
-        user.delete()
-        
-        return Response(
-            {"message": f"User with ID {user_id} has been deleted successfully."},
-            status=status.HTTP_200_OK
-        )
-
 # class DeleteUserAccountView(APIView):
 #     def delete(self, request, user_id, *args, **kwargs):
 #         user = get_object_or_404(User, id=user_id)
-
+        
 #         DeletedUser.objects.get_or_create(mobile_number=user.mobile_number)
-
-#         user.is_deleted = True
-#         user.save(update_fields=["is_deleted"])
-
+        
+#         user.delete()
+        
 #         return Response(
 #             {"message": f"User with ID {user_id} has been deleted successfully."},
 #             status=status.HTTP_200_OK
 #         )
+
+class DeleteUserAccountView(APIView):
+    def delete(self, request, user_id, *args, **kwargs):
+        user = get_object_or_404(User, id=user_id)
+
+        DeletedUser.objects.get_or_create(mobile_number=user.mobile_number)
+
+        user.is_deleted = True
+        user.save(update_fields=["is_deleted"])
+
+        return Response(
+            {"message": f"User with ID {user_id} has been deleted successfully."},
+            status=status.HTTP_200_OK
+        )
 
 
 class VerifyOTPView(APIView):

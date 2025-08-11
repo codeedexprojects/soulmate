@@ -156,7 +156,9 @@ class DeleteUserAccountView(APIView):
         DeletedUser.objects.get_or_create(mobile_number=user.mobile_number)
 
         user.is_deleted = True
-        user.save(update_fields=["is_deleted"])
+        user.coin_balance = 0
+        user.save(update_fields=["is_deleted", "coin_balance"])
+
 
         return Response(
             {"message": f"User with ID {user_id} has been deleted successfully."},

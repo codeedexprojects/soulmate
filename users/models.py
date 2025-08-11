@@ -58,6 +58,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_banned = models.BooleanField(default=False)
     is_suspended = models.BooleanField(default=False)
     is_dormant = models.BooleanField(default=False)
+    is_deleted = models.BooleanField(default=False)
     is_online = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

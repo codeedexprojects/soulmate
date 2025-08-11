@@ -137,7 +137,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'coin_balance', 'name', 'gender']
+        fields = ['id', 'coin_balance', 'name', 'gender','is_deleted']
 
 class CarouselImageSerializer(serializers.ModelSerializer):
     full_image_url = serializers.SerializerMethodField()

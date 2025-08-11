@@ -9,7 +9,7 @@ from django.conf import settings
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'name', 'mobile_number', 'otp', 'gender', 'coin_balance', 'user_id', 'last_login']
+        fields = ['id', 'name', 'mobile_number', 'otp', 'gender', 'coin_balance', 'user_id', 'last_login','is_deleted']
         read_only_fields = ['user_id', 'last_login', 'otp']
 
     def create(self, validated_data):
@@ -137,7 +137,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'coin_balance', 'name', 'gender','is_deleted']
+        fields = ['id', 'coin_balance', 'name', 'gender']
 
 class CarouselImageSerializer(serializers.ModelSerializer):
     full_image_url = serializers.SerializerMethodField()

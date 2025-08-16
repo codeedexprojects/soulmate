@@ -274,3 +274,17 @@ class ExecutiveOnCallSerializer(serializers.ModelSerializer):
     class Meta:
         model = Executives
         fields = ['on_call']
+
+from datetime import timedelta
+class AgoraCallHistoryDurationUpdateSerializer(serializers.ModelSerializer):
+    duration_seconds = serializers.FloatField(write_only=True)
+
+    class Meta:
+        model = AgoraCallHistory
+        fields = ["id", "duration_seconds", "duration"]
+
+    def update(self, instance, validated_data):
+        seconds = validated_data.get("duration_seconds")
+        instance.duration = timedelta(seconds=seconds)  
+        instance.save()
+        return instance

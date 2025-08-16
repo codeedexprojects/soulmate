@@ -768,3 +768,19 @@ class CallHistoryListView(APIView):
 
         serializer = CallHistorySerializer(paginated_calls, many=True)
         return paginator.get_paginated_response(serializer.data)
+    
+class UpdateCallDurationAPIView(APIView):
+    permission_classes = []  
+
+    def patch(self, request, pk):
+        try:
+            call = AgoraCallHistory.objects.get(pk=pk)
+        except AgoraCallHistory.DoesNotExist:
+            return Response({"error": "Call not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AgoraCallHistoryDurationUpdateSerializer(call, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

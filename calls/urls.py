@@ -32,6 +32,7 @@ urlpatterns = [
     path("calls/<int:call_id>/listener-token/", GetListenerTokenAPIView.as_view(), name="listener-token"),
     path("view-call-history/", CallHistoryListView.as_view(), name="call-history"),
 
+    path("calls/<int:pk>/update-duration/", UpdateCallDurationAPIView.as_view(), name="update-call-duration"),
 
 
 ]

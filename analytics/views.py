@@ -228,8 +228,6 @@ class ExecutiveAnalyticsView(APIView):
             AgoraCallHistory.objects.filter(**call_filter).aggregate(total=Sum("coins_added"))["total"]
             or 0
         )
-        total_coins_earnedd = Executives.coins_balance()
-
 
         # **Total Talk Time (Convert timedelta to minutes)**
         total_talk_time_seconds = (
@@ -321,7 +319,6 @@ class ExecutiveAnalyticsView(APIView):
                 "average_rating": round(avg_rating, 2),
                 "online_days": online_days,
                 "offline_days": offline_days,
-                "total_coins_earnedd":total_coins_earnedd,
                 "period": period or "lifetime",
             },
             status=status.HTTP_200_OK,

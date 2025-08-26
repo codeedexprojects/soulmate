@@ -268,6 +268,13 @@ class CreateChannelView(APIView):
                 call.save()
                 Executives.objects.filter(id=executive_id).update(on_call=False)
 
+                if executive.fcm_token:
+                    send_fcm_notification(
+                        executive.fcm_token,
+                        title="Missed Call",
+                        body=f"You missed a call from {user.user_id or 'A user'}"
+                    )
+
         threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
 
         # Prepare response
@@ -278,7 +285,7 @@ class CreateChannelView(APIView):
             "channel_name": channel_name,
             "caller_name": user.name,
             "receiver_name": executive.name,
-            "user_id": user.user_id,
+            "user_id": user.user_id,~
             "executive_id": executive.executive_id,
             "executive": executive.id,
             "agora_uid": user.id,

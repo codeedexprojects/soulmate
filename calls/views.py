@@ -285,7 +285,7 @@ class CreateChannelView(APIView):
             "channel_name": channel_name,
             "caller_name": user.name,
             "receiver_name": executive.name,
-            "user_id": user.user_id,~
+            "user_id": user.user_id,
             "executive_id": executive.executive_id,
             "executive": executive.id,
             "agora_uid": user.id,

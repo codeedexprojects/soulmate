@@ -268,12 +268,12 @@ class CreateChannelView(APIView):
                 call.save()
                 Executives.objects.filter(id=executive_id).update(on_call=False)
 
-                if executive.fcm_token:
-                    send_fcm_notification(
-                        executive.fcm_token,
-                        title="Missed Call",
-                        body=f"You missed a call from {user.user_id or 'A user'}"
-                    )
+                # if executive.fcm_token:
+                #     send_fcm_notification(
+                #         executive.fcm_token,
+                #         title="Missed Call",
+                #         body=f"You missed a call from {user.user_id or 'A user'}"
+                #     )
 
         threading.Thread(target=clear_on_call_if_not_joined, args=(call_history.id, executive.id)).start()
 

@@ -4,8 +4,10 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from .models import AgoraCallHistory, CallRating, CarouselImage
-from .serializers import CarouselImageSerializer, CallRatingSerializer
+from .models import AgoraCallHistory, CallRating
+from users.models import CarouselImage
+from users.serializers import CarouselImageSerializer
+from .serializers import CallRatingSerializer
 from users.models import User
 from executives.models import Executives
 

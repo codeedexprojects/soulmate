@@ -40,13 +40,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
+    'channels',
     'users',
     'calls',
     'notifications',
     'payments',
     'rest_framework',
     'executives',
-    'channels',
     'corsheaders',
     'analytics',
 
@@ -114,7 +114,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'soulmate.wsgi.application'
+# WSGI_APPLICATION = 'soulmate.wsgi.application'
+ASGI_APPLICATION = "soulmate.asgi.application"
 
 CORS_ALLOW_ALL_ORIGINS = True  
 CORS_ALLOWED_ORIGINS = [
@@ -131,19 +132,34 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'voicydatabase',
+#         'USER': 'soulmate',
+#         'PASSWORD': 'admin123',  
+#         'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+#         },
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'voicydatabase',
-        'USER': 'soulmate',
-        'PASSWORD': 'admin123',  
-        'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
+
+
 
 CACHES = {
     'default': {

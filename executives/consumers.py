@@ -21,18 +21,20 @@ class UsersConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data):
-        """Forward user call events to all executives"""
+        """Forward user events (call/status) to executives"""
         try:
             data = json.loads(text_data)
-            if "call" in data and "executive_id" in data and "user_id" in data:
-                # Broadcast to all executives
+
+            if "executive_id" in data and "user_id" in data:
+                # Broadcast to executives
                 await self.channel_layer.group_send(
                     "executives_online",
                     {
-                        "type": "user_call",
+                        "type": "user_event",
                         "executive_id": str(data["executive_id"]),
                         "user_id": str(data["user_id"]),
-                        "call": data["call"]
+                        "call": data.get("call", False),
+                        "status": data.get("status")  # send status too
                     }
                 )
         except json.JSONDecodeError:
@@ -42,6 +44,10 @@ class UsersConsumer(AsyncWebsocketConsumer):
     async def executive_status(self, event):
         await self.send(text_data=json.dumps(event))
 
+    # Handle executive -> user event messages
+    async def executive_event(self, event):
+        await self.send(text_data=json.dumps(event))
+
 
 class ExecutivesConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -49,11 +55,11 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
         self.users_group_name = "users_online"
         self.executives_group_name = "executives_online"
 
-        # Join executives group to receive user call messages
+        # Join executives group
         await self.channel_layer.group_add(self.executives_group_name, self.channel_name)
         await self.accept()
 
-        # Mark this executive as online
+        # Mark executive as online
         EXECUTIVE_STATUS[self.executive_id] = "online"
 
         # Broadcast to all users
@@ -81,9 +87,23 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.executives_group_name, self.channel_name)
 
     async def receive(self, text_data):
-        """Handle manual connect/disconnect messages from executive"""
+        """Executives send events (call/status) to users"""
         try:
             data = json.loads(text_data)
+
+            if "user_id" in data:
+                await self.channel_layer.group_send(
+                    self.users_group_name,
+                    {
+                        "type": "executive_event",
+                        "executive_id": self.executive_id,
+                        "user_id": str(data["user_id"]),
+                        "call": data.get("call", False),
+                        "status": data.get("status")
+                    }
+                )
+
+            # Handle manual connect/disconnect from exec
             if data.get("connect"):
                 EXECUTIVE_STATUS[self.executive_id] = "online"
                 await self.channel_layer.group_send(
@@ -104,9 +124,10 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
                         "status": "offline"
                     }
                 )
+
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({"error": "Invalid JSON"}))
 
-    # Receive call events from users
-    async def user_call(self, event):
+    # Handle user -> executive events
+    async def user_event(self, event):
         await self.send(text_data=json.dumps(event))

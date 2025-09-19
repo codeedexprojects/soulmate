@@ -1,112 +1,112 @@
-# executives/consumers.py
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
-from django.db.models import Avg
-from django.core.exceptions import ObjectDoesNotExist
-from .models import Executives
-from users.models import UserBlock
-from .serializers import ExecutivesSerializer
+
+# Track executive statuses globally
+EXECUTIVE_STATUS = {}  # { executive_id: "online"/"offline" }
 
 
-class ExecutivesListConsumer(AsyncWebsocketConsumer):
+class UsersConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.user_id = self.scope['url_route']['kwargs']['user_id']
-        self.group_name = f'executives_list_{self.user_id}'
-        
-        # Join the group
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
-        
+        self.group_name = "users_online"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
-        
-        # Send initial data when connected
-        await self.send_executives_list()
+
+        # Send current executive statuses
+        await self.send(text_data=json.dumps({
+            "type": "executive_status_list",
+            "data": EXECUTIVE_STATUS
+        }))
 
     async def disconnect(self, close_code):
-        # Leave the group
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
     async def receive(self, text_data):
+        """Forward user call events to all executives"""
         try:
             data = json.loads(text_data)
-            action = data.get('action')
-            
-            if action == 'get_executives':
-                await self.send_executives_list()
-            elif action == 'refresh':
-                await self.send_executives_list()
-            else:
-                await self.send(text_data=json.dumps({
-                    'error': 'Invalid action. Use "get_executives" or "refresh"'
-                }))
+            if "call" in data and "executive_id" in data and "user_id" in data:
+                # Broadcast to all executives
+                await self.channel_layer.group_send(
+                    "executives_online",
+                    {
+                        "type": "user_call",
+                        "executive_id": str(data["executive_id"]),
+                        "user_id": str(data["user_id"]),
+                        "call": data["call"]
+                    }
+                )
         except json.JSONDecodeError:
-            await self.send(text_data=json.dumps({
-                'error': 'Invalid JSON format'
-            }))
+            await self.send(text_data=json.dumps({"error": "Invalid JSON"}))
 
-    @database_sync_to_async
-    def get_executives_data(self):
+    # Handle executive status updates
+    async def executive_status(self, event):
+        await self.send(text_data=json.dumps(event))
+
+
+class ExecutivesConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.executive_id = str(self.scope['url_route']['kwargs']['id'])
+        self.users_group_name = "users_online"
+        self.executives_group_name = "executives_online"
+
+        # Join executives group to receive user call messages
+        await self.channel_layer.group_add(self.executives_group_name, self.channel_name)
+        await self.accept()
+
+        # Mark this executive as online
+        EXECUTIVE_STATUS[self.executive_id] = "online"
+
+        # Broadcast to all users
+        await self.channel_layer.group_send(
+            self.users_group_name,
+            {
+                "type": "executive_status",
+                "executive_id": self.executive_id,
+                "status": "online"
+            }
+        )
+
+    async def disconnect(self, close_code):
+        EXECUTIVE_STATUS[self.executive_id] = "offline"
+
+        await self.channel_layer.group_send(
+            self.users_group_name,
+            {
+                "type": "executive_status",
+                "executive_id": self.executive_id,
+                "status": "offline"
+            }
+        )
+
+        await self.channel_layer.group_discard(self.executives_group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        """Handle manual connect/disconnect messages from executive"""
         try:
-            # Get blocked executives for this user
-            blocked_executives = UserBlock.objects.filter(
-                user_id=self.user_id, 
-                is_blocked=True
-            ).values_list('executive_id', flat=True)
+            data = json.loads(text_data)
+            if data.get("connect"):
+                EXECUTIVE_STATUS[self.executive_id] = "online"
+                await self.channel_layer.group_send(
+                    self.users_group_name,
+                    {
+                        "type": "executive_status",
+                        "executive_id": self.executive_id,
+                        "status": "online"
+                    }
+                )
+            elif data.get("disconnect"):
+                EXECUTIVE_STATUS[self.executive_id] = "offline"
+                await self.channel_layer.group_send(
+                    self.users_group_name,
+                    {
+                        "type": "executive_status",
+                        "executive_id": self.executive_id,
+                        "status": "offline"
+                    }
+                )
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({"error": "Invalid JSON"}))
 
-            # Get executives queryset (same logic as your view)
-            queryset = Executives.objects.filter(
-                is_suspended=False,
-                is_banned=False
-            ).exclude(
-                id__in=blocked_executives 
-            ).annotate(
-                average_rating=Avg('call_ratings__stars')  
-            ).order_by(
-                '-online', 
-                '-average_rating'
-            )
-
-            # Serialize the data
-            serializer = ExecutivesSerializer(
-                queryset, 
-                many=True,
-                context={
-                    'user_id': self.user_id,
-                    'request': None  # WebSocket doesn't have request object
-                }
-            )
-            
-            return serializer.data
-            
-        except Exception as e:
-            return {'error': str(e)}
-
-    async def send_executives_list(self):
-        executives_data = await self.get_executives_data()
-        
-        if isinstance(executives_data, dict) and 'error' in executives_data:
-            await self.send(text_data=json.dumps({
-                'type': 'error',
-                'message': executives_data['error']
-            }))
-        else:
-            await self.send(text_data=json.dumps({
-                'type': 'executives_list',
-                'data': executives_data,
-                'user_id': self.user_id
-            }))
-
-    # Handle group messages (for real-time updates)
-    async def executives_update(self, event):
-        """Handle executives update from group"""
-        await self.send_executives_list()
-
-    async def executive_status_change(self, event):
-        """Handle individual executive status changes"""
-        await self.send_executives_list()
+    # Receive call events from users
+    async def user_call(self, event):
+        await self.send(text_data=json.dumps(event))

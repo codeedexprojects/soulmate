@@ -1,6 +1,7 @@
-from django.urls import path
-from .consumers import ExecutivesListConsumer
+from django.urls import re_path
+from .consumers import UsersConsumer, ExecutivesConsumer
 
 websocket_urlpatterns = [
-    path('ws/executives/<int:user_id>/', ExecutivesListConsumer.as_asgi()),
+    re_path(r'ws/users/$', UsersConsumer.as_asgi()),
+    re_path(r'ws/executives/(?P<id>\d+)/$', ExecutivesConsumer.as_asgi()),
 ]

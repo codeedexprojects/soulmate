@@ -362,6 +362,19 @@ class PurchaseHistoryListView(generics.ListAPIView):
     def get_queryset(self):
         return PurchaseHistories.objects.all().order_by('-purchase_date')
 
+# from rest_framework.pagination import PageNumberPagination
+# class PurchaseHistoryPagination(PageNumberPagination):
+#     page_size = 10 
+#     page_size_query_param = 'page_size'  
+#     max_page_size = 1000 
+
+# class PurchaseHistoryListView(generics.ListAPIView):
+#     serializer_class = PurchaseHistoriesSerializer
+#     pagination_class = PurchaseHistoryPagination 
+
+#     def get_queryset(self):
+#         return PurchaseHistories.objects.all().order_by('-purchase_date')
+
 class UserPurchaseHistoriesView(APIView):
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)

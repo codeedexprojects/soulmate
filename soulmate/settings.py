@@ -40,13 +40,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt',
+    'channels',
     'users',
     'calls',
     'notifications',
     'payments',
     'rest_framework',
     'executives',
-    'channels',
     'corsheaders',
     'analytics',
 
@@ -114,7 +114,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'soulmate.wsgi.application'
+# WSGI_APPLICATION = 'soulmate.wsgi.application'
+ASGI_APPLICATION = "soulmate.asgi.application"
 
 CORS_ALLOW_ALL_ORIGINS = True  
 CORS_ALLOWED_ORIGINS = [
@@ -134,10 +135,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'voicydatabase',
-        'USER': 'soulmate',
+        # 'NAME': 'voicydatabase',
+        # 'USER': 'soulmate',
+        # 'PASSWORD': 'admin123',  
+        # 'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
+        'NAME': 'talkeasy_db',
+        'USER': 'admin',
         'PASSWORD': 'admin123',  
-        'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
+        'HOST': 'test-talkeasy-mysql-cluster.cluster-crk0828so75f.ap-south-1.rds.amazonaws.com',
         'PORT': '3306',
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
@@ -145,6 +150,18 @@ DATABASES = {
     }
 }
 
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_rabbitmq.core.RabbitmqChannelLayer",
+        "CONFIG": {
+            "host": "amqp://guest:guest@localhost:5672/",
+        },
+    }
+}
+
+
+#t
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',

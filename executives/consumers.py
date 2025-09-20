@@ -95,6 +95,7 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
         try:
             data = json.loads(text_data)
 
+            # Executive sending event to a user
             if "user_id" in data:
                 await self.channel_layer.group_send(
                     self.users_group_name,
@@ -118,6 +119,7 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
                         "status": "online"
                     }
                 )
+
             elif data.get("disconnect"):
                 EXECUTIVE_STATUS[self.executive_id] = "offline"
                 await self.channel_layer.group_send(
@@ -129,8 +131,32 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
+            #  Handle On Call status
+            if "oncall" in data:
+                if data["oncall"] is True:
+                    EXECUTIVE_STATUS[self.executive_id] = "oncall"
+                    await self.channel_layer.group_send(
+                        self.users_group_name,
+                        {
+                            "type": "executive_status",
+                            "executive_id": self.executive_id,
+                            "status": "oncall"
+                        }
+                    )
+                elif data["oncall"] is False:
+                    EXECUTIVE_STATUS[self.executive_id] = "online"
+                    await self.channel_layer.group_send(
+                        self.users_group_name,
+                        {
+                            "type": "executive_status",
+                            "executive_id": self.executive_id,
+                            "status": "online"
+                        }
+                    )
+
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({"error": "Invalid JSON"}))
+
 
     # Handle user -> executive events
     async def user_event(self, event):

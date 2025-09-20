@@ -14,8 +14,12 @@ class UsersConsumer(AsyncWebsocketConsumer):
         # Send current executive statuses
         await self.send(text_data=json.dumps({
             "type": "executive_status_list",
-            "data": EXECUTIVE_STATUS
+            "data": [
+                {"executive_id": exec_id, "status": status}
+                for exec_id, status in EXECUTIVE_STATUS.items()
+            ]
         }))
+
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)

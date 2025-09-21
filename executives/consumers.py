@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
 # Track executive statuses globally
-EXECUTIVE_STATUS = {}  # { executive_id: "online"/"offline"/"oncall" }
+EXECUTIVE_STATUS = {}  # { executive_id: "online"/"offline" }
 
 
 class UsersConsumer(AsyncWebsocketConsumer):
@@ -11,6 +11,7 @@ class UsersConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
+        # Send current executive statuses
         await self.send(text_data=json.dumps({
             "type": "executive_status_list",
             "data": [
@@ -18,6 +19,7 @@ class UsersConsumer(AsyncWebsocketConsumer):
                 for exec_id, status in EXECUTIVE_STATUS.items()
             ]
         }))
+
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -36,18 +38,15 @@ class UsersConsumer(AsyncWebsocketConsumer):
                         "executive_id": str(data["executive_id"]),
                         "user_id": str(data["user_id"]),
                         "call": data.get("call", False),
-                        "status": data.get("status")  
+                        "status": data.get("status")  # send status too
                     }
                 )
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({"error": "Invalid JSON"}))
 
-    # Handle user receiving full executive status list
-    async def executive_status_list_event(self, event):
-        await self.send(text_data=json.dumps({
-            "type": "executive_status_list",
-            "data": event["data"]
-        }))
+    # Handle executive status updates
+    async def executive_status(self, event):
+        await self.send(text_data=json.dumps(event))
 
     # Handle executive -> user event messages
     async def executive_event(self, event):
@@ -67,14 +66,27 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
         # Mark executive as online
         EXECUTIVE_STATUS[self.executive_id] = "online"
 
-        # Broadcast updated full list
-        await self.broadcast_status_list()
+        # Broadcast to all users
+        await self.channel_layer.group_send(
+            self.users_group_name,
+            {
+                "type": "executive_status",
+                "executive_id": self.executive_id,
+                "status": "online"
+            }
+        )
 
     async def disconnect(self, close_code):
         EXECUTIVE_STATUS[self.executive_id] = "offline"
 
-        # Broadcast updated full list
-        await self.broadcast_status_list()
+        await self.channel_layer.group_send(
+            self.users_group_name,
+            {
+                "type": "executive_status",
+                "executive_id": self.executive_id,
+                "status": "offline"
+            }
+        )
 
         await self.channel_layer.group_discard(self.executives_group_name, self.channel_name)
 
@@ -83,6 +95,7 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
         try:
             data = json.loads(text_data)
 
+            # Executive sending event to a user
             if "user_id" in data:
                 await self.channel_layer.group_send(
                     self.users_group_name,
@@ -95,34 +108,56 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
                     }
                 )
 
+            # Handle manual connect/disconnect from exec
             if data.get("connect"):
                 EXECUTIVE_STATUS[self.executive_id] = "online"
+                await self.channel_layer.group_send(
+                    self.users_group_name,
+                    {
+                        "type": "executive_status",
+                        "executive_id": self.executive_id,
+                        "status": "online"
+                    }
+                )
 
             elif data.get("disconnect"):
                 EXECUTIVE_STATUS[self.executive_id] = "offline"
+                await self.channel_layer.group_send(
+                    self.users_group_name,
+                    {
+                        "type": "executive_status",
+                        "executive_id": self.executive_id,
+                        "status": "offline"
+                    }
+                )
 
+            #  Handle On Call status
             if "oncall" in data:
                 if data["oncall"] is True:
                     EXECUTIVE_STATUS[self.executive_id] = "oncall"
+                    await self.channel_layer.group_send(
+                        self.users_group_name,
+                        {
+                            "type": "executive_status",
+                            "executive_id": self.executive_id,
+                            "status": "oncall"
+                        }
+                    )
                 elif data["oncall"] is False:
                     EXECUTIVE_STATUS[self.executive_id] = "online"
-
-            await self.broadcast_status_list()
+                    await self.channel_layer.group_send(
+                        self.users_group_name,
+                        {
+                            "type": "executive_status",
+                            "executive_id": self.executive_id,
+                            "status": "online"
+                        }
+                    )
 
         except json.JSONDecodeError:
             await self.send(text_data=json.dumps({"error": "Invalid JSON"}))
 
+
+    # Handle user -> executive events
     async def user_event(self, event):
         await self.send(text_data=json.dumps(event))
-
-    async def broadcast_status_list(self):
-        await self.channel_layer.group_send(
-            self.users_group_name,
-            {
-                "type": "executive_status_list_event",
-                "data": [
-                    {"executive_id": exec_id, "status": status}
-                    for exec_id, status in EXECUTIVE_STATUS.items()
-                ]
-            }
-        )

@@ -36,7 +36,10 @@ class UsersConsumer(AsyncWebsocketConsumer):
                         "executive_id": str(data["executive_id"]),
                         "user_id": str(data["user_id"]),
                         "call": data.get("call", False),
-                        "status": data.get("status")  
+                        "status": data.get("status"),
+                        "call_id": str(data.get("call_id", "")) 
+
+                      
                     }
                 )
         except json.JSONDecodeError:

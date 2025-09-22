@@ -59,7 +59,7 @@ class UsersConsumer(AsyncWebsocketConsumer):
 
 class ExecutivesConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.executive_id = str(self.scope['url_route']['kwargs']['id'])
+        self.executive_id = self.scope['url_route']['kwargs']['id']
         self.users_group_name = "users_online"
         self.executives_group_name = "executives_online"
 

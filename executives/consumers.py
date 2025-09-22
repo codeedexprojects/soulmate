@@ -33,11 +33,11 @@ class UsersConsumer(AsyncWebsocketConsumer):
                     "executives_online",
                     {
                         "type": "user_event",
-                        "executive_id": str(data["executive_id"]),
-                        "user_id": str(data["user_id"]),
+                        "executive_id": data["executive_id"],
+                        "user_id": data["user_id"],
                         "call": data.get("call", False),
                         "status": data.get("status"),
-                        "call_id": str(data.get("call_id", "")) 
+                        "call_id": data.get("call_id", 0) 
 
                       
                     }
@@ -92,7 +92,7 @@ class ExecutivesConsumer(AsyncWebsocketConsumer):
                     {
                         "type": "executive_event",
                         "executive_id": self.executive_id,
-                        "user_id": str(data["user_id"]),
+                        "user_id": data["user_id"],
                         "call": data.get("call", False),
                         "status": data.get("status")
                     }

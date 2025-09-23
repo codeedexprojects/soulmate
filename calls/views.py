@@ -339,6 +339,7 @@ class GetRecentChannelView(APIView):
                 "channel_name": recent_call.channel_name,
                 "call_id": recent_call.id,
                 "user_id": recent_call.user.user_id,
+                "user_UId": recent_call.user.id,
                 "gender": recent_call.user.gender,
                 "executive_token": recent_call.executive_token,
                 "call_status": recent_call.status,  

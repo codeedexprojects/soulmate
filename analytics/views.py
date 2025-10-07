@@ -785,6 +785,12 @@ class ExecutiveStatisticsAPIView(APIView):
 
         total_coins_balance = executive.coins_balance
 
+        # Calculate amount earned based on coins
+        # Logic: 450000 coins = 5000 Rs
+        # So, 1 coin = 5000/450000 Rs = 0.0111... Rs
+        coins_to_rupees_ratio = 5000 / 450000  # approximately 0.0111
+        amount_earned = round(total_coins_balance * coins_to_rupees_ratio, 2)
+
         today = timezone.now().date()
         last_30_days = [today - timezone.timedelta(days=i) for i in range(30)]
 
@@ -803,10 +809,10 @@ class ExecutiveStatisticsAPIView(APIView):
 
         response_data = {
             'total_coins_balance': total_coins_balance,
+            'amount_earned': amount_earned,
             'total_days_offline': offline_days,
             'total_rating': total_rating,
         }
-
         return Response(response_data, status=status.HTTP_200_OK)
 
 

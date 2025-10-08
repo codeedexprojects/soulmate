@@ -899,20 +899,21 @@ class ExecutiveStatsView(viewsets.ViewSet):
         except Executives.DoesNotExist:
             return Response({'message': 'Executive not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get filtering parameters
         period = request.query_params.get('period', None)  # 'today', 'week', 'month'
 
-        # Default: Return full stats
+        coins_to_rupees_ratio = 5000 / 450000
+        amount_earned = round(executive.coins_balance * coins_to_rupees_ratio, 2)
+
         if not period:
             serializer = self.serializer_class(executive)
             response_data = serializer.data
             response_data.update({
+                'amount_earned': amount_earned,
                 'status': 'success',
                 'message': 'Full executive stats retrieved successfully'
             })
             return Response(response_data, status=status.HTTP_200_OK)
 
-        # Define date ranges based on period
         today = timezone.now().date()
         if period == 'today':
             start_date = today
@@ -923,21 +924,18 @@ class ExecutiveStatsView(viewsets.ViewSet):
         else:
             return Response({'message': 'Invalid period. Use "today", "week", or "month".'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Filter call history for the given period
         filtered_calls = AgoraCallHistory.objects.filter(executive=executive, start_time__date__gte=start_date)
 
-        # ✅ Calculate total duration safely
         total_calls = filtered_calls.count()
         total_duration = sum(call.duration.total_seconds() if call.duration else 0 for call in filtered_calls)
 
-        # ✅ Serialize full executive details
         serializer = self.serializer_class(executive)
-        response_data = serializer.data  # Get full executive details from serializer
+        response_data = serializer.data  
 
-        # ✅ Add calculated stats
         response_data.update({
             'total_calls': total_calls,
-            'total_duration': total_duration,  # Duration in seconds
+            'total_duration': total_duration,  
+            'amount_earned': amount_earned,
             'status': 'success',
             'message': f'Executive stats retrieved for {period}'
         })

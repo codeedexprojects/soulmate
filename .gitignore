@@ -1,1 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*.sqlite3
+venv/
+env/
+ENV/
+*.egg-info/
+pip-wheel-metadata/
+
+# Django
+*.log
+local_settings.py
+media/
+staticfiles/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.swp
+
+# environment files (don't commit .env with secrets)
 .env
+
+# DB (if they use it via decouple)
+# DATABASE_URL=sqlite:///db.sqlite3

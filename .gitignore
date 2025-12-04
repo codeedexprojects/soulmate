@@ -27,3 +27,4 @@ staticfiles/
 
 # DB (if they use it via decouple)
 # DATABASE_URL=sqlite:///db.sqlite3
+Voicy_admin/

@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-x5&idpfvbu^9dt7$_a*nm9q*3ns7052gt0z+#rgpvm170wcp#n'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -66,7 +66,7 @@ MIDDLEWARE = [
 
 ]
 
-#AUTH_USER_MODEL = 'analytics.Admins'
+# AUTH_USER_MODEL = 'analytics.Admins'
 AUTH_USER_MODEL = 'users.User'
 
 
@@ -134,19 +134,33 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'voicydatabase',
+#         'USER': 'soulmate',
+#         'PASSWORD': 'admin123',  
+#         'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+#         },
+#     }
+# }
+
+
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'voicydatabase',
-        'USER': 'soulmate',
-        'PASSWORD': 'admin123',  
-        'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
+
+
 
 CHANNEL_LAYERS = {
     "default": {

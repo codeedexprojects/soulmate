@@ -35,8 +35,10 @@ class CreateRechargePlanView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class ListRechargePlansView(generics.ListAPIView):
-    queryset = RechargePlan.objects.all()
+    queryset = RechargePlan.objects.filter(is_active=True)
     serializer_class = RechargePlanSerializer
+
+
 
 class RechargePlanDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = RechargePlan.objects.all()
@@ -50,7 +52,23 @@ class RechargePlanDetailView(generics.RetrieveUpdateDestroyAPIView):
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
+        """
+        Soft delete: Set is_active to False instead of deleting the object.
+        This preserves purchase history and payment records.
+        """
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        
+        return Response(
+            {
+                "message": "Package deactivated successfully",
+                "id": instance.id,
+                "is_active": instance.is_active,
+                "plan_name": instance.plan_name
+            },
+            status=status.HTTP_200_OK
+        )
 
 class RechargeCoinsView(APIView):
 

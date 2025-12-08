@@ -66,8 +66,8 @@ MIDDLEWARE = [
 
 ]
 
-AUTH_USER_MODEL = 'analytics.Admins'
-# AUTH_USER_MODEL = 'users.User'
+# AUTH_USER_MODEL = 'analytics.Admins'
+AUTH_USER_MODEL = 'users.User'
 
 
 AUTHENTICATION_BACKENDS = [

@@ -149,8 +149,7 @@ class CarouselImageSerializer(serializers.ModelSerializer):
     def get_full_image_url(self, obj):
         request = self.context.get('request')
         if obj.image:
-            url = request.build_absolute_uri(obj.image.url)
-            return url.replace("http://", "https://", 1)
+            return request.build_absolute_uri(obj.image.url)
         return None
 
 

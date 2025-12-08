@@ -364,7 +364,7 @@ class CarouselImageDetailView(APIView):
     def get(self, request, image_id):
         try:
             image = CarouselImage.objects.get(id=image_id)
-            serializer = CarouselImageSerializer(image)
+            serializer = CarouselImageSerializer(image, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         except CarouselImage.DoesNotExist:
             return Response({'message': 'Image not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -372,7 +372,7 @@ class CarouselImageDetailView(APIView):
     def put(self, request, image_id):
         try:
             image = CarouselImage.objects.get(id=image_id)
-            serializer = CarouselImageSerializer(image, data=request.data)
+            serializer = CarouselImageSerializer(image, data=request.data, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)

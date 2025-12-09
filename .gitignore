@@ -24,10 +24,3 @@ staticfiles/
 
 # environment files (don't commit .env with secrets)
 .env
-
-# DB (if they use it via decouple)
-# DATABASE_URL=sqlite:///db.sqlite3
-<<<<<<< HEAD
-Voicy_admin/
-=======
->>>>>>> 9ee9ae858a20342ceb5003987a30bce2ca8079e7

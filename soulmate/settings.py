@@ -22,10 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x5&idpfvbu^9dt7$_a*nm9q*3ns7052gt0z+#rgpvm170wcp#n'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = ['*']
 
@@ -137,11 +137,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'voicydatabase',
-        'USER': 'soulmate',
-        'PASSWORD': 'admin123',  
-        'HOST': 'voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com',
-        'PORT': '3306',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),  
+        'HOST': config('DB_HOST', default='voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com'),
+        'PORT': config('DB_PORT', default='3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
         },
@@ -166,7 +166,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_rabbitmq.core.RabbitmqChannelLayer",
         "CONFIG": {
-            "host": "amqp://guest:guest@localhost:5672/",
+            "host": config('RABBITMQ_HOST', default='amqp://guest:guest@localhost:5672/'),
         },
     }
 }
@@ -179,9 +179,9 @@ CACHES = {
 }
 
 
-TWO_FACTOR_API_KEY = '15b274f8-8600-11ef-8b17-0200cd936042'
-AGORA_APP_ID = '9626e8b5f847e6961cb9a996e1ae93'
-AGORA_APP_CERTIFICATE = 'e2f0a6a085d34973ad08c7cfa785796d'
+TWO_FACTOR_API_KEY = config('TWO_FACTOR_API_KEY', default='15b274f8-8600-11ef-8b17-0200cd936042')
+AGORA_APP_ID = config('AGORA_APP_ID', default='9626e8b5f847e6961cb9a996e1ae93')
+AGORA_APP_CERTIFICATE = config('AGORA_APP_CERTIFICATE', default='e2f0a6a085d34973ad08c7cfa785796d')
 RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID", default="rzp_test_example")
 RAZORPAY_SECRET_KEY = config("RAZORPAY_SECRET_KEY", default="rzp_test_secret")
 

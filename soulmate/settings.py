@@ -140,8 +140,8 @@ DATABASES = {
         'NAME': config('DB_NAME'),
         'USER': config('DB_USER'),
         'PASSWORD': config('DB_PASSWORD'),  
-        'HOST': config('DB_HOST', default='voicydatabse.cpissyeu4h60.ap-south-1.rds.amazonaws.com'),
-        'PORT': config('DB_PORT', default='3306'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
         },
@@ -166,7 +166,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_rabbitmq.core.RabbitmqChannelLayer",
         "CONFIG": {
-            "host": config('RABBITMQ_HOST', default='amqp://guest:guest@localhost:5672/'),
+            "host": config('RABBITMQ_HOST'),
         },
     }
 }
@@ -179,11 +179,11 @@ CACHES = {
 }
 
 
-TWO_FACTOR_API_KEY = config('TWO_FACTOR_API_KEY', default='15b274f8-8600-11ef-8b17-0200cd936042')
-AGORA_APP_ID = config('AGORA_APP_ID', default='9626e8b5f847e6961cb9a996e1ae93')
-AGORA_APP_CERTIFICATE = config('AGORA_APP_CERTIFICATE', default='e2f0a6a085d34973ad08c7cfa785796d')
-RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID", default="rzp_test_example")
-RAZORPAY_SECRET_KEY = config("RAZORPAY_SECRET_KEY", default="rzp_test_secret")
+TWO_FACTOR_API_KEY = config('TWO_FACTOR_API_KEY')
+AGORA_APP_ID = config('AGORA_APP_ID')
+AGORA_APP_CERTIFICATE = config('AGORA_APP_CERTIFICATE')
+RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID")
+RAZORPAY_SECRET_KEY = config("RAZORPAY_SECRET_KEY")
 
 
 # Password validation
